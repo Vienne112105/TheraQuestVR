@@ -41,6 +41,7 @@ namespace TheraQuest
         int index;
         GamificationManager game;
         DateTime startedAt;
+        string sessionUuid, sessionSource;
         float repMessageTimer;
         bool awaitingReady;          // patient is getting into the start position for the next exercise
         float autoReadyTimer;        // simulated mode continues on its own
@@ -116,7 +117,9 @@ namespace TheraQuest
 
         void ShowReadyBanner()
         {
-            if (!program.phase.vrAllowed)
+            if (program.exercises.Length == 0 && !online && api.LastProblem != null)
+                hud.SetFeedback(api.LastProblem, Tone.Warn);
+            else if (!program.phase.vrAllowed)
                 hud.SetFeedback("Right now you exercise with your therapist.\n<size=34>No VR session today</size>", Tone.Warn);
             else if (program.exercises.Length == 0)
                 hud.SetFeedback("No exercises prescribed yet. Ask your therapist.", Tone.Warn);
@@ -144,7 +147,9 @@ namespace TheraQuest
             {
                 if (program == null) return "Loading…";
                 var sb = new StringBuilder();
-                if (!program.phase.vrAllowed) sb.Append($"<color={UIKit.HexWarn}>Right now you exercise with your therapist, not in VR.</color>");
+                if (program.exercises.Length == 0 && !online && api.LastProblem != null)
+                    sb.Append($"<color={UIKit.HexWarn}>{api.LastProblem}</color>");
+                else if (!program.phase.vrAllowed) sb.Append($"<color={UIKit.HexWarn}>Right now you exercise with your therapist, not in VR.</color>");
                 else if (program.exercises.Length == 0) sb.Append($"<color={UIKit.HexWarn}>No exercises yet. Ask your therapist.</color>");
                 else
                 {
@@ -154,7 +159,8 @@ namespace TheraQuest
                     sb.Append($"Today: <b>{program.exercises.Length} exercises</b> · about {Mathf.Max(1, Mathf.RoundToInt(seconds / 60f))} minutes");
                     if (GameSettings.ShowDetails && !string.IsNullOrEmpty(program.phase.romGoal)) sb.Append($"\n<color={UIKit.HexMuted}>Goal: {program.phase.romGoal}</color>");
                 }
-                if (!online) sb.Append($"\n<color={UIKit.HexWarn}>Practice mode: your results are saved and sent later.</color>");
+                if (!online && program.exercises.Length > 0)
+                    sb.Append($"\n<color={UIKit.HexWarn}>Offline: your results are saved and sent to your therapist later.</color>");
                 return sb.ToString();
             }
         }
@@ -202,6 +208,26 @@ namespace TheraQuest
             else if (head != null) head.Recenter();
         }
 
+        /// <summary>Therapist page: point this computer at another patient and load their program.</summary>
+        public void SwitchPatient(string code)
+        {
+            if (phase != Phase.Ready && phase != Phase.Loading) return;
+            api.SetPatientCode(code);
+            menu.Close();
+            hud.SetFeedback("Loading your program…", Tone.Neutral);
+            StartCoroutine(LoadProgram());
+        }
+
+        public string ActivePatientCode => api.Code;
+        public bool SessionRunning => phase == Phase.Running;
+
+        /// <summary>Closing the app mid-session: keep what was done so far (queued, sent at the next start).</summary>
+        void OnApplicationQuit()
+        {
+            if (phase != Phase.Running || game == null) return;
+            api.QueueOffline(BuildUpload(endedEarly: true, completed: false, out _, out _, out _, out _, out _));
+        }
+
         public void Quit()
         {
 #if UNITY_EDITOR
@@ -216,7 +242,8 @@ namespace TheraQuest
         {
             InputHelper.Tick();
             float dt = Time.deltaTime;   // 0 while paused, which freezes the exercise
-            if (mover != null) mover.locked = menu.IsOpen;
+            // No walking during an exercise: stick drift or a bumped stick would move the patient (M4.3)
+            if (mover != null) mover.locked = menu.IsOpen || phase == Phase.Running;
 
             var ex = Current;
             motion.Sample(ex, dt);
@@ -225,7 +252,7 @@ namespace TheraQuest
             if (menu.IsOpen) menu.HandleInput();
             else
             {
-                if (InputHelper.NextSourcePressed) motion.NextSource();
+                // The input source is changed only on the therapist page, never mid-session (M4.3)
                 if (InputHelper.RecenterPressed) ReturnToStation();
                 switch (phase)
                 {
@@ -297,7 +324,9 @@ namespace TheraQuest
         void UpdateSourceText()
         {
             string status;
-            if (GameSettings.ShowDetails)
+            if (motion.source == InputSource.Webcam && receiver.Problem != null)
+                status = $"<color={UIKit.HexBad}>●</color> {receiver.Problem}";
+            else if (GameSettings.ShowDetails)
             {
                 if (motion.source == InputSource.Webcam)
                     status = receiver.IsReceiving
@@ -336,6 +365,8 @@ namespace TheraQuest
                 Subtitles.Say("Badge unlocked: " + GamificationManager.BadgeNames[code], 2.5f, "Badge chime");
             };
             startedAt = DateTime.Now;
+            sessionUuid = Guid.NewGuid().ToString();
+            sessionSource = motion.SourceLabel;   // locked for the whole session
             phase = Phase.Running;
             hud.SetQuest(program.exercises, evaluators, index, true);
             PrepareExercise();
@@ -399,6 +430,36 @@ namespace TheraQuest
         }
 
         /// <summary>Scores the session and uploads it.</summary>
+        SessionUpload BuildUpload(bool endedEarly, bool completed, out float avgAcc, out float avgErr,
+                                  out int valid, out int attempts, out int unsafeReps)
+        {
+            var upload = new SessionUpload
+            {
+                patient_id = program.patient.id,
+                patient_code = api.Code,
+                session_uuid = sessionUuid,
+                started_at = startedAt.ToString("yyyy-MM-ddTHH:mm:ss", System.Globalization.CultureInfo.InvariantCulture),
+                ended_at = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss", System.Globalization.CultureInfo.InvariantCulture),
+                ended_early = endedEarly,
+                input_source = sessionSource,
+                points = game.Points,
+                badges_earned = new List<string>(game.EarnedThisSession)
+            };
+            float accSum = 0; int accN = 0; float errSum = 0;
+            valid = 0; attempts = 0; unsafeReps = 0;
+            foreach (var e in evaluators)
+            {
+                upload.exercises.Add(e.ToResult());
+                foreach (var a in e.Accuracies) { accSum += a; accN++; }
+                foreach (var x in e.Errors) errSum += x;
+                valid += e.ValidReps; attempts += e.Attempts; unsafeReps += e.UnsafeReps;
+            }
+            avgAcc = accN > 0 ? accSum / accN : 0f;
+            avgErr = accN > 0 ? errSum / accN : 0f;
+            upload.stars = GamificationManager.Stars(avgAcc, completed);
+            return upload;
+        }
+
         void FinishSession(bool endedEarly)
         {
             phase = Phase.Uploading;
@@ -407,28 +468,8 @@ namespace TheraQuest
             bool completed = !endedEarly && allDone;
             if (completed) game.AddCompletionBonus();
 
-            var upload = new SessionUpload
-            {
-                patient_id = program.patient.id,
-                started_at = startedAt.ToString("yyyy-MM-ddTHH:mm:ss"),
-                ended_at = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"),
-                ended_early = endedEarly,
-                input_source = motion.SourceLabel,
-                points = game.Points,
-                badges_earned = new List<string>(game.EarnedThisSession)
-            };
-            float accSum = 0; int accN = 0; float errSum = 0;
-            int valid = 0, attempts = 0, unsafeReps = 0;
-            foreach (var e in evaluators)
-            {
-                upload.exercises.Add(e.ToResult());
-                foreach (var a in e.Accuracies) { accSum += a; accN++; }
-                foreach (var x in e.Errors) errSum += x;
-                valid += e.ValidReps; attempts += e.Attempts; unsafeReps += e.UnsafeReps;
-            }
-            float avgAcc = accN > 0 ? accSum / accN : 0f;
-            float avgErr = accN > 0 ? errSum / accN : 0f;
-            upload.stars = GamificationManager.Stars(avgAcc, completed);
+            var upload = BuildUpload(endedEarly, completed, out float avgAcc, out float avgErr,
+                                     out int valid, out int attempts, out int unsafeReps);
 
             hud.SetFeedback("Saving session…", Tone.Neutral);
             StartCoroutine(api.UploadSession(upload, resp =>

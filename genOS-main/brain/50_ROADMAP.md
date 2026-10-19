@@ -39,7 +39,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M4.1 | M4 | done | Repository & Environment Safety |
 | M4.2 | M4 | done | Backend Security & Data Integrity |
 | M4.3 | M4 | active | Unity Client Robustness & Deployability |
-| M4.4 | M4 | planned | Tracker Measurement Correctness |
+| M4.4 | M4 | done | Tracker Measurement Correctness |
 | M4.5 | M4 | planned | Evaluation Pipeline Integrity |
 | M4.6 | M4 | planned | Single Source of Exercise Definitions |
 
@@ -187,7 +187,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
   - `M4.1`: Repository & Environment Safety (done)
   - `M4.2`: Backend Security & Data Integrity (done)
   - `M4.3`: Unity Client Robustness & Deployability (active)
-  - `M4.4`: Tracker Measurement Correctness
+  - `M4.4`: Tracker Measurement Correctness (done)
   - `M4.5`: Evaluation Pipeline Integrity
   - `M4.6`: Single Source of Exercise Definitions
 - **Done when:** all children are done and the server, tracker, evaluation and Unity EditMode test suites pass, followed by a human Play-mode and headset check.
@@ -217,7 +217,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 - **Systems:** SessionOrchestration, ExerciseEvaluation, VRClinicExperience
 
 ### M4.4 — Tracker Measurement Correctness
-- **Status:** planned
+- **Status:** done
 - **Objective:** Only measure what the camera can actually see, in the right direction.
 - **Deliverables:** per-landmark visibility; visibility-checked posture metrics; zero-length vectors reported as not visible; signed side-view elevation angles; camera reconnect; verified model download; tests.
 - **Completion criteria:** `test_angles.py` covers each case and passes; UDP payload stays backward compatible.

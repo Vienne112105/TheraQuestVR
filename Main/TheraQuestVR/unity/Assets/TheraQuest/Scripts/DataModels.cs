@@ -140,8 +140,9 @@ namespace TheraQuest
     [Serializable]
     public class SessionUpload
     {
-        public int patient_id;      // 0 = recorded with the offline default program; the server uses patient_code
+        public int patient_id;      // 0 = unknown (no program loaded); the server uses patient_code
         public string patient_code;
+        public string session_uuid; // set once per session; the server ignores a repeated upload with the same id
         public string started_at;
         public string ended_at;
         public bool ended_early;

@@ -27,7 +27,9 @@ systems_in_scope:
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on:
-  - "M4.3 Unity Client Robustness & Deployability"
+  - "M4.3 remaining: install com.unity.xr.management + com.unity.xr.openxr, enable the OpenXR loader for Standalone with the Oculus Touch profile, check desktop fallback without a headset"
+  - "M4.3 remaining: README controls (Tab/X source switch removed; therapist page + PIN; -patient / -server command line; config.json)"
+  - "M4.3 remaining: human Play-mode check (online, offline cache, queue flush, therapist page) and a built player run with -patient P-900"
 
 # Known bugs or risks
 known_issues:
@@ -38,4 +40,4 @@ known_issues:
 blocked: []
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "M3 (Security, Therapist Authentication & Production Hardening) closed on human sign-off 2026-10-19; M3.1 and M3.2 are done. M3.2 delivered DEC-009: therapist bearer-token enforcement on all clinical /api routes (401), patient-scoped loopback-only VR routes /api/vr/program and /api/vr/sessions keyed by X-Patient-Code (403 on cross-patient writes), legacy POST /api/sessions removed, Unity ApiClient on patientCode with offline queue carrying the code and a rejected_sessions.jsonl for refused lines. Verified by server/test_authorization.py (13/13) and a human Play-mode run (online plus offline-queue flush). All defined roadmap milestones (M0-M3) are now done. Next agent: ask the human for the next program milestone scope; do not invent roadmap phases."
+session_summary: "M4 Foundation Hardening in progress (approved 2026-10-20 after a project-wide audit). Done: M4.1 (git repo, DB moved to %LOCALAPPDATA%\TheraQuest per DEC-010, pinned deps, launchers, README), M4.2 (static traversal fix, no CORS, XSS escaping, first-run setup with no default password, change password, login throttling, hashed tokens, server-side completion rules, idempotent session_uuid, protocol reload keeps custom protocols, 400/404/409 errors; server tests 13 + 23 pass), M4.4 (tracker per-landmark visibility, signed elevation angles, camera reconnect, verified model download; 27 tests pass; done in a parallel session, live webcam reconnect untested on hardware). M4.3 code is in place and committed as a checkpoint: ClientConfig (command line / config.json / PIN-protected therapist page for patient code, motion input, therapist numbers), cached last program instead of the hardcoded offline program, resilient queue with session_uuid and rejected file, ProgramRules validation, loopback-only UDP receiver, locomotion locked during exercises, quit checkpoint, TheraQuest.Runtime asmdef + 18 EditMode tests passing. M4.3 still needs the items in working_on. Then M4.5 (evaluation integrity) and M4.6 (single source of exercise definitions; must consume the tracker's new signed fields shoulderElevSigned/hipElevSigned). Next agent: finish M4.3, then continue in order."

@@ -208,7 +208,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TheraQuest.MotionInput
   receiver: {fileID: 207968768}
-  source: 0
+  source: 2
   maxTrunkLean: 12
   maxElbowDrift: 30
   maxKneeBend: 15
@@ -228,6 +228,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TheraQuest.MotionReceiver
   port: 5005
+  listenOnAllInterfaces: 0
 --- !u!4 &207968769
 Transform:
   m_ObjectHideFlags: 0

@@ -15,10 +15,12 @@ namespace TheraQuest
     ///   Up / Down (arrows or thumbstick) choose, Left / Right change a value,
     ///   Space / Enter / A select, Esc / B go back. On the laptop the mouse can click too.
     /// SessionManager calls <see cref="HandleInput"/> every frame while the menu is open.
+    /// The therapist page (patient code, motion input, therapist numbers) sits behind a 4-digit PIN and is
+    /// only reachable from the main menu, never mid-session (M4.3). The first visit sets the PIN.
     /// </summary>
     public class MenuController : MonoBehaviour
     {
-        public enum Page { Main, Pause, Settings }
+        public enum Page { Main, Pause, Settings, TherapistPin, Therapist }
 
         public SessionManager session;
 
@@ -46,6 +48,14 @@ namespace TheraQuest
         Transform rowRoot;
         int sel, lastSel = -1;
         Page back;                              // where Settings returns to
+        readonly int[] pin = new int[4];
+        readonly int[] codeDigits = new int[3];
+        string pinMessage = "";
+        int pinFailures;
+        bool changingPin;                       // "Change PIN" chosen: the PIN page sets a new one
+        float pinLockedUntil;
+        const int MaxPinFailures = 5;
+        const float PinLockSeconds = 60f;
 
         void Awake()
         {
@@ -91,6 +101,8 @@ namespace TheraQuest
             {
                 case Page.Main: BuildMain(); break;
                 case Page.Pause: BuildPause(); break;
+                case Page.TherapistPin: BuildTherapistPin(); break;
+                case Page.Therapist: BuildTherapist(); break;
                 default: BuildSettings(); break;
             }
             Layout();
@@ -116,6 +128,8 @@ namespace TheraQuest
             if (coach != null && coach.Ready)
                 Add(() => "Guide Mode", value: () => coach.GuideName, adjust: d => coach.ToggleGuide());
             Add(() => "Settings", select: () => Open(Page.Settings));
+            Add(() => "Therapist", select: () => { Array.Clear(pin, 0, pin.Length); pinMessage = ""; Open(Page.TherapistPin); },
+                enabled: () => !session.SessionRunning);
             Add(() => "Quit", select: session.Quit);
         }
 
@@ -148,15 +162,86 @@ namespace TheraQuest
                 GameSettings.StepSubtitleSize(d);
                 Subtitles.Say("This is how big the subtitles look.", 2.5f);
             });
+            Add(() => "Turning", value: () => GameSettings.TurnModes[GameSettings.TurnMode], adjust: GameSettings.StepTurnMode);
+            Add(() => "Walking speed", value: () => GameSettings.MoveSpeeds[GameSettings.MoveSpeed], adjust: GameSettings.StepMoveSpeed);
+            Add(() => "Back", select: GoBack);
+        }
+
+        // ------------------------------------------------------------- therapist
+        bool PinLocked => Time.unscaledTime < pinLockedUntil;
+        string PinText => $"{pin[0]} {pin[1]} {pin[2]} {pin[3]}";
+        string PinValue => string.Concat(pin[0], pin[1], pin[2], pin[3]);
+
+        void BuildTherapistPin()
+        {
+            bool setting = changingPin || !ClientConfig.Current.HasPin;
+            title.text = "Therapist";
+            subtitle.text = setting ? "Choose a 4-digit PIN for the therapist page" : "Enter the therapist PIN";
+            info.text = PinLocked ? $"<color={UIKit.HexWarn}>Too many wrong PINs. Wait a minute.</color>" : pinMessage;
+            for (int i = 0; i < pin.Length; i++)
+            {
+                int d = i;
+                Add(() => $"Digit {d + 1}", value: () => pin[d].ToString(), adjust: k => pin[d] = (pin[d] + k + 10) % 10);
+            }
+            Add(() => setting ? $"Set PIN {PinText}" : "Unlock", select: setting ? (Action)SetPin : TryPin, enabled: () => !PinLocked);
+            Add(() => "Back", select: () => { changingPin = false; Open(Page.Main); });
+        }
+
+        void SetPin()
+        {
+            changingPin = false;
+            ClientConfig.Current.SetPin(PinValue);
+            Open(Page.Therapist);
+        }
+
+        void TryPin()
+        {
+            if (ClientConfig.Current.CheckPin(PinValue))
+            {
+                pinFailures = 0;
+                Open(Page.Therapist);
+                return;
+            }
+            Array.Clear(pin, 0, pin.Length);
+            if (++pinFailures >= MaxPinFailures) { pinLockedUntil = Time.unscaledTime + PinLockSeconds; pinFailures = 0; }
+            pinMessage = $"<color={UIKit.HexBad}>Wrong PIN.</color>";
+            Open(Page.TherapistPin);
+        }
+
+        string CodeFromDigits => $"P-{codeDigits[0]}{codeDigits[1]}{codeDigits[2]}";
+
+        void BuildTherapist()
+        {
+            title.text = "Therapist";
+            subtitle.text = $"This computer is set to patient {session.ActivePatientCode}";
+            info.text = "Codes like P-001. For other codes, start the app with -patient CODE.";
+            string cur = session.ActivePatientCode;
+            if (cur.Length == 5 && cur.StartsWith("P-") && int.TryParse(cur.Substring(2), out int n))
+            {
+                codeDigits[0] = n / 100; codeDigits[1] = n / 10 % 10; codeDigits[2] = n % 10;
+            }
+            for (int i = 0; i < codeDigits.Length; i++)
+            {
+                int d = i;
+                Add(() => $"Patient code digit {d + 1}", value: () => codeDigits[d].ToString(),
+                    adjust: k => codeDigits[d] = (codeDigits[d] + k + 10) % 10);
+            }
+            Add(() => $"Use patient {CodeFromDigits}", select: () => session.SwitchPatient(CodeFromDigits),
+                enabled: () => CodeFromDigits != session.ActivePatientCode);
             Add(() => "Motion input", value: () => session.motion.SourceLabel, adjust: d =>
             {
                 session.motion.NextSource();
                 if (d < 0) session.motion.NextSource();   // three modes: twice forward = once back
             });
-            Add(() => "Turning", value: () => GameSettings.TurnModes[GameSettings.TurnMode], adjust: GameSettings.StepTurnMode);
-            Add(() => "Walking speed", value: () => GameSettings.MoveSpeeds[GameSettings.MoveSpeed], adjust: GameSettings.StepMoveSpeed);
             Add(() => "Show numbers (therapist)", value: () => GameSettings.ShowDetails ? "On" : "Off", adjust: d => GameSettings.ToggleDetails());
-            Add(() => "Back", select: GoBack);
+            Add(() => "Change PIN", select: () =>
+            {
+                changingPin = true;
+                Array.Clear(pin, 0, pin.Length);
+                pinMessage = "";
+                Open(Page.TherapistPin);
+            });
+            Add(() => "Back", select: () => Open(Page.Main));
         }
 
         void Add(Func<string> label, Action select = null, Action<int> adjust = null, Func<string> value = null, Func<bool> enabled = null)
@@ -167,6 +252,7 @@ namespace TheraQuest
         void GoBack()
         {
             if (Current == Page.Settings) Open(back);
+            else if (Current == Page.TherapistPin || Current == Page.Therapist) { changingPin = false; Open(Page.Main); }
             else if (Current == Page.Pause) session.Resume();
             else session.FreeRoam();   // Esc on the main menu: close it and look around
         }

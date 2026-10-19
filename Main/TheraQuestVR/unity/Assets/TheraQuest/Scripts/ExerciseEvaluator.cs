@@ -119,7 +119,7 @@ namespace TheraQuest
 
         void FinishRep()
         {
-            float target = Exercise.targetAngle, tol = Exercise.tolerance;
+            float target = Exercise.targetAngle, tol = Mathf.Max(0.001f, Exercise.tolerance);   // never 0/0
             float err = Mathf.Abs(peak - target);
             int acc = err <= tol
                 ? Mathf.RoundToInt(100f - (err / tol) * 15f)
