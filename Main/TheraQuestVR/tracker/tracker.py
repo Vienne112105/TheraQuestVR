@@ -12,6 +12,7 @@ Usage:
 Press Q in the preview window to quit.
 """
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -22,22 +23,103 @@ import urllib.request
 
 from angles import empty_packet, measure
 
-MODEL_URLS = {
-    "lite": "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
-    "full": "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task",
+# Pinned model version "1" (not "latest"), so every install runs the same model.
+# Sizes / SHA-256 were computed from these exact URLs on 2026-10-20.
+MODELS = {
+    "lite": {
+        "url": "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+        "size": 5777746,
+        "sha256": "59929e1d1ee95287735ddd833b19cf4ac46d29bc7afddbbf6753c459690d574a",
+    },
+    "full": {
+        "url": "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task",
+        "size": 9398198,
+        "sha256": "5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1",
+    },
 }
+
+CAMERA_BACKOFF_MAX = 10.0     # seconds between camera reopen attempts (1, 2, 4, 8, 10, 10 ...)
 
 BONES = [(11, 12), (11, 13), (13, 15), (12, 14), (14, 16), (11, 23), (12, 24),
          (23, 24), (23, 25), (25, 27), (24, 26), (26, 28)]
 
 
-def ensure_model(kind):
-    here = os.path.dirname(os.path.abspath(__file__))
+def _sha256(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def model_ok(path, spec):
+    """True if the file at `path` is exactly the pinned model (size and SHA-256 match)."""
+    return (os.path.isfile(path) and os.path.getsize(path) == spec["size"]
+            and _sha256(path) == spec["sha256"])
+
+
+def ensure_model(kind, here=None, fetch=urllib.request.urlretrieve):
+    """Return the path of a verified model file, downloading it if missing or corrupt.
+    The download goes to a temp file and only replaces the real file once verified,
+    so an interrupted download can never be mistaken for a good model."""
+    spec = MODELS[kind]
+    here = here or os.path.dirname(os.path.abspath(__file__))
     path = os.path.join(here, f"pose_landmarker_{kind}.task")
-    if not os.path.exists(path):
+    if model_ok(path, spec):
+        return path
+    if os.path.exists(path):
+        print(f"Pose model ({kind}) is incomplete or corrupt; downloading again")
+    else:
         print(f"Downloading pose model ({kind}) ... one time only")
-        urllib.request.urlretrieve(MODEL_URLS[kind], path)
+    tmp = path + ".part"
+    try:
+        fetch(spec["url"], tmp)
+        if not model_ok(tmp, spec):
+            raise RuntimeError(f"Downloaded pose model ({kind}) failed size/SHA-256 check")
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
     return path
+
+
+def open_camera(cv2, cam_index):
+    backend = cv2.CAP_DSHOW if os.name == "nt" else cv2.CAP_ANY
+    cap = cv2.VideoCapture(cam_index, backend)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    return cap
+
+
+def wait_keep_responsive(cv2, seconds):
+    """Sleep for `seconds` while still pumping the preview window; True if Q was pressed."""
+    end = time.time() + seconds
+    while True:
+        if cv2.waitKey(50) & 0xFF in (ord("q"), ord("Q")):
+            return True
+        if time.time() >= end:
+            return False
+        time.sleep(0.01)   # waitKey returns at once when no window is open yet
+
+
+def reopen_camera(cv2, cap, cam_index, sleep=wait_keep_responsive):
+    """Camera stopped delivering frames: release it and retry with exponential backoff
+    (1 s, 2 s, 4 s ... capped at CAMERA_BACKOFF_MAX). Returns the new capture, or None
+    if the user pressed Q while waiting."""
+    cap.release()
+    delay = 1.0
+    while True:
+        print(f"Camera {cam_index} lost; reopening in {delay:.0f} s (Q to quit) ...")
+        if sleep(cv2, delay):
+            return None
+        cap = open_camera(cv2, cam_index)
+        if cap.isOpened():
+            ok, _ = cap.read()
+            if ok:
+                print("Camera reconnected.")
+                return cap
+        cap.release()
+        delay = min(delay * 2, CAMERA_BACKOFF_MAX)
 
 
 def send(sock, addr, packet):
@@ -57,6 +139,8 @@ def run_fake(sock, addr):
             "hipElev": round(47 * wave, 1),
             "kneeFlex": round(88 * wave, 1),
             "kneeExt": round(78 * wave, 1),
+            "shoulderElevSigned": round(92 * wave, 1),
+            "hipElevSigned": round(47 * wave, 1),
         }
         packet = {"ts": round(t, 3), "visible": True, "side": "R", **angles,
                   "trunkLean": 3.0, "elbowDrift": 8.0, "L": angles, "R": angles}
@@ -84,10 +168,7 @@ def run_camera(sock, addr, cam_index, model_kind, mirror):
         )
     )
 
-    backend = cv2.CAP_DSHOW if os.name == "nt" else cv2.CAP_ANY
-    cap = cv2.VideoCapture(cam_index, backend)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cap = open_camera(cv2, cam_index)
     if not cap.isOpened():
         sys.exit(f"Could not open camera {cam_index}. Try --camera 1, or close other apps using the webcam.")
 
@@ -95,13 +176,26 @@ def run_camera(sock, addr, cam_index, model_kind, mirror):
     t0 = time.time()
     last_ts = -1
     fps, fps_t, fps_n = 0.0, time.time(), 0
+    misses = 0
 
     while True:
         ok, frame = cap.read()
         if not ok:
-            print("Camera frame not received; retrying ...")
-            time.sleep(0.1)
+            # A few dropped frames are normal; a run of them means the camera is gone.
+            misses += 1
+            if misses < 10:
+                if wait_keep_responsive(cv2, 0.05):
+                    break
+                continue
+            empty = empty_packet()
+            empty["ts"] = round(time.time() - t0, 3)
+            send(sock, addr, empty)      # tell Unity nobody is tracked while we reconnect
+            cap = reopen_camera(cv2, cap, cam_index)
+            if cap is None:
+                break
+            misses = 0
             continue
+        misses = 0
         h, w = frame.shape[:2]
 
         # Frame Preprocessor: BGR -> RGB (MediaPipe expects RGB)
@@ -144,7 +238,8 @@ def run_camera(sock, addr, cam_index, model_kind, mirror):
         if cv2.waitKey(1) & 0xFF in (ord("q"), ord("Q")):
             break
 
-    cap.release()
+    if cap is not None:
+        cap.release()
     cv2.destroyAllWindows()
 
 
