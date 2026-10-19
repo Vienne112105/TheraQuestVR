@@ -8,7 +8,7 @@ Delivers a web browser interface for physical therapists to monitor patient adhe
 
 ## Responsibilities
 - Serve as a formal clinical Rehabilitation Monitoring & Prescription System (RMS) designed specifically for Physical Therapists.
-- Enforce Clinician Authentication with a dedicated in-app login view (`#viewLogin`), credential validation, bearer token persistence in localStorage, and clean sign-out.
+- Enforce Clinician Authentication with a dedicated in-app login view (`#viewLogin`), first-run login creation (`#setupForm`), password change (`#passwordModal`, forced after a demo-password sign-in), bearer token persistence in localStorage, and clean sign-out.
 - Provide a Patient Caseload Directory for managing enrolled patients, diagnosis filtering, and quick chart access.
 - Display patient adherence calendar with clinical statuses: Complete, Incomplete, and Missed sessions.
 - Provide an interactive prescription editor and customized Add Movement modal (`#addExerciseModal`) allowing therapists to modify targets, tolerance, repetitions, sets, limb sides, and rest times prior to prescribing.
@@ -34,6 +34,7 @@ Delivers a web browser interface for physical therapists to monitor patient adhe
 - Clinical note entries must be timestamped and permanently associated with patient session records.
 - Preserves full zero-dependency vanilla JS architecture served directly by `server.py` at `http://localhost:8000`.
 - All user-facing dialogues must be in-app HTML modals; no native browser `alert()` or `confirm()` calls are permitted.
+- Every value from the API placed into HTML goes through `esc()` (which also escapes `'`); record names are never interpolated into inline `onclick` strings — handlers look records up by id.
 
 ## Notes
 - Runs as a native desktop application via `app.py` (powered by Windows WebView2, eliminating browser address bars/tabs). Strict clinical light mode with clean CSS utility classes and debounced icon rendering.

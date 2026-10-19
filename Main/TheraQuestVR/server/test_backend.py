@@ -1,0 +1,303 @@
+"""
+Backend security and data-integrity tests for M4.2: static file containment, no CORS, input validation,
+server-side completion rules, idempotent uploads, protocol replacement, prescription bounds, error codes,
+migration of old databases, password change and login throttling.
+
+Run:   python test_backend.py
+"""
+import http.client
+import os
+import shutil
+import sqlite3
+import tempfile
+import unittest
+
+import server
+from testsupport import ServerTestCase, TEST_USER, TEST_PASSWORD
+
+
+class BackendTests(ServerTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.p1 = cls.patient_ids()["P-001"]
+        cls.vr = {"X-Patient-Code": "P-001"}
+
+    def raw_get(self, path, headers=None):
+        """GET without any URL clean-up, like `curl --path-as-is`."""
+        conn = http.client.HTTPConnection("127.0.0.1", self.httpd.server_address[1], timeout=10)
+        conn.request("GET", path, headers=headers or {})
+        resp = conn.getresponse()
+        body = resp.read()
+        conn.close()
+        return resp.status, dict(resp.getheaders()), body
+
+    def vr_program(self, code="P-001"):
+        status, body = self.call("GET", "/api/vr/program", headers={"X-Patient-Code": code})
+        self.assertEqual(status, 200, body)
+        return body
+
+    def full_results(self, program, **overrides):
+        out = []
+        for e in program["exercises"]:
+            need = e["reps"] * max(1, e["sets"])
+            r = {"exercise_id": e["id"], "target_reps": need, "valid_reps": need, "attempts": need,
+                 "avg_accuracy": 90, "mean_angle_error": 3, "unsafe_reps": 0}
+            r.update(overrides)
+            out.append(r)
+        return out
+
+    # ------------------------------------------------ static files and CORS
+    def test_static_traversal_is_refused(self):
+        for path in ("/static/../server.py", "/static/../theraquest.db", "/static/vendor/../../server.py",
+                     "/static/C:/Windows/win.ini"):
+            with self.subTest(path=path):
+                status, _, body = self.raw_get(path)
+                self.assertIn(status, (403, 404))
+                self.assertNotIn(b"import", body)
+
+    def test_static_vendor_file_served(self):
+        status, headers, _ = self.raw_get("/static/vendor/chart.umd.min.js")
+        self.assertEqual(status, 200)
+        self.assertIn("javascript", headers.get("Content-Type", ""))
+
+    def test_no_cors_headers(self):
+        for path in ("/api/auth/setup", "/api/patients", "/"):
+            with self.subTest(path=path):
+                _, headers, _ = self.raw_get(path, {"Origin": "http://evil.example"})
+                self.assertFalse(any(h.lower().startswith("access-control-") for h in headers))
+
+    def test_vr_route_refuses_browser_origin(self):
+        status, _ = self.call("POST", "/api/vr/sessions", self.session_body(self.p1),
+                              {"X-Patient-Code": "P-001", "Origin": "http://evil.example"})
+        self.assertEqual(status, 403)
+
+    # ------------------------------------------------ input validation (stored script)
+    def test_script_in_session_time_rejected(self):
+        body = self.session_body(self.p1, started_at="<img src=x onerror=alert(1)>")
+        status, _ = self.call("POST", "/api/vr/sessions", body, self.vr)
+        self.assertEqual(status, 400)
+        _, dash = self.call("GET", f"/api/patients/{self.p1}/dashboard", headers=self.auth)
+        self.assertFalse(any("<" in s["started_at"] for s in dash["sessions"]))
+
+    def test_unknown_input_source_rejected(self):
+        status, _ = self.call("POST", "/api/vr/sessions", self.session_body(self.p1, input_source="<b>x</b>"), self.vr)
+        self.assertEqual(status, 400)
+
+    # ------------------------------------------------ completion and progression rules
+    def test_complete_uses_server_prescription(self):
+        prog = self.vr_program()
+        # Client claims a target of 0 and does nothing: must not count as complete
+        lazy = self.full_results(prog, target_reps=0, valid_reps=0, attempts=0)
+        status, body = self.call("POST", "/api/vr/sessions", self.session_body(self.p1, lazy), self.vr)
+        self.assertEqual(status, 201, body)
+        self.assertEqual(body["status"], "incomplete")
+        status, body = self.call("POST", "/api/vr/sessions", self.session_body(self.p1, self.full_results(prog)), self.vr)
+        self.assertEqual(body["status"], "complete")
+
+    def test_duplicate_exercise_ids_count_once(self):
+        prog = self.vr_program()
+        results = self.full_results(prog)
+        results += [dict(results[0])]
+        _, body = self.call("POST", "/api/vr/sessions", self.session_body(self.p1, results), self.vr)
+        con = sqlite3.connect(server.DB_PATH)
+        n = con.execute("SELECT COUNT(*) FROM performance_record WHERE session_id=?", (body["session_id"],)).fetchone()[0]
+        con.close()
+        self.assertEqual(n, len(prog["exercises"]))
+
+    def test_empty_program_is_never_complete(self):
+        status, _ = self.call("POST", "/api/patients", {"code": "P-950"}, self.auth)
+        self.assertEqual(status, 201)
+        prog = self.vr_program("P-950")
+        for e in prog["exercises"]:
+            self.call("DELETE", f"/api/patients/{prog['patient']['id']}/exercises/{e['id']}", headers=self.auth)
+        self.assertEqual(self.vr_program("P-950")["exercises"], [])
+        status, body = self.call("POST", "/api/vr/sessions", self.session_body(prog["patient"]["id"]),
+                                 {"X-Patient-Code": "P-950"})
+        self.assertEqual(status, 201, body)
+        self.assertEqual(body["status"], "incomplete")
+        self.assertNotIn("first", body["new_badges"])
+
+    def test_results_for_other_patients_exercises_ignored(self):
+        status, _ = self.call("POST", "/api/patients", {"code": "P-951"}, self.auth)
+        other = self.vr_program("P-951")["exercises"][0]["id"]
+        body = self.session_body(self.p1, [{"exercise_id": other, "target_reps": 1, "valid_reps": 1, "attempts": 1}])
+        status, res = self.call("POST", "/api/vr/sessions", body, self.vr)
+        self.assertEqual(status, 201)
+        self.assertTrue(any("ignored" in n for n in res["notes"]))
+
+    def test_session_uuid_is_idempotent(self):
+        body = self.session_body(self.p1, session_uuid="7a1d1c1e-0000-4000-8000-000000000001", points=40)
+        s1, first = self.call("POST", "/api/vr/sessions", body, self.vr)
+        xp1 = first["patient"]["xp"]
+        s2, second = self.call("POST", "/api/vr/sessions", body, self.vr)
+        self.assertEqual((s1, s2), (201, 201))
+        self.assertEqual(first["session_id"], second["session_id"])
+        self.assertTrue(second.get("duplicate"))
+        self.assertEqual(second["patient"]["xp"], xp1)
+
+    # ------------------------------------------------ prescription bounds
+    def test_add_exercise_clamps_prescription(self):
+        status, prog = self.call("POST", f"/api/patients/{self.p1}/exercises",
+                                 {"code": "elbowFlex", "rx": {"reps": 500, "targetAngle": 900, "tolerance": -4}}, self.auth)
+        self.assertEqual(status, 201)
+        e = prog["exercises"][-1]
+        self.assertEqual(e["baseReps"], 50)
+        self.assertEqual(e["targetAngle"], 175)
+        self.assertEqual(e["tolerance"], 1)
+
+    def test_add_protocol_clamps_prescription(self):
+        status, prot = self.call("POST", "/api/protocols", {"name": "Bounds test", "phases": [
+            {"name": "P1", "exercises": [{"code": "slr", "reps": 0, "sets": 99, "targetAngle": 1}]}]}, self.auth)
+        self.assertEqual(status, 201, prot)
+        ex = prot["phases"][0]["exerciseDetails"][0]
+        self.assertEqual((ex["reps"], ex["sets"], ex["targetAngle"]), (1, 10, 5))
+
+    # ------------------------------------------------ error codes
+    def test_error_status_codes(self):
+        cases = [
+            ("GET", "/api/patients/abc/dashboard", None, 400),
+            ("GET", "/api/patients/999999/dashboard", None, 404),
+            ("DELETE", "/api/protocols/999999", None, 404),
+            ("POST", "/api/patients", {"code": "P-001"}, 409),
+            ("POST", "/api/patients", {}, 400),
+            ("POST", f"/api/patients/{self.p1}/exercises", {"code": "noSuchExercise"}, 400),
+            ("PUT", f"/api/patients/{self.p1}/program", {"maxReps": "lots"}, 400),
+        ]
+        for method, path, body, want in cases:
+            with self.subTest(method=method, path=path):
+                status, res = self.call(method, path, body, self.auth)
+                self.assertEqual(status, want, res)
+                self.assertNotIn("Traceback", str(res))
+
+    def test_bad_json_is_400(self):
+        status, _ = self.call("POST", "/api/patients", headers=self.auth, raw=b"{not json")
+        self.assertEqual(status, 400)
+        status, _ = self.call("POST", "/api/vr/sessions", headers=self.vr, raw=b"[1,2,3]")
+        self.assertEqual(status, 400)
+
+    # ------------------------------------------------ credentials
+    def test_setup_only_once(self):
+        _, body = self.call("GET", "/api/auth/setup")
+        self.assertFalse(body["needsSetup"])
+        status, _ = self.call("POST", "/api/auth/setup", {"username": "intruder", "password": "whatever-123"})
+        self.assertEqual(status, 409)
+
+    def test_tokens_stored_hashed(self):
+        con = sqlite3.connect(server.DB_PATH)
+        stored = [r[0] for r in con.execute("SELECT token FROM therapist_session")]
+        con.close()
+        self.assertTrue(stored)
+        self.assertNotIn(self.token, stored)
+
+    def test_change_password(self):
+        bad = self.call("POST", "/api/auth/password", {"current_password": "wrong", "new_password": "another-pass-1"}, self.auth)
+        self.assertEqual(bad[0], 400)
+        short = self.call("POST", "/api/auth/password", {"current_password": TEST_PASSWORD, "new_password": "short"}, self.auth)
+        self.assertEqual(short[0], 400)
+        demo = self.call("POST", "/api/auth/password", {"current_password": TEST_PASSWORD, "new_password": "password123"}, self.auth)
+        self.assertEqual(demo[0], 400)
+        ok = self.call("POST", "/api/auth/password", {"current_password": TEST_PASSWORD, "new_password": "another-pass-1"}, self.auth)
+        self.assertEqual(ok[0], 200)
+        try:
+            self.assertEqual(self.call("POST", "/api/auth/login", {"username": TEST_USER, "password": "another-pass-1"})[0], 200)
+            self.assertEqual(self.call("POST", "/api/auth/login", {"username": TEST_USER, "password": TEST_PASSWORD})[0], 401)
+        finally:
+            self.call("POST", "/api/auth/password", {"current_password": "another-pass-1", "new_password": TEST_PASSWORD}, self.auth)
+            server._login_failures.clear()
+
+    def test_login_throttled_after_failures(self):
+        try:
+            for _ in range(server.LOGIN_MAX_FAILURES):
+                self.assertEqual(self.call("POST", "/api/auth/login", {"username": "nobody", "password": "guess-1234"})[0], 401)
+            self.assertEqual(self.call("POST", "/api/auth/login", {"username": "nobody", "password": "guess-1234"})[0], 429)
+        finally:
+            server._login_failures.clear()
+
+    def test_old_demo_password_must_be_changed(self):
+        h, s = server.hash_password("password123")
+        con = sqlite3.connect(server.DB_PATH)
+        con.execute("INSERT INTO physical_therapist(name, username, password_hash, salt) VALUES ('Old', 'legacy', ?, ?)", (h, s))
+        con.commit()
+        con.close()
+        status, body = self.call("POST", "/api/auth/login", {"username": "legacy", "password": "password123"})
+        self.assertEqual(status, 200)
+        self.assertTrue(body["mustChangePassword"])
+
+    # ------------------------------------------------ export
+    def test_csv_export_neutralises_formulas(self):
+        status, _ = self.call("POST", "/api/patients", {"code": "P-952", "name": "=HYPERLINK(\"http://x\")"}, self.auth)
+        self.assertEqual(status, 201)
+        pid = self.patient_ids()["P-952"]
+        prog = self.vr_program("P-952")
+        self.call("POST", "/api/vr/sessions", self.session_body(pid, self.full_results(prog)), {"X-Patient-Code": "P-952"})
+        status, _, body = self.raw_get(f"/api/patients/{pid}/export?format=csv&token={self.token}")
+        self.assertEqual(status, 200)
+        self.assertIn(b"'=HYPERLINK", body)
+        self.assertNotIn(b",=HYPERLINK", body)
+
+
+class ProtocolReplaceTests(ServerTestCase):
+
+    def test_version_bump_keeps_custom_protocols(self):
+        status, prot = self.call("POST", "/api/protocols", {"name": "Clinic custom knee"}, self.auth)
+        self.assertEqual(status, 201)
+        con = sqlite3.connect(server.DB_PATH)
+        con.execute("UPDATE app_meta SET value='old' WHERE key='protocol_version'")
+        con.commit()
+        con.close()
+        server.init_db()   # sees the old version and reloads the built-in protocols
+        _, protocols = self.call("GET", "/api/protocols", headers=self.auth)
+        names = [p["name"] for p in protocols]
+        self.assertIn("Clinic custom knee", names)
+        self.assertEqual(sum(1 for n in names if n in {p[0] for p in server.PROTOCOLS}), len(server.PROTOCOLS))
+
+
+OLD_SCHEMA = """
+CREATE TABLE physical_therapist (therapist_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, license_no TEXT, email TEXT);
+CREATE TABLE rehabilitation_program (program_id INTEGER PRIMARY KEY AUTOINCREMENT, therapist_id INTEGER NOT NULL,
+  name TEXT NOT NULL, description TEXT, schedule_days TEXT NOT NULL DEFAULT '1,3,5', max_reps INTEGER NOT NULL DEFAULT 14);
+CREATE TABLE protocol (protocol_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, condition TEXT, source TEXT);
+CREATE TABLE patient (patient_id INTEGER PRIMARY KEY AUTOINCREMENT, therapist_id INTEGER NOT NULL, program_id INTEGER,
+  code TEXT UNIQUE NOT NULL, name TEXT, condition TEXT, xp INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')));
+CREATE TABLE exercise (exercise_id INTEGER PRIMARY KEY AUTOINCREMENT, program_id INTEGER NOT NULL, code TEXT NOT NULL,
+  name TEXT NOT NULL, joint TEXT NOT NULL, target_angle REAL NOT NULL, tolerance REAL NOT NULL DEFAULT 10,
+  reps INTEGER NOT NULL DEFAULT 8, stage INTEGER NOT NULL DEFAULT 1, cue TEXT, sort_order INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE session (session_id INTEGER PRIMARY KEY AUTOINCREMENT, patient_id INTEGER NOT NULL, program_id INTEGER,
+  started_at TEXT NOT NULL, ended_at TEXT NOT NULL, input_source TEXT, points INTEGER NOT NULL DEFAULT 0,
+  stars INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL);
+"""
+
+
+class MigrationTests(unittest.TestCase):
+
+    def test_old_database_starts(self):
+        tmp = tempfile.mkdtemp(prefix="tq_migrate_")
+        real = server.DB_PATH
+        try:
+            server.DB_PATH = os.path.join(tmp, "old.db")
+            con = sqlite3.connect(server.DB_PATH)
+            con.executescript(OLD_SCHEMA)
+            con.execute("INSERT INTO protocol(name) VALUES (?)", (server.PROTOCOLS[0][0],))   # an old built-in copy
+            con.execute("INSERT INTO protocol(name) VALUES ('Custom from 2025')")
+            con.commit()
+            con.close()
+            server.init_db()
+            con = sqlite3.connect(server.DB_PATH)
+            cols = {r[1] for r in con.execute("PRAGMA table_info(exercise)")}
+            self.assertIn("active", cols)
+            names = [r[0] for r in con.execute("SELECT name FROM protocol")]
+            idx = {r[1] for r in con.execute("PRAGMA index_list(patient)")}
+            con.close()
+            self.assertIn("Custom from 2025", names)
+            self.assertEqual(names.count(server.PROTOCOLS[0][0]), 1)
+            self.assertIn("idx_patient_phase", idx)
+        finally:
+            server.DB_PATH = real
+            shutil.rmtree(tmp, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

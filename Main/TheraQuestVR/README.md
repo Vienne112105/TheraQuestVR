@@ -40,7 +40,9 @@ This launches the **Therapist Command Center as a native desktop application win
 For the native window, install the optional package once: `pip install -r server/requirements.txt`. Without it, the launcher opens Edge in app mode.
 You can also view the dashboard via browser at **http://localhost:8000**.
 
-**Sign in.** The dashboard needs a therapist login. A new database is seeded with the clinician account `therapist` / `password123`. Treat this as a development login only: don't use it with real patient data.
+**Sign in.** The dashboard needs a therapist login. There is no default password: the first time you open the dashboard on this computer, it asks you to create the clinician login (at least 8 characters). Use **Password** in the top bar to change it later. A database from an older version that still has the demo password asks for a new one at the next sign-in. After 5 wrong passwords, sign-in for that username pauses for 5 minutes.
+
+The server listens on this computer only. To open the dashboard from another computer on the clinic network, start it with `python server.py --host 0.0.0.0` (the VR routes still accept only this computer).
 
 **Where the data lives.** The database is stored at `%LOCALAPPDATA%\TheraQuest\theraquest.db`, outside the project folder, so OneDrive or git never sync patient data (DEC-010).
 Set the environment variable `THERAQUEST_DB` to use another path. The first run copies an older `server/theraquest.db` there once; delete the old copy after you've checked the dashboard.

@@ -6,12 +6,20 @@ Run:   python server.py            -> http://localhost:8000  (dashboard)
        python server.py --port 8080
        python server.py --reset    -> delete the database and start fresh
 
+Listens on 127.0.0.1 by default; --host 0.0.0.0 opens the dashboard to the clinic network.
+Errors: 400 bad input, 401 not signed in, 403 forbidden, 404 unknown record, 409 conflict, 429 too many sign-ins.
+
 VR API (Unity; header X-Patient-Code: P-001; accepted from this machine only)
   GET  /api/vr/program                       today's program (effective reps include stage)
-  POST /api/vr/sessions                      upload a finished session (patient_id must match the code, or be 0)
+  POST /api/vr/sessions                      upload a finished session (patient_id must match the code, or be 0;
+                                             a repeated session_uuid returns the stored session)
 
 Therapist API (header Authorization: Bearer <token> from /api/auth/login; 401 without it)
-  POST /api/auth/login | /api/auth/logout | GET /api/auth/me   (login is the only open route)
+  GET  /api/auth/setup                       {"needsSetup": true} until the first clinician login exists (open)
+  POST /api/auth/setup                       first run only, from this machine: create that login (open)
+  POST /api/auth/login | /api/auth/logout    sign in (open) / sign out
+  GET  /api/auth/me                          the signed-in clinician
+  POST /api/auth/password                    change password {"current_password", "new_password"}
   GET  /api/patients                         list patients
   GET  /api/patients/{id}/program            program as Unity sees it
   PUT  /api/patients/{id}/program            therapist edits prescription
@@ -38,12 +46,31 @@ import os
 import secrets
 import sqlite3
 import sys
+import threading
+import time
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+class ApiError(Exception):
+    """An error caused by the request, sent to the client with its status and message."""
+    status = 400
+
+
+class BadRequest(ApiError):
+    status = 400
+
+
+class NotFound(ApiError):
+    status = 404
+
+
+class Conflict(ApiError):
+    status = 409
 
 
 def default_db_path():
@@ -289,14 +316,17 @@ PROTOCOLS = [
 MIGRATIONS = {
     "patient": [("phase_id", "INTEGER"), ("phase_started_at", "TEXT")],
     "session": [("pain_before", "INTEGER"), ("pain_after", "INTEGER"),
-                ("soreness_over_2h", "INTEGER"), ("swelling_cm", "REAL")],
+                ("soreness_over_2h", "INTEGER"), ("swelling_cm", "REAL"),
+                ("session_uuid", "TEXT")],                                  # idempotency key from Unity
     "protocol_phase": [("rom_goal", "TEXT"), ("other_exercises", "TEXT"),
                        ("check_soreness", "INTEGER NOT NULL DEFAULT 0"), ("max_swelling_cm", "REAL")],
     "exercise": [("measure", "TEXT"), ("view", "TEXT"), ("position", "TEXT"),
                  ("side", "TEXT NOT NULL DEFAULT ''"), ("safety_max", "REAL NOT NULL DEFAULT 0"),
                  ("hold_seconds", "REAL NOT NULL DEFAULT 0"), ("sets", "INTEGER NOT NULL DEFAULT 1"),
                  ("rest_seconds", "REAL NOT NULL DEFAULT 30"), ("active", "INTEGER NOT NULL DEFAULT 1")],
-    "performance_record": [("unsafe_reps", "INTEGER NOT NULL DEFAULT 0")],
+    "performance_record": [("unsafe_reps", "INTEGER NOT NULL DEFAULT 0"),
+                           ("prescribed", "INTEGER NOT NULL DEFAULT 1")],   # 0 = exercise was no longer active
+    "protocol": [("builtin", "INTEGER NOT NULL DEFAULT 0")],                # 1 = loaded from PROTOCOLS
     "physical_therapist": [
         ("username", "TEXT"),
         ("password_hash", "TEXT"),
@@ -318,11 +348,27 @@ def verify_password(password, password_hash, salt):
     return secrets.compare_digest(key, password_hash)
 
 
+MIN_PASSWORD_LENGTH = 8
+# Passwords that must be changed at the next sign-in (the old seeded development login)
+WEAK_PASSWORDS = {"password123"}
+LOGIN_MAX_FAILURES, LOGIN_WINDOW_SECONDS = 5, 300
+
+_login_failures = defaultdict(list)     # username (lower case) -> monotonic times of recent failed logins
+_login_lock = threading.Lock()
+
+
+def _token_digest(token):
+    """Session tokens are stored hashed, so a copy of the database can't be used to sign in."""
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
 def create_session(con, therapist_id, duration_hours=24):
+    now = datetime.now(timezone.utc)
+    con.execute("DELETE FROM therapist_session WHERE expires_at <= ?", (now.isoformat(),))
     token = secrets.token_hex(32)
-    expires_at = (datetime.now(timezone.utc) + timedelta(hours=duration_hours)).isoformat()
+    expires_at = (now + timedelta(hours=duration_hours)).isoformat()
     con.execute("INSERT INTO therapist_session(token, therapist_id, expires_at) VALUES (?,?,?)",
-                (token, therapist_id, expires_at))
+                (_token_digest(token), therapist_id, expires_at))
     con.commit()
     return token, expires_at
 
@@ -336,14 +382,40 @@ def get_session_therapist(con, token):
         FROM therapist_session s
         JOIN physical_therapist t ON t.therapist_id = s.therapist_id
         WHERE s.token = ? AND s.expires_at > ?
-    """, (token, now)).fetchone()
+    """, (_token_digest(token), now)).fetchone()
     return dict(row) if row else None
 
 
 def delete_session(con, token):
     if token:
-        con.execute("DELETE FROM therapist_session WHERE token = ?", (token,))
+        con.execute("DELETE FROM therapist_session WHERE token = ?", (_token_digest(token),))
         con.commit()
+
+
+def _therapist_json(row):
+    return {"id": row["therapist_id"], "username": row["username"], "name": row["name"],
+            "license_no": row["license_no"], "role": row["role"] or "Licensed Physical Therapist",
+            "email": row["email"]}
+
+
+def _login_blocked(username):
+    now = time.monotonic()
+    with _login_lock:
+        recent = [t for t in _login_failures[username] if now - t < LOGIN_WINDOW_SECONDS]
+        _login_failures[username] = recent
+        return len(recent) >= LOGIN_MAX_FAILURES
+
+
+def _record_login_failure(username):
+    with _login_lock:
+        _login_failures[username].append(time.monotonic())
+
+
+def _check_new_password(password):
+    if not isinstance(password, str) or len(password) < MIN_PASSWORD_LENGTH:
+        raise BadRequest(f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
+    if password in WEAK_PASSWORDS:
+        raise BadRequest("Choose a password other than the old demo password")
 
 
 def auth_login(con, body):
@@ -351,24 +423,61 @@ def auth_login(con, body):
     password = body.get("password") or ""
     if not username or not password:
         return {"error": "Clinician username and password are required"}, 400
+    key = username.lower()
+    if _login_blocked(key):
+        return {"error": f"Too many failed sign-ins. Try again in {LOGIN_WINDOW_SECONDS // 60} minutes."}, 429
     row = con.execute("SELECT * FROM physical_therapist WHERE username = ? COLLATE NOCASE", (username,)).fetchone()
-    if not row or not row["password_hash"] or not row["salt"]:
+    if not row or not row["password_hash"] or not row["salt"] \
+            or not verify_password(password, row["password_hash"], row["salt"]):
+        _record_login_failure(key)
         return {"error": "Invalid clinician username or password"}, 401
-    if not verify_password(password, row["password_hash"], row["salt"]):
-        return {"error": "Invalid clinician username or password"}, 401
+    with _login_lock:
+        _login_failures.pop(key, None)
     token, expires_at = create_session(con, row["therapist_id"])
-    return {
-        "token": token,
-        "expiresAt": expires_at,
-        "therapist": {
-            "id": row["therapist_id"],
-            "username": row["username"],
-            "name": row["name"],
-            "license_no": row["license_no"],
-            "role": row["role"] or "Licensed Physical Therapist",
-            "email": row["email"]
-        }
-    }, 200
+    return {"token": token, "expiresAt": expires_at, "therapist": _therapist_json(row),
+            "mustChangePassword": password in WEAK_PASSWORDS}, 200
+
+
+def needs_setup(con):
+    """True until some clinician has a password: the first run asks for one instead of seeding a default."""
+    return not con.execute("SELECT 1 FROM physical_therapist WHERE password_hash IS NOT NULL LIMIT 1").fetchone()
+
+
+def auth_setup(con, body):
+    """First-run setup: create the first clinician login. Refused once any clinician has a password."""
+    if not needs_setup(con):
+        raise Conflict("Setup is already done. Sign in instead.")
+    username = (body.get("username") or "").strip()
+    if not username:
+        raise BadRequest("Choose a username")
+    password = body.get("password") or ""
+    _check_new_password(password)
+    name = (body.get("name") or "").strip() or "Physical Therapist"
+    h, s = hash_password(password)
+    row = con.execute("SELECT therapist_id FROM physical_therapist ORDER BY therapist_id LIMIT 1").fetchone()
+    if row:
+        con.execute("UPDATE physical_therapist SET username=?, password_hash=?, salt=?, name=? WHERE therapist_id=?",
+                    (username, h, s, name, row["therapist_id"]))
+        tid = row["therapist_id"]
+    else:
+        tid = con.execute("INSERT INTO physical_therapist(name, username, password_hash, salt) VALUES (?,?,?,?)",
+                          (name, username, h, s)).lastrowid
+    con.commit()
+    token, expires_at = create_session(con, tid)
+    row = con.execute("SELECT * FROM physical_therapist WHERE therapist_id=?", (tid,)).fetchone()
+    return {"token": token, "expiresAt": expires_at, "therapist": _therapist_json(row), "mustChangePassword": False}
+
+
+def change_password(con, therapist_id, body):
+    row = con.execute("SELECT * FROM physical_therapist WHERE therapist_id=?", (therapist_id,)).fetchone()
+    if not verify_password(body.get("current_password") or "", row["password_hash"], row["salt"]):
+        raise BadRequest("Current password is incorrect")
+    new = body.get("new_password") or ""
+    _check_new_password(new)
+    h, s = hash_password(new)
+    con.execute("UPDATE physical_therapist SET password_hash=?, salt=? WHERE therapist_id=?", (h, s, therapist_id))
+    con.commit()
+    return {"success": True}
 
 
 # ----------------------------------------------------------------- database
@@ -398,18 +507,11 @@ def init_db():
     """)
     con.execute("CREATE INDEX IF NOT EXISTS idx_therapist_session_token ON therapist_session(token, expires_at);")
     migrate(con)
+    for stmt in POST_MIGRATION_INDEXES:
+        con.execute(stmt)
     if con.execute("SELECT COUNT(*) FROM physical_therapist").fetchone()[0] == 0:
         seed(con)
-    # Ensure default clinician account has credentials
-    row = con.execute("SELECT therapist_id, username FROM physical_therapist LIMIT 1").fetchone()
-    if row and not row["username"]:
-        h, s = hash_password("password123")
-        con.execute("""
-            UPDATE physical_therapist 
-            SET username='therapist', password_hash=?, salt=?, name='Dr. Sarah Chen, PT, DPT', 
-                license_no='PT-94821', role='Lead Physical Therapist'
-            WHERE therapist_id=?
-        """, (h, s, row["therapist_id"]))
+    # No default password: the first clinician login is created through /api/auth/setup.
     version = con.execute("SELECT value FROM app_meta WHERE key='protocol_version'").fetchone()
     if not version or version[0] != PROTOCOL_VERSION:
         replace_protocols(con)
@@ -417,18 +519,33 @@ def init_db():
     con.close()
 
 
+# Indexes on columns that MIGRATIONS may add; created only after migrate() so old databases can start.
+POST_MIGRATION_INDEXES = [
+    "CREATE INDEX IF NOT EXISTS idx_exercise_program_active ON exercise(program_id, active)",
+    "CREATE INDEX IF NOT EXISTS idx_patient_phase ON patient(phase_id)",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_session_uuid ON session(session_uuid)",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_therapist_username ON physical_therapist(username COLLATE NOCASE)",
+]
+
+
 def replace_protocols(con):
     """
-    Loads PROTOCOLS, replacing older built-in protocol data. Patients on an old phase keep their
-    exercises as a custom program; their phase history stays, marked as the old version.
+    Loads PROTOCOLS, replacing older built-in protocol data. Protocols therapists authored are kept.
+    Patients on an old built-in phase keep their exercises as a custom program; their phase history
+    stays, marked as the old version.
     """
-    if con.execute("SELECT COUNT(*) FROM protocol").fetchone()[0]:
-        con.execute("UPDATE patient SET phase_id=NULL, phase_started_at=NULL WHERE phase_id IS NOT NULL")
-        con.execute("""UPDATE phase_history SET note = TRIM(COALESCE(note,'') || ' (earlier protocol version)'), phase_id=NULL
-                       WHERE phase_id IS NOT NULL""")
-        con.execute("DELETE FROM phase_exercise")
-        con.execute("DELETE FROM protocol_phase")
-        con.execute("DELETE FROM protocol")
+    old = [r[0] for r in con.execute("SELECT protocol_id FROM protocol WHERE builtin=1")]
+    if old:
+        marks = ",".join("?" for _ in old)
+        phases = [r[0] for r in con.execute(f"SELECT phase_id FROM protocol_phase WHERE protocol_id IN ({marks})", old)]
+        if phases:
+            pm = ",".join("?" for _ in phases)
+            con.execute(f"UPDATE patient SET phase_id=NULL, phase_started_at=NULL WHERE phase_id IN ({pm})", phases)
+            con.execute(f"""UPDATE phase_history SET note = TRIM(COALESCE(note,'') || ' (earlier protocol version)'),
+                            phase_id=NULL WHERE phase_id IN ({pm})""", phases)
+            con.execute(f"DELETE FROM phase_exercise WHERE phase_id IN ({pm})", phases)
+            con.execute(f"DELETE FROM protocol_phase WHERE phase_id IN ({pm})", phases)
+        con.execute(f"DELETE FROM protocol WHERE protocol_id IN ({marks})", old)
     seed_protocols(con)
     con.execute("INSERT OR REPLACE INTO app_meta(key, value) VALUES ('protocol_version', ?)", (PROTOCOL_VERSION,))
 
@@ -439,6 +556,10 @@ def migrate(con):
         for name, decl in cols:
             if name not in have:
                 con.execute(f"ALTER TABLE {table} ADD COLUMN {name} {decl}")
+                if (table, name) == ("protocol", "builtin"):
+                    # Databases from before the flag: protocols named like a shipped one are the built-in ones
+                    names = [p[0] for p in PROTOCOLS]
+                    con.execute(f"UPDATE protocol SET builtin=1 WHERE name IN ({','.join('?' for _ in names)})", names)
     # Exercises created before the library existed: fill in its details
     for code, lib in LIBRARY.items():
         con.execute("UPDATE exercise SET measure=?, view=?, position=?, safety_max=? WHERE code=? AND measure IS NULL",
@@ -448,10 +569,11 @@ def migrate(con):
 def add_exercise(con, program_id, code, rx=None):
     """Add a library exercise to a program. `rx` overrides the library's prescription numbers."""
     if code not in LIBRARY:
-        raise ValueError(f"Unknown exercise '{code}'")
+        raise BadRequest(f"Unknown exercise '{code}'")
     name, joint, measure, view, position, tgt, tol, smax, hold, sets, reps, rest, cue = LIBRARY[code]
     v = dict(target_angle=tgt, tolerance=tol, safety_max=smax, hold_seconds=hold, sets=sets, reps=reps, rest_seconds=rest)
     v.update({k: x for k, x in (rx or {}).items() if k in v and x is not None})
+    v = clamp_rx_columns(v)
     order = con.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM exercise WHERE program_id=?", (program_id,)).fetchone()[0]
     con.execute("""INSERT INTO exercise(program_id, code, name, joint, measure, view, position, target_angle, tolerance,
                    safety_max, hold_seconds, sets, reps, rest_seconds, cue, sort_order)
@@ -462,7 +584,7 @@ def add_exercise(con, program_id, code, rx=None):
 
 def seed_protocols(con):
     for name, condition, source, phases in PROTOCOLS:
-        prid = con.execute("INSERT INTO protocol(name, condition, source) VALUES (?,?,?)",
+        prid = con.execute("INSERT INTO protocol(name, condition, source, builtin) VALUES (?,?,?,1)",
                            (name, condition, source)).lastrowid
         for no, (pname, weeks, vr, goals, precautions, rom_goal, other, pain, soreness, swelling, exs) in enumerate(phases, 1):
             phid = con.execute("""INSERT INTO protocol_phase(protocol_id, phase_no, name, weeks, vr_allowed, goals, precautions,
@@ -586,13 +708,13 @@ def set_phase(con, patient_id, body):
     """
     p = con.execute("SELECT * FROM patient WHERE patient_id=?", (patient_id,)).fetchone()
     if not p:
-        raise ValueError("Unknown patient")
+        raise NotFound("Unknown patient")
     phase_id = body.get("phase_id")
     now = datetime.now().isoformat(timespec="seconds")
     if phase_id:
         phase_id = int(phase_id)
         if not con.execute("SELECT 1 FROM protocol_phase WHERE phase_id=?", (phase_id,)).fetchone():
-            raise ValueError("Unknown phase")
+            raise BadRequest("Unknown phase")
         con.execute("UPDATE exercise SET active=0 WHERE program_id=? AND active=1", (p["program_id"],))
         for r in con.execute("SELECT * FROM phase_exercise WHERE phase_id=? ORDER BY sort_order", (phase_id,)).fetchall():
             add_exercise(con, p["program_id"], r["code"], dict(r))
@@ -749,7 +871,7 @@ def add_protocol(con, body):
     condition = (body.get("condition") or "").strip()
     source = (body.get("source") or "").strip()
     if not name:
-        raise ValueError("Protocol name is required")
+        raise BadRequest("Protocol name is required")
 
     cur = con.execute("INSERT INTO protocol (name, condition, source) VALUES (?,?,?)",
                       (name, condition or "General Physical Therapy", source or "Clinical Protocol"))
@@ -814,18 +936,20 @@ def add_protocol(con, body):
             if not code or code not in LIBRARY:
                 continue
             lib_def = LIBRARY[code]
-            t_angle = float(rx.get("target_angle", rx.get("targetAngle", lib_def[5])))
-            tol = float(rx.get("tolerance", lib_def[6]))
-            s_max = float(rx.get("safety_max", rx.get("safetyMax", lib_def[7])))
-            hold_s = float(rx.get("hold_seconds", rx.get("holdSeconds", lib_def[8])))
-            sets = int(rx.get("sets", lib_def[9]))
-            reps = int(rx.get("reps", lib_def[10]))
-            rest_s = float(rx.get("rest_seconds", rx.get("restSeconds", lib_def[11])))
-
+            v = clamp_rx_columns({
+                "target_angle": rx.get("target_angle", rx.get("targetAngle", lib_def[5])),
+                "tolerance": rx.get("tolerance", lib_def[6]),
+                "safety_max": rx.get("safety_max", rx.get("safetyMax", lib_def[7])),
+                "hold_seconds": rx.get("hold_seconds", rx.get("holdSeconds", lib_def[8])),
+                "sets": rx.get("sets", lib_def[9]),
+                "reps": rx.get("reps", lib_def[10]),
+                "rest_seconds": rx.get("rest_seconds", rx.get("restSeconds", lib_def[11])),
+            })
             con.execute("""INSERT INTO phase_exercise(phase_id, code, target_angle, tolerance, safety_max,
                                                  hold_seconds, sets, reps, rest_seconds, sort_order)
                                    VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                        (phase_id, code, t_angle, tol, s_max, hold_s, sets, reps, rest_s, s_idx))
+                        (phase_id, code, v["target_angle"], v["tolerance"], v["safety_max"], v["hold_seconds"],
+                         v["sets"], v["reps"], v["rest_seconds"], s_idx))
 
     con.commit()
     prot = get_protocol(con, protocol_id)
@@ -835,7 +959,7 @@ def add_protocol(con, body):
 def delete_protocol(con, protocol_id):
     prot = con.execute("SELECT * FROM protocol WHERE protocol_id=?", (protocol_id,)).fetchone()
     if not prot:
-        raise ValueError(f"Protocol with id {protocol_id} not found")
+        raise NotFound(f"Protocol with id {protocol_id} not found")
 
     phase_rows = con.execute("SELECT phase_id FROM protocol_phase WHERE protocol_id=?", (protocol_id,)).fetchall()
     phase_ids = [r["phase_id"] for r in phase_rows]
@@ -856,7 +980,7 @@ def delete_protocol(con, protocol_id):
 def remove_patient_protocol(con, patient_id, note="Protocol removed by clinician"):
     p = con.execute("SELECT * FROM patient WHERE patient_id=?", (patient_id,)).fetchone()
     if not p:
-        raise ValueError("Unknown patient")
+        raise NotFound("Unknown patient")
     now = datetime.now().isoformat(timespec="seconds")
     con.execute("UPDATE patient SET phase_id=NULL, phase_started_at=NULL WHERE patient_id=?", (patient_id,))
     con.execute("INSERT INTO phase_history(patient_id, phase_id, changed_at, note) VALUES (?,NULL,?,?)",
@@ -866,20 +990,20 @@ def remove_patient_protocol(con, patient_id, note="Protocol removed by clinician
 
 
 
-def add_patient(con, body):
+def add_patient(con, body, therapist_id):
     code = (body.get("code") or "").strip().upper()
     name = (body.get("name") or "").strip()
     condition = (body.get("condition") or "").strip()
     if not code:
-        raise ValueError("Patient code is required (e.g. P-002)")
+        raise BadRequest("Patient code is required (e.g. P-002)")
     existing = con.execute("SELECT patient_id FROM patient WHERE code=?", (code,)).fetchone()
     if existing:
-        raise ValueError(f"Patient with code {code} already exists")
-    
-    prog_id = con.execute("INSERT INTO rehabilitation_program (therapist_id, name, schedule_days, max_reps) VALUES (1, ?, '1,3,5', 14)",
-                          (f"Rehabilitation Program for {code}",)).lastrowid
-    pid = con.execute("INSERT INTO patient (therapist_id, program_id, code, name, condition) VALUES (1, ?, ?, ?, ?)",
-                      (prog_id, code, name or f"Patient {code}", condition or "Orthopedic Physical Therapy")).lastrowid
+        raise Conflict(f"Patient with code {code} already exists")
+
+    prog_id = con.execute("INSERT INTO rehabilitation_program (therapist_id, name, schedule_days, max_reps) VALUES (?, ?, '1,3,5', 14)",
+                          (therapist_id, f"Rehabilitation Program for {code}")).lastrowid
+    pid = con.execute("INSERT INTO patient (therapist_id, program_id, code, name, condition) VALUES (?, ?, ?, ?, ?)",
+                      (therapist_id, prog_id, code, name or f"Patient {code}", condition or "Orthopedic Physical Therapy")).lastrowid
     
     add_exercise(con, prog_id, "shoulderAbd")
     con.commit()
@@ -915,7 +1039,7 @@ def get_program(con, patient_id, patient=None, program=None):
 def record_clinical(con, session_id, body):
     """Therapist records pain before/after (0-10), soreness over 2 hours (yes/no) and swelling (cm) for a session."""
     if not con.execute("SELECT 1 FROM session WHERE session_id=?", (session_id,)).fetchone():
-        raise ValueError("Unknown session")
+        raise NotFound("Unknown session")
 
     def num(key, cast, lo, hi):
         v = body.get(key)
@@ -928,52 +1052,128 @@ def record_clinical(con, session_id, body):
     return {"ok": True}
 
 
+INPUT_SOURCES = ("webcam", "keyboard", "simulated")
+
+
+def _iso_time(value, field):
+    """Session times from Unity: ISO 8601 local time. Anything else is rejected (it is shown on the dashboard)."""
+    if value in (None, ""):
+        return datetime.now().isoformat(timespec="seconds")
+    if not isinstance(value, str):
+        raise BadRequest(f"{field} must be an ISO date-time")
+    try:
+        return datetime.fromisoformat(value).isoformat(timespec="seconds")
+    except ValueError:
+        raise BadRequest(f"{field} must be an ISO date-time")
+
+
+def _int_field(r, key, lo=0, hi=100000, default=0):
+    v = r.get(key, default)
+    try:
+        return max(lo, min(hi, int(v)))
+    except (TypeError, ValueError):
+        raise BadRequest(f"{key} must be a number")
+
+
+def _float_field(r, key, lo=0.0, hi=1000.0, default=0.0):
+    v = r.get(key, default)
+    try:
+        return max(lo, min(hi, float(v)))
+    except (TypeError, ValueError):
+        raise BadRequest(f"{key} must be a number")
+
+
 def save_session(con, body):
     """
     Adherence Monitoring Module: Completion Checker -> Status Classifier -> Adherence Record Writer.
     Also applies gamification results (XP, badges) and the Progression Controller.
+    Completion is judged against the server's prescription, not the client's own targets.
+    A repeated upload with the same session_uuid returns the stored session instead of saving it twice.
     """
-    pid = int(body["patient_id"])
+    try:
+        pid = int(body["patient_id"])
+    except (KeyError, TypeError, ValueError):
+        raise BadRequest("patient_id is required")
     p = con.execute("SELECT * FROM patient WHERE patient_id=?", (pid,)).fetchone()
     if not p:
-        raise ValueError("Unknown patient_id")
-    prog = con.execute("SELECT * FROM rehabilitation_program WHERE program_id=?", (p["program_id"],)).fetchone()
-    exs = {e["exercise_id"]: e for e in con.execute("SELECT * FROM exercise WHERE program_id=? AND active=1", (prog["program_id"],))}
-    results = body.get("exercises", [])
+        raise BadRequest("Unknown patient_id")
 
-    # Completion Checker: every prescribed exercise reached its target valid reps
-    done_ids = {int(r["exercise_id"]) for r in results if int(r["valid_reps"]) >= int(r["target_reps"])}
-    complete = (not body.get("ended_early")) and set(exs.keys()) <= done_ids
+    session_uuid = body.get("session_uuid") or None
+    if session_uuid is not None:
+        session_uuid = str(session_uuid)[:64]
+        prev = con.execute("SELECT session_id, patient_id, status FROM session WHERE session_uuid=?", (session_uuid,)).fetchone()
+        if prev:
+            if prev["patient_id"] != pid:
+                raise Conflict("session_uuid already used by another patient")
+            return {"session_id": prev["session_id"], "status": prev["status"], "notes": [], "new_badges": [],
+                    "patient": get_program(con, pid)["patient"], "duplicate": True}
+
+    prog = con.execute("SELECT * FROM rehabilitation_program WHERE program_id=?", (p["program_id"],)).fetchone()
+    in_program = {e["exercise_id"]: e for e in con.execute("SELECT * FROM exercise WHERE program_id=?", (prog["program_id"],))}
+    active = {eid: e for eid, e in in_program.items() if e["active"]}
+
+    raw = body.get("exercises") or []
+    if not isinstance(raw, list) or not all(isinstance(r, dict) for r in raw):
+        raise BadRequest("exercises must be a list of objects")
+    results, ignored = {}, 0
+    for r in raw:
+        try:
+            eid = int(r["exercise_id"])
+        except (KeyError, TypeError, ValueError):
+            raise BadRequest("every exercise result needs an exercise_id")
+        if eid not in in_program:
+            ignored += 1           # not this patient's exercise (e.g. an old offline default program)
+        elif eid not in results:   # a repeated id is counted once
+            results[eid] = r
+
+    def required_reps(e):
+        return effective_reps(e, prog["max_reps"]) * max(1, e["sets"])
+
+    # Completion Checker: every active prescribed exercise reached its prescribed valid reps
+    ended_early = bool(body.get("ended_early"))
+    complete = (not ended_early and bool(active)
+                and all(eid in results and _int_field(results[eid], "valid_reps") >= required_reps(e)
+                        for eid, e in active.items()))
     status = "complete" if complete else "incomplete"
 
-    started = body.get("started_at") or datetime.now().isoformat(timespec="seconds")
-    ended = body.get("ended_at") or datetime.now().isoformat(timespec="seconds")
+    started = _iso_time(body.get("started_at"), "started_at")
+    ended = _iso_time(body.get("ended_at"), "ended_at")
+    source = body.get("input_source") or ""
+    if source not in INPUT_SOURCES + ("",):
+        raise BadRequest(f"input_source must be one of {', '.join(INPUT_SOURCES)}")
+    points = _int_field(body, "points", 0, 100000)
+    stars = _int_field(body, "stars", 0, 3)
 
     def pain(key):   # 0-10, or None when the check-in was skipped (Unity sends -1)
-        v = int(body.get(key, -1))
-        return min(10, v) if v >= 0 else None
+        v = body.get(key)
+        if v is None:
+            return None
+        v = _int_field(body, key, -1, 10)
+        return v if v >= 0 else None
 
     sid = con.execute("""INSERT INTO session(patient_id, program_id, started_at, ended_at, input_source, points, stars, status,
-                         pain_before, pain_after) VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                      (pid, prog["program_id"], started, ended, body.get("input_source", ""),
-                       int(body.get("points", 0)), int(body.get("stars", 0)), status,
-                       pain("pain_before"), pain("pain_after"))).lastrowid
+                         pain_before, pain_after, session_uuid) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                      (pid, prog["program_id"], started, ended, source, points, stars, status,
+                       pain("pain_before"), pain("pain_after"), session_uuid)).lastrowid
 
     notes = []
-    for r in results:
-        eid = int(r["exercise_id"])
-        if eid not in exs:
-            continue
-        unsafe = int(r.get("unsafe_reps", 0))
+    if ignored:
+        notes.append(f"{ignored} result(s) ignored: not part of this patient's program")
+    for eid, r in results.items():
+        e = in_program[eid]
+        prescribed = eid in active
+        unsafe = _int_field(r, "unsafe_reps")
+        accuracy = _float_field(r, "avg_accuracy", 0, 100)
+        feedback = r.get("feedback") or []
+        feedback = [str(f)[:200] for f in feedback][:50] if isinstance(feedback, list) else []
         con.execute("""INSERT INTO performance_record(session_id, exercise_id, target_reps, valid_reps, attempts,
-                       avg_accuracy, mean_angle_error, unsafe_reps, feedback_log) VALUES (?,?,?,?,?,?,?,?,?)""",
-                    (sid, eid, int(r["target_reps"]), int(r["valid_reps"]), int(r["attempts"]),
-                     float(r.get("avg_accuracy", 0)), float(r.get("mean_angle_error", 0)), unsafe,
-                     json.dumps(r.get("feedback", []))))
+                       avg_accuracy, mean_angle_error, unsafe_reps, feedback_log, prescribed) VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (sid, eid, required_reps(e) if prescribed else _int_field(r, "target_reps"),
+                     _int_field(r, "valid_reps"), _int_field(r, "attempts"), accuracy,
+                     _float_field(r, "mean_angle_error", 0, 360), unsafe, json.dumps(feedback), int(prescribed)))
         # Progression Controller: >=85% accuracy and no unsafe reps on a completed session
         # -> next stage (+2 reps per set, capped)
-        e = exs[eid]
-        if complete and unsafe == 0 and float(r.get("avg_accuracy", 0)) >= 85:
+        if prescribed and complete and unsafe == 0 and accuracy >= 85:
             nxt = min(prog["max_reps"], e["reps"] + 2 * e["stage"])
             if nxt > effective_reps(e, prog["max_reps"]):
                 con.execute("UPDATE exercise SET stage = stage + 1 WHERE exercise_id=?", (eid,))
@@ -983,15 +1183,15 @@ def save_session(con, body):
     con.execute("""INSERT INTO adherence_record(patient_id, session_id, session_date, status, completion_flag)
                    VALUES (?,?,?,?,?)""", (pid, sid, session_day, status, 1 if complete else 0))
 
-    # Gamification persistence
+    # Gamification persistence (one atomic update, so two uploads at once can't lose XP)
     old_level = level_from_xp(p["xp"])["level"]
-    new_xp = p["xp"] + int(body.get("points", 0))
-    con.execute("UPDATE patient SET xp=? WHERE patient_id=?", (new_xp, pid))
+    con.execute("UPDATE patient SET xp = xp + ? WHERE patient_id=?", (points, pid))
+    new_xp = con.execute("SELECT xp FROM patient WHERE patient_id=?", (pid,)).fetchone()[0]
     new_level = level_from_xp(new_xp)["level"]
     if new_level > old_level:
         notes.append(f"Level up! Reached level {new_level}")
 
-    earned = list(body.get("badges_earned", []))
+    earned = [b for b in (body.get("badges_earned") or []) if isinstance(b, str)]
     if complete:
         earned.append("first")
     if streak(con, pid, prog) >= 3:
@@ -1016,7 +1216,7 @@ def save_session(con, body):
 def update_program(con, patient_id, body):
     p = con.execute("SELECT * FROM patient WHERE patient_id=?", (patient_id,)).fetchone()
     if not p:
-        raise ValueError("Unknown patient")
+        raise NotFound("Unknown patient")
     if "days" in body:
         days = sorted({int(d) for d in body["days"] if 0 <= int(d) <= 6})
         con.execute("UPDATE rehabilitation_program SET schedule_days=? WHERE program_id=?",
@@ -1048,13 +1248,23 @@ RX_FIELDS = {
     "holdSeconds": ("hold_seconds", float, 0, 30), "sets": ("sets", int, 1, 10),
     "restSeconds": ("rest_seconds", float, 0, 300),
 }
+_RX_BY_COLUMN = {col: (cast, lo, hi) for col, cast, lo, hi in RX_FIELDS.values()}
+
+
+def clamp_rx_columns(values):
+    """Apply the therapist-edit bounds to prescription values keyed by column name (every write path uses this)."""
+    out = dict(values)
+    for col, (cast, lo, hi) in _RX_BY_COLUMN.items():
+        if out.get(col) is not None:
+            out[col] = max(lo, min(hi, cast(out[col])))
+    return out
 
 
 def change_exercises(con, patient_id, method, body, exercise_id=None):
     """Therapist adds an exercise from the library (POST) or removes one (DELETE; its history is kept)."""
     p = con.execute("SELECT * FROM patient WHERE patient_id=?", (patient_id,)).fetchone()
     if not p:
-        raise ValueError("Unknown patient")
+        raise NotFound("Unknown patient")
     if method == "POST":
         rx = body.get("rx") or {}
         rx_clean = {
@@ -1124,6 +1334,13 @@ def dashboard(con, patient_id):
     }
 
 
+def _csv_safe(v):
+    """Stop spreadsheet apps from running text cells as formulas (CSV injection)."""
+    if isinstance(v, str) and v[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + v
+    return v
+
+
 def export_telemetry(con, patient_id=None, fmt="csv"):
     query = """
         SELECT 
@@ -1182,22 +1399,27 @@ def export_telemetry(con, patient_id=None, fmt="csv"):
     writer = csv.DictWriter(out, fieldnames=fields)
     writer.writeheader()
     for row in data:
-        writer.writerow(row)
+        writer.writerow({k: _csv_safe(v) for k, v in row.items()})
     return out.getvalue().encode("utf-8"), "text/csv; charset=utf-8"
 
 
 # ---------------------------------------------------------------- HTTP
 class Handler(BaseHTTPRequestHandler):
+    """
+    No CORS headers on purpose: the dashboard is served from this same origin and Unity is not a browser,
+    so other web pages open on the clinic PC can't call the API (M4.2).
+    """
     server_version = "TheraQuest/1.0"
+    STATIC_ROOT = os.path.realpath(os.path.join(HERE, "static"))
+    MIMES = {".js": "application/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
+             ".svg": "image/svg+xml", ".png": "image/png", ".json": "application/json"}
 
     def _send(self, code, payload, ctype="application/json"):
         data = payload if isinstance(payload, bytes) else json.dumps(payload).encode("utf-8")
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Patient-Code")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(data)
 
@@ -1206,13 +1428,25 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
         self.send_header("Content-Length", str(len(data)))
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(data)
 
     def _body(self):
-        n = int(self.headers.get("Content-Length") or 0)
-        return json.loads(self.rfile.read(n) or b"{}")
+        try:
+            n = int(self.headers.get("Content-Length") or 0)
+            body = json.loads(self.rfile.read(n) or b"{}")
+        except (ValueError, UnicodeDecodeError):
+            raise BadRequest("Request body must be JSON")
+        if not isinstance(body, dict):
+            raise BadRequest("Request body must be a JSON object")
+        return body
+
+    @staticmethod
+    def _id(part):
+        try:
+            return int(part)
+        except ValueError:
+            raise BadRequest(f"'{part}' is not a valid id")
 
     def _get_auth_token(self):
         auth_hdr = self.headers.get("Authorization", "")
@@ -1231,10 +1465,11 @@ class Handler(BaseHTTPRequestHandler):
     def _vr_patient(self, con):
         """
         DEC-009: the VR client authenticates with its synthetic patient code, from this machine only.
+        Browsers always send an Origin header on API calls; Unity doesn't, so a web page can't pose as the VR client.
         Returns (patient_row, None) or (None, (status, error)).
         """
-        if not self._client_is_loopback():
-            return None, (403, "Forbidden: VR routes accept requests from this machine only")
+        if not self._client_is_loopback() or self.headers.get("Origin"):
+            return None, (403, "Forbidden: VR routes accept requests from the VR app on this machine only")
         code = (self.headers.get("X-Patient-Code") or "").strip().upper()
         if not code:
             return None, (401, "Unauthorized: X-Patient-Code header required")
@@ -1242,6 +1477,28 @@ class Handler(BaseHTTPRequestHandler):
         if not p:
             return None, (401, "Unauthorized: Unknown patient code")
         return p, None
+
+    def _static(self, parts):
+        """Serve a file under static/ only; anything resolving outside it (.., other drives) is refused."""
+        try:
+            full = os.path.realpath(os.path.join(HERE, *parts))
+            inside = os.path.commonpath([self.STATIC_ROOT, full]) == self.STATIC_ROOT
+        except ValueError:   # different drive on Windows
+            inside = False
+        if not inside:
+            return self._send(403, {"error": "Forbidden"})
+        if not os.path.isfile(full):
+            return self._send(404, {"error": "Static file not found"})
+        with open(full, "rb") as f:
+            data = f.read()
+        self.send_response(200)
+        self.send_header("Content-Type", self.MIMES.get(os.path.splitext(full)[1].lower(), "application/octet-stream"))
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        if "vendor" in parts:
+            self.send_header("Cache-Control", "public, max-age=86400")
+        self.end_headers()
+        self.wfile.write(data)
 
     def _route(self, method):
         parsed = urlparse(self.path)
@@ -1253,140 +1510,131 @@ class Handler(BaseHTTPRequestHandler):
                 with open(os.path.join(HERE, "dashboard.html"), "rb") as f:
                     return self._send(200, f.read(), "text/html; charset=utf-8")
             if method == "GET" and parts[:1] == ["static"]:
-                safe_rel = os.path.normpath(os.path.join(*parts))
-                if safe_rel.startswith(".."):
-                    return self._send(403, {"error": "Forbidden"})
-                full_path = os.path.join(HERE, safe_rel)
-                if os.path.isfile(full_path):
-                    ext = os.path.splitext(full_path)[1].lower()
-                    mimes = {
-                        ".js": "application/javascript; charset=utf-8",
-                        ".css": "text/css; charset=utf-8",
-                        ".svg": "image/svg+xml",
-                        ".png": "image/png",
-                        ".json": "application/json"
-                    }
-                    ctype = mimes.get(ext, "application/octet-stream")
-                    with open(full_path, "rb") as f:
-                        data = f.read()
-                    self.send_response(200)
-                    self.send_header("Content-Type", ctype)
-                    self.send_header("Content-Length", str(len(data)))
-                    self.send_header("Access-Control-Allow-Origin", "*")
-                    if "vendor" in parts:
-                        self.send_header("Cache-Control", "public, max-age=86400")
-                    self.end_headers()
-                    self.wfile.write(data)
-                    return
-                return self._send(404, {"error": "Static file not found"})
+                return self._static(parts)
             if parts[:1] != ["api"]:
                 return self._send(404, {"error": "Not found"})
             con = db()
             try:
-                # Clinician Authentication endpoints
-                if method == "POST" and parts == ["api", "auth", "login"]:
-                    res, code = auth_login(con, self._body())
-                    return self._send(code, res)
-                if method == "POST" and parts == ["api", "auth", "logout"]:
-                    token = self._get_auth_token() or self._body().get("token")
-                    delete_session(con, token)
-                    return self._send(200, {"success": True})
-                if method == "GET" and parts == ["api", "auth", "me"]:
-                    token = self._get_auth_token()
-                    therapist = get_session_therapist(con, token)
-                    if not therapist:
-                        return self._send(401, {"error": "Unauthorized: Session invalid or expired"})
-                    return self._send(200, {"therapist": therapist})
-
-                # Patient-scoped VR routes (Unity client, patient code + loopback only)
-                if parts[:2] == ["api", "vr"]:
-                    p, err = self._vr_patient(con)
-                    if err:
-                        return self._send(err[0], {"error": err[1]})
-                    if method == "GET" and parts == ["api", "vr", "program"]:
-                        return self._send(200, get_program(con, p["patient_id"], patient=p))
-                    if method == "POST" and parts == ["api", "vr", "sessions"]:
-                        body = self._body()
-                        claimed = int(body.get("patient_id") or 0)   # 0 = recorded offline, unknown id
-                        if claimed and claimed != p["patient_id"]:
-                            return self._send(403, {"error": "Forbidden: session belongs to a different patient"})
-                        body["patient_id"] = p["patient_id"]
-                        return self._send(201, save_session(con, body))
-                    return self._send(404, {"error": "Not found"})
-
-                # Everything below is therapist-only
-                if not get_session_therapist(con, self._get_auth_token()):
-                    return self._send(401, {"error": "Unauthorized: Session invalid or expired"})
-
-                if method == "GET" and parts == ["api", "export"]:
-                    payload, ctype = export_telemetry(con, None, fmt)
-                    if fmt == "csv":
-                        return self._send_file(payload, ctype, "theraquest_telemetry_all.csv")
-                    return self._send(200, payload)
-                if method == "GET" and len(parts) == 4 and parts[1] == "patients" and parts[3] == "export":
-                    pid = int(parts[2])
-                    payload, ctype = export_telemetry(con, pid, fmt)
-                    if fmt == "csv":
-                        return self._send_file(payload, ctype, f"theraquest_telemetry_patient_{pid}.csv")
-                    return self._send(200, payload)
-                if method == "GET" and parts == ["api", "patients"]:
-                    rows = con.execute("""
-                        SELECT 
-                            p.patient_id AS id, 
-                            p.code, 
-                            p.name, 
-                            p.condition, 
-                            COALESCE(pr.name, 'Custom Prescription') AS protocol_name,
-                            COALESCE(ph.name, 'Phase 1') AS phase_name,
-                            COUNT(s.session_id) AS total_sessions,
-                            MAX(s.started_at) AS last_session_at
-                        FROM patient p
-                        LEFT JOIN protocol_phase ph ON ph.phase_id = p.phase_id
-                        LEFT JOIN protocol pr ON pr.protocol_id = ph.protocol_id
-                        LEFT JOIN session s ON s.patient_id = p.patient_id
-                        GROUP BY p.patient_id
-                        ORDER BY p.code
-                    """).fetchall()
-                    return self._send(200, [dict(r) for r in rows])
-                if method == "POST" and parts == ["api", "patients"]:
-                    return self._send(201, add_patient(con, self._body()))
-                if method == "GET" and parts == ["api", "protocols"]:
-                    return self._send(200, list_protocols(con))
-                if method == "POST" and parts == ["api", "protocols"]:
-                    return self._send(201, add_protocol(con, self._body()))
-                if method == "DELETE" and len(parts) == 3 and parts[:2] == ["api", "protocols"]:
-                    return self._send(200, delete_protocol(con, int(parts[2])))
-                if len(parts) == 4 and parts[1] == "patients" and parts[3] == "protocol" and method == "DELETE":
-                    return self._send(200, remove_patient_protocol(con, int(parts[2])))
-                if len(parts) == 4 and parts[1] == "patients" and parts[3] == "phase" and method == "POST":
-                    return self._send(200, set_phase(con, int(parts[2]), self._body()))
-                if method == "GET" and parts == ["api", "library"]:
-                    return self._send(200, [{
-                        "code": c, "name": v[0], "joint": v[1], "measure": v[2], "view": v[3], "position": v[4],
-                        "targetAngle": v[5], "tolerance": v[6], "safetyMax": v[7], "holdSeconds": v[8],
-                        "sets": v[9], "reps": v[10], "restSeconds": v[11], "cue": v[12],
-                        "normalRom": NORMAL_ROM.get(c, ("", 0))[0]
-                    } for c, v in LIBRARY.items()])
-                if len(parts) == 4 and parts[1] == "sessions" and parts[3] == "clinical" and method == "PUT":
-                    return self._send(200, record_clinical(con, int(parts[2]), self._body()))
-                if len(parts) == 4 and parts[1] == "patients" and parts[3] == "exercises" and method == "POST":
-                    return self._send(201, change_exercises(con, int(parts[2]), method, self._body()))
-                if len(parts) == 5 and parts[1] == "patients" and parts[3] == "exercises" and method == "DELETE":
-                    return self._send(200, change_exercises(con, int(parts[2]), method, {}, int(parts[4])))
-                if len(parts) == 4 and parts[1] == "patients" and parts[3] in ("program", "dashboard"):
-                    pid = int(parts[2])
-                    if method == "GET":
-                        data = get_program(con, pid) if parts[3] == "program" else dashboard(con, pid)
-                        return self._send(200, data) if data else self._send(404, {"error": "Patient not found"})
-                    if method == "PUT" and parts[3] == "program":
-                        return self._send(200, update_program(con, pid, self._body()))
-                return self._send(404, {"error": "Not found"})
+                return self._api(con, method, parts, fmt)
             finally:
                 con.close()
-        except Exception as e:
+        except ApiError as e:
+            return self._send(e.status, {"error": str(e)})
+        except (ValueError, TypeError, KeyError) as e:
+            # Values that don't convert (e.g. "abc" for reps) or required fields that are missing
+            sys.stderr.write(f"  bad request: {e!r}\n")
+            return self._send(400, {"error": "Invalid request data"})
+        except Exception:
             import traceback
             traceback.print_exc()
-            return self._send(500, {"error": f"Internal server error: {e}"})
+            return self._send(500, {"error": "Internal server error. Details are in the server window."})
+
+    def _api(self, con, method, parts, fmt):
+        # Clinician Authentication endpoints
+        if method == "GET" and parts == ["api", "auth", "setup"]:
+            return self._send(200, {"needsSetup": needs_setup(con)})
+        if method == "POST" and parts == ["api", "auth", "setup"]:
+            if not self._client_is_loopback():
+                return self._send(403, {"error": "First-run setup must be done on the clinic computer itself"})
+            return self._send(201, auth_setup(con, self._body()))
+        if method == "POST" and parts == ["api", "auth", "login"]:
+            res, code = auth_login(con, self._body())
+            return self._send(code, res)
+        if method == "POST" and parts == ["api", "auth", "logout"]:
+            delete_session(con, self._get_auth_token())
+            return self._send(200, {"success": True})
+
+        # Patient-scoped VR routes (Unity client, patient code + loopback only)
+        if parts[:2] == ["api", "vr"]:
+            p, err = self._vr_patient(con)
+            if err:
+                return self._send(err[0], {"error": err[1]})
+            if method == "GET" and parts == ["api", "vr", "program"]:
+                return self._send(200, get_program(con, p["patient_id"], patient=p))
+            if method == "POST" and parts == ["api", "vr", "sessions"]:
+                body = self._body()
+                try:
+                    claimed = int(body.get("patient_id") or 0)   # 0 = recorded offline, unknown id
+                except (TypeError, ValueError):
+                    raise BadRequest("patient_id must be a number")
+                if claimed and claimed != p["patient_id"]:
+                    return self._send(403, {"error": "Forbidden: session belongs to a different patient"})
+                body["patient_id"] = p["patient_id"]
+                return self._send(201, save_session(con, body))
+            return self._send(404, {"error": "Not found"})
+
+        # Everything below is therapist-only
+        therapist = get_session_therapist(con, self._get_auth_token())
+        if not therapist:
+            return self._send(401, {"error": "Unauthorized: Session invalid or expired"})
+
+        if method == "GET" and parts == ["api", "auth", "me"]:
+            return self._send(200, {"therapist": therapist})
+        if method == "POST" and parts == ["api", "auth", "password"]:
+            return self._send(200, change_password(con, therapist["therapist_id"], self._body()))
+        if method == "GET" and parts == ["api", "export"]:
+            payload, ctype = export_telemetry(con, None, fmt)
+            if fmt == "csv":
+                return self._send_file(payload, ctype, "theraquest_telemetry_all.csv")
+            return self._send(200, payload)
+        if method == "GET" and len(parts) == 4 and parts[1] == "patients" and parts[3] == "export":
+            pid = self._id(parts[2])
+            payload, ctype = export_telemetry(con, pid, fmt)
+            if fmt == "csv":
+                return self._send_file(payload, ctype, f"theraquest_telemetry_patient_{pid}.csv")
+            return self._send(200, payload)
+        if method == "GET" and parts == ["api", "patients"]:
+            rows = con.execute("""
+                SELECT
+                    p.patient_id AS id,
+                    p.code,
+                    p.name,
+                    p.condition,
+                    COALESCE(pr.name, 'Custom Prescription') AS protocol_name,
+                    COALESCE(ph.name, 'Phase 1') AS phase_name,
+                    COUNT(s.session_id) AS total_sessions,
+                    MAX(s.started_at) AS last_session_at
+                FROM patient p
+                LEFT JOIN protocol_phase ph ON ph.phase_id = p.phase_id
+                LEFT JOIN protocol pr ON pr.protocol_id = ph.protocol_id
+                LEFT JOIN session s ON s.patient_id = p.patient_id
+                GROUP BY p.patient_id
+                ORDER BY p.code
+            """).fetchall()
+            return self._send(200, [dict(r) for r in rows])
+        if method == "POST" and parts == ["api", "patients"]:
+            return self._send(201, add_patient(con, self._body(), therapist["therapist_id"]))
+        if method == "GET" and parts == ["api", "protocols"]:
+            return self._send(200, list_protocols(con))
+        if method == "POST" and parts == ["api", "protocols"]:
+            return self._send(201, add_protocol(con, self._body()))
+        if method == "DELETE" and len(parts) == 3 and parts[:2] == ["api", "protocols"]:
+            return self._send(200, delete_protocol(con, self._id(parts[2])))
+        if len(parts) == 4 and parts[1] == "patients" and parts[3] == "protocol" and method == "DELETE":
+            return self._send(200, remove_patient_protocol(con, self._id(parts[2])))
+        if len(parts) == 4 and parts[1] == "patients" and parts[3] == "phase" and method == "POST":
+            return self._send(200, set_phase(con, self._id(parts[2]), self._body()))
+        if method == "GET" and parts == ["api", "library"]:
+            return self._send(200, [{
+                "code": c, "name": v[0], "joint": v[1], "measure": v[2], "view": v[3], "position": v[4],
+                "targetAngle": v[5], "tolerance": v[6], "safetyMax": v[7], "holdSeconds": v[8],
+                "sets": v[9], "reps": v[10], "restSeconds": v[11], "cue": v[12],
+                "normalRom": NORMAL_ROM.get(c, ("", 0))[0]
+            } for c, v in LIBRARY.items()])
+        if len(parts) == 4 and parts[1] == "sessions" and parts[3] == "clinical" and method == "PUT":
+            return self._send(200, record_clinical(con, self._id(parts[2]), self._body()))
+        if len(parts) == 4 and parts[1] == "patients" and parts[3] == "exercises" and method == "POST":
+            return self._send(201, change_exercises(con, self._id(parts[2]), method, self._body()))
+        if len(parts) == 5 and parts[1] == "patients" and parts[3] == "exercises" and method == "DELETE":
+            return self._send(200, change_exercises(con, self._id(parts[2]), method, {}, self._id(parts[4])))
+        if len(parts) == 4 and parts[1] == "patients" and parts[3] in ("program", "dashboard"):
+            pid = self._id(parts[2])
+            if method == "GET":
+                data = get_program(con, pid) if parts[3] == "program" else dashboard(con, pid)
+                return self._send(200, data) if data else self._send(404, {"error": "Patient not found"})
+            if method == "PUT" and parts[3] == "program":
+                return self._send(200, update_program(con, pid, self._body()))
+        return self._send(404, {"error": "Not found"})
 
     def do_GET(self):
         self._route("GET")
@@ -1400,9 +1648,6 @@ class Handler(BaseHTTPRequestHandler):
     def do_DELETE(self):
         self._route("DELETE")
 
-    def do_OPTIONS(self):
-        self._send(204, b"")
-
     def log_message(self, fmt, *args):
         path = self.path.split("token=")[0] + "token=***" if "token=" in self.path else self.path
         sys.stderr.write("  %s %s\n" % (self.command, path))
@@ -1411,7 +1656,8 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8000)
-    ap.add_argument("--host", default="0.0.0.0")
+    ap.add_argument("--host", default="127.0.0.1",
+                    help="address to listen on; 0.0.0.0 also exposes the dashboard to the clinic network")
     ap.add_argument("--reset", action="store_true", help="delete the database first")
     args = ap.parse_args()
     if args.reset:

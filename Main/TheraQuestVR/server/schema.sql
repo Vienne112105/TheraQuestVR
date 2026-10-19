@@ -153,13 +153,12 @@ CREATE TABLE IF NOT EXISTS patient_badge (
 );
 
 -- Performance Indexes for high-frequency queries
+-- (indexes on columns added by server.py MIGRATIONS live in POST_MIGRATION_INDEXES instead)
 CREATE INDEX IF NOT EXISTS idx_session_patient_started ON session(patient_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_perf_session ON performance_record(session_id);
 CREATE INDEX IF NOT EXISTS idx_perf_exercise ON performance_record(exercise_id);
 CREATE INDEX IF NOT EXISTS idx_adh_patient_date ON adherence_record(patient_id, session_date);
-CREATE INDEX IF NOT EXISTS idx_exercise_program_active ON exercise(program_id, active);
 CREATE INDEX IF NOT EXISTS idx_patient_program ON patient(program_id);
-CREATE INDEX IF NOT EXISTS idx_patient_phase ON patient(phase_id);
 CREATE INDEX IF NOT EXISTS idx_phase_protocol ON protocol_phase(protocol_id, phase_no);
 CREATE INDEX IF NOT EXISTS idx_phase_ex_phase ON phase_exercise(phase_id, sort_order);
 CREATE INDEX IF NOT EXISTS idx_phase_hist_patient ON phase_history(patient_id);

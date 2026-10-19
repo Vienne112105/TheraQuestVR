@@ -37,8 +37,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M3.2 | M3 | done | Clinical Endpoint Authorization & Patient Code Isolation |
 | M4 | — | active | Foundation Hardening (pre-feature stabilization) |
 | M4.1 | M4 | done | Repository & Environment Safety |
-| M4.2 | M4 | active | Backend Security & Data Integrity |
-| M4.3 | M4 | planned | Unity Client Robustness & Deployability |
+| M4.2 | M4 | done | Backend Security & Data Integrity |
+| M4.3 | M4 | active | Unity Client Robustness & Deployability |
 | M4.4 | M4 | planned | Tracker Measurement Correctness |
 | M4.5 | M4 | planned | Evaluation Pipeline Integrity |
 | M4.6 | M4 | planned | Single Source of Exercise Definitions |
@@ -185,8 +185,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
   - Adding an exercise that uses an existing pose needs only a server `LIBRARY` entry (DEC-012).
 - **Children:**
   - `M4.1`: Repository & Environment Safety (done)
-  - `M4.2`: Backend Security & Data Integrity (active)
-  - `M4.3`: Unity Client Robustness & Deployability
+  - `M4.2`: Backend Security & Data Integrity (done)
+  - `M4.3`: Unity Client Robustness & Deployability (active)
   - `M4.4`: Tracker Measurement Correctness
   - `M4.5`: Evaluation Pipeline Integrity
   - `M4.6`: Single Source of Exercise Definitions
@@ -201,7 +201,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 - **Systems:** ClinicalBackend, MotionTracking
 
 ### M4.2 — Backend Security & Data Integrity
-- **Status:** active
+- **Status:** done
 - **Objective:** Close the security holes and make session recording trustworthy.
 - **Deliverables:** static path containment; CORS removed; dashboard output escaping; first-run password, change-password, login throttling, hashed tokens with purge; 400/404 error mapping; server-side completion rules, idempotent session uploads, atomic XP; protocol replacement that keeps therapist-authored protocols; prescription bounds on every write path; migration ordering; `test_backend.py`.
 - **Completion criteria:** the backend test suites pass, including traversal, stored-script, idempotency, migration and throttling cases.
@@ -209,7 +209,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 - **Systems:** ClinicalBackend, TherapistDashboard
 
 ### M4.3 — Unity Client Robustness & Deployability
-- **Status:** planned
+- **Status:** active
 - **Objective:** Make the VR client deployable to a clinic and robust to bad input and failures.
 - **Deliverables:** patient code from command line / config / PIN-protected therapist page; OpenXR packages and loader; cached last program instead of hardcoded offline program; input source locked during sessions; resilient offline queue with session UUIDs; prescription validation; loopback-only UDP receiver; locomotion lock; quit checkpoint; EditMode tests.
 - **Completion criteria:** EditMode tests pass; a built player runs with `-patient`; headset and desktop fallback both work.

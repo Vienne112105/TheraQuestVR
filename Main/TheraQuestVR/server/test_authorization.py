@@ -4,68 +4,24 @@ patient-code-scoped VR routes. Runs the real server on a throwaway database.
 
 Run:   python test_authorization.py
 """
-import json
-import os
-import shutil
-import tempfile
-import threading
 import unittest
-import urllib.error
-import urllib.request
-from http.server import ThreadingHTTPServer
 
 import server
+from testsupport import ServerTestCase, TEST_USER, TEST_PASSWORD
 
-SEED_USER, SEED_PASSWORD = "therapist", "password123"   # default clinician created by server.seed()
 
-
-class AuthorizationTests(unittest.TestCase):
+class AuthorizationTests(ServerTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.mkdtemp(prefix="tq_auth_test_")
-        cls._real_db = server.DB_PATH
-        server.DB_PATH = os.path.join(cls.tmp, "test.db")
-        server.init_db()
-        cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.Handler)
-        cls.base = f"http://127.0.0.1:{cls.httpd.server_address[1]}"
-        threading.Thread(target=cls.httpd.serve_forever, daemon=True).start()
-
-        status, body = cls.call("POST", "/api/auth/login", {"username": SEED_USER, "password": SEED_PASSWORD})
-        assert status == 200, body
-        cls.token = body["token"]
-        cls.auth = {"Authorization": f"Bearer {cls.token}"}
+        super().setUpClass()
         status, body = cls.call("POST", "/api/patients", {"code": "P-900", "name": "Isolation test"}, cls.auth)
         assert status == 201, body
-        status, patients = cls.call("GET", "/api/patients", headers=cls.auth)
-        ids = {p["code"]: p["id"] for p in patients}
+        ids = cls.patient_ids()
         cls.p1, cls.p900 = ids["P-001"], ids["P-900"]
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.httpd.shutdown()
-        cls.httpd.server_close()
-        server.DB_PATH = cls._real_db
-        shutil.rmtree(cls.tmp, ignore_errors=True)
-
-    @classmethod
-    def call(cls, method, path, body=None, headers=None):
-        data = json.dumps(body).encode() if body is not None else None
-        req = urllib.request.Request(cls.base + path, data=data, method=method, headers=dict(headers or {}))
-        if data is not None:
-            req.add_header("Content-Type", "application/json")
-        try:
-            with urllib.request.urlopen(req, timeout=10) as r:
-                raw, status = r.read(), r.status
-        except urllib.error.HTTPError as e:
-            raw, status = e.read(), e.code
-        try:
-            return status, json.loads(raw or b"null")
-        except ValueError:
-            return status, raw
-
     def session_body(self, patient_id):
-        return {"patient_id": patient_id, "ended_early": True, "input_source": "test", "points": 0, "exercises": []}
+        return {"patient_id": patient_id, "ended_early": True, "input_source": "simulated", "points": 0, "exercises": []}
 
     # ------------------------------------------------ therapist routes
     def protected_routes(self):
@@ -119,7 +75,7 @@ class AuthorizationTests(unittest.TestCase):
         self.assertEqual(status, 401)
 
     def test_logged_out_token_is_rejected(self):
-        _, body = self.call("POST", "/api/auth/login", {"username": SEED_USER, "password": SEED_PASSWORD})
+        _, body = self.call("POST", "/api/auth/login", {"username": TEST_USER, "password": TEST_PASSWORD})
         temp = {"Authorization": f"Bearer {body['token']}"}
         self.assertEqual(self.call("GET", "/api/patients", headers=temp)[0], 200)
         self.call("POST", "/api/auth/logout", headers=temp)

@@ -14,19 +14,20 @@ last_agent: claude-code
 last_ide: claude-desktop
 
 # ID only — resolve objective/criteria in 50_ROADMAP.md
-current_milestone: M4.2
+current_milestone: M4.3
 
 # Active scene or primary file in focus, if any
 current_scene: null
 
 # System file basenames under brain/systems/ (without .md) to load on BOOT
 systems_in_scope:
-  - ClinicalBackend
-  - TherapistDashboard
+  - SessionOrchestration
+  - ExerciseEvaluation
+  - VRClinicExperience
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on:
-  - "M4.2 Backend Security & Data Integrity"
+  - "M4.3 Unity Client Robustness & Deployability"
 
 # Known bugs or risks
 known_issues:

@@ -9,7 +9,8 @@ Provides a lightweight, local-first Python REST API and SQLite persistence layer
 ## Responsibilities
 - Serve HTTP endpoints on port 8000 for clinician authentication, patients, prescriptions, session logs, performance records, telemetry exports, and clinical protocols.
 - Maintain relational database schema (`theraquest.db`) with 11 custom performance indexes and SQLite Write-Ahead Logging (WAL) mode for concurrent VR data writing.
-- Enforce secure credential hashing (PBKDF2-HMAC-SHA256 with unique 16-byte cryptographic salts) and manage bearer session tokens via `therapist_session` with 24-hour expiration.
+- Enforce secure credential hashing (PBKDF2-HMAC-SHA256 with unique 16-byte cryptographic salts) and manage bearer session tokens via `therapist_session` with 24-hour expiration; tokens are stored as SHA-256 digests and expired ones are purged at sign-in.
+- No default password: the first clinician login is created through a loopback-only first-run setup; sign-ins with the old demo password must change it; failed sign-ins are throttled per username.
 - Enforce authorization per [[30_DECISIONS]] DEC-009: every therapist route requires a valid bearer token (401 otherwise); the VR client uses separate patient-scoped `/api/vr/*` routes authorized by the `X-Patient-Code` header and accepted from loopback only.
 - Provide full clinical protocol lifecycle operations (`POST /api/protocols`, `DELETE /api/protocols/{id}`, and `DELETE /api/patients/{id}/protocol`) using parameterized cascading updates.
 - Pre-seed evidence-based clinical protocols (OHSU Knee and MGB Rotator Cuff) and load protocol hierarchies via an optimized 3-query bulk dictionary builder.
@@ -29,6 +30,11 @@ Provides a lightweight, local-first Python REST API and SQLite persistence layer
 - `Main/TheraQuestVR/server/test_authorization.py`: M3.2 authorization regression suite (therapist 401s, patient-code isolation, loopback-only VR routes).
 
 ## Invariants
+- Session completion and progression are judged against the server's prescription (effective reps × sets of every active exercise), never the client's own targets; an empty program is never complete.
+- A session upload with a `session_uuid` already stored is answered with the stored session (idempotent retry), never saved twice.
+- Re-seeding built-in protocols (`protocol.builtin = 1`) must never delete therapist-authored protocols.
+- Every prescription write path applies the same bounds (`RX_FIELDS`).
+- The server sends no CORS headers; static files are served only from inside `static/`; the server listens on 127.0.0.1 unless started with `--host`.
 - Patient identities must be stored as pseudonymous codes (e.g., `P-001`) to comply with healthcare privacy regulations.
 - A phase progression cannot be applied automatically without explicit therapist confirmation logged in `phase_history`.
 - Protocol deletions and patient detachments must preserve exercise histories and use parameterized SQL queries.

@@ -550,6 +550,10 @@ header {
         <div id="clinicianName" style="font-size:13px;font-weight:700;color:var(--text)">Dr. Sarah Chen</div>
         <div id="clinicianRole" style="font-size:11px;color:var(--text-muted)">PT-94821 · Lead PT</div>
       </div>
+      <button class="btn btn-secondary btn-sm" onclick="openPasswordModal(false)" title="Change your password">
+        <i data-lucide="key-round" style="width:14px;height:14px"></i>
+        Password
+      </button>
       <button class="btn btn-secondary btn-sm" onclick="logout()" title="Sign out of portal">
         <i data-lucide="log-out" style="width:14px;height:14px"></i>
         Sign Out
@@ -569,7 +573,7 @@ header {
         <div style="width:48px;height:48px;border-radius:12px;background:var(--teal-soft);border:1px solid var(--teal-border);color:var(--teal);display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
           <i data-lucide="stethoscope" style="width:26px;height:26px"></i>
         </div>
-        <h2 style="font-size:20px;font-weight:700;color:var(--text);margin:0 0 4px">Clinician Sign In</h2>
+        <h2 id="loginTitle" style="font-size:20px;font-weight:700;color:var(--text);margin:0 0 4px">Clinician Sign In</h2>
         <p style="font-size:13px;color:var(--text-muted);margin:0">Access patient monitoring, telemetry, and VR prescriptions.</p>
       </div>
 
@@ -598,14 +602,32 @@ header {
         </button>
       </form>
 
-      <!-- Quick Demo Credentials Pill -->
-      <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);text-align:center">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">Demonstration Clinician Account</div>
-        <button type="button" onclick="fillDemoCredentials()" style="background:var(--bg);border:1px solid var(--border);padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--teal);font-weight:600;display:inline-flex;align-items:center;gap:6px">
-          <i data-lucide="key" style="width:12px;height:12px"></i>
-          Fill Demo: therapist / password123
+      <!-- First-run setup: shown instead of the sign-in form until a clinician login exists -->
+      <form id="setupForm" onsubmit="handleSetupSubmit(event)" style="display:none;flex-direction:column;gap:14px">
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.5">
+          First run on this computer: create the clinician login. There is no default password.
+        </div>
+        <div>
+          <label for="setupName" style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Your name</label>
+          <input type="text" id="setupName" placeholder="e.g. Juan Dela Cruz, PT" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px">
+        </div>
+        <div>
+          <label for="setupUsername" style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Username</label>
+          <input type="text" id="setupUsername" required autocomplete="username" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px">
+        </div>
+        <div>
+          <label for="setupPassword" style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Password (at least 8 characters)</label>
+          <input type="password" id="setupPassword" required minlength="8" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px">
+        </div>
+        <div>
+          <label for="setupPassword2" style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Repeat password</label>
+          <input type="password" id="setupPassword2" required minlength="8" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px">
+        </div>
+        <button type="submit" id="setupBtn" class="btn btn-primary" style="padding:10px;font-size:14px;margin-top:6px">
+          <i data-lucide="user-plus" style="width:16px;height:16px"></i>
+          Create Login
         </button>
-      </div>
+      </form>
     </div>
   </div>
 
@@ -780,6 +802,17 @@ header {
                 Weekly Scheduled Days
               </label>
               <div style="display:flex;gap:8px;margin-top:10px" id="scheduleDaysRow"></div>
+            </div>
+
+            <div style="margin-top:20px">
+              <label for="rxMaxReps" style="font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px">
+                <i data-lucide="trending-up" style="width:15px;height:15px;color:var(--teal)"></i>
+                Rep cap for automatic progression
+              </label>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+                <input type="number" id="rxMaxReps" min="1" max="50" style="width:90px">
+                <span style="font-size:12px;color:var(--text-muted)">Reps per set never go above this, even if a base value above is higher. Progression adds +2 reps per set after qualifying sessions.</span>
+              </div>
             </div>
 
             <div style="margin-top:24px;display:flex;align-items:center;gap:12px">
@@ -957,6 +990,35 @@ header {
       <button class="btn btn-secondary btn-sm" onclick="closeConfirmModal(false)">Cancel</button>
       <button class="btn btn-primary btn-sm" id="confirmModalOkBtn" onclick="closeConfirmModal(true)">Confirm</button>
     </div>
+  </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- IN-APP MODAL: CHANGE PASSWORD                                  -->
+<!-- ============================================================== -->
+<div id="passwordModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle">
+  <div class="modal-content" style="max-width: 420px">
+    <div class="card-title" id="passwordModalTitle">Change Password</div>
+    <div class="card-desc" id="passwordModalDesc" style="margin-bottom:14px">At least 8 characters.</div>
+    <div id="passwordErr" style="display:none;background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:12px"></div>
+    <form id="passwordForm" onsubmit="handlePasswordSubmit(event)" style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <label for="pwCurrent" style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Current password</label>
+        <input type="password" id="pwCurrent" required autocomplete="current-password" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px">
+      </div>
+      <div>
+        <label for="pwNew" style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">New password</label>
+        <input type="password" id="pwNew" required minlength="8" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px">
+      </div>
+      <div>
+        <label for="pwNew2" style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Repeat new password</label>
+        <input type="password" id="pwNew2" required minlength="8" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px">
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
+        <button type="button" class="btn btn-secondary btn-sm" id="pwCancelBtn" onclick="closePasswordModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm" id="pwSaveBtn">Save Password</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -1276,15 +1338,92 @@ function handleUnauthorized() {
   $("authApp").style.display = "none";
   $("topNavAuth").style.display = "none";
   $("viewLogin").style.display = "block";
+  passwordChangeForced = false;
+  $("passwordModal").classList.remove("active");
+  showSetupIfNeeded();
   refreshIcons();
 }
 
 // ------------------------------------------
 // 0. Authentication Handlers
 // ------------------------------------------
-function fillDemoCredentials() {
-  $("loginUsername").value = "therapist";
-  $("loginPassword").value = "password123";
+// First run: no clinician login exists yet, so show the setup form instead of sign-in
+async function showSetupIfNeeded() {
+  let needsSetup = false;
+  try {
+    needsSetup = (await api("/api/auth/setup")).needsSetup;
+  } catch(e) {}
+  $("loginForm").style.display = needsSetup ? "none" : "flex";
+  $("setupForm").style.display = needsSetup ? "flex" : "none";
+  $("loginTitle").textContent = needsSetup ? "Create Clinician Login" : "Clinician Sign In";
+}
+
+async function handleSetupSubmit(ev) {
+  ev.preventDefault();
+  $("loginErr").style.display = "none";
+  if ($("setupPassword").value !== $("setupPassword2").value) {
+    $("loginErr").style.display = "block";
+    $("loginErr").textContent = "The two passwords don't match.";
+    return;
+  }
+  $("setupBtn").disabled = true;
+  try {
+    const res = await api("/api/auth/setup", {
+      method: "POST",
+      body: { name: $("setupName").value.trim(), username: $("setupUsername").value.trim(), password: $("setupPassword").value }
+    });
+    authToken = res.token;
+    currentTherapist = res.therapist;
+    localStorage.setItem("tq_auth_token", authToken);
+    showAuthenticatedState();
+    showToast("✓ Clinician login created");
+  } catch(e) {
+    $("loginErr").style.display = "block";
+    $("loginErr").textContent = e.message;
+  } finally {
+    $("setupBtn").disabled = false;
+  }
+}
+
+// Change password. forced = true after signing in with the old demo password: it can't be dismissed.
+let passwordChangeForced = false;
+function openPasswordModal(forced) {
+  passwordChangeForced = !!forced;
+  $("passwordForm").reset();
+  $("passwordErr").style.display = "none";
+  $("pwCancelBtn").style.display = forced ? "none" : "inline-flex";
+  $("passwordModalDesc").textContent = forced
+    ? "You signed in with the old demo password. Choose a new password (at least 8 characters) to continue."
+    : "At least 8 characters.";
+  $("passwordModal").classList.add("active");
+}
+function closePasswordModal() {
+  if (passwordChangeForced) return;
+  $("passwordModal").classList.remove("active");
+}
+async function handlePasswordSubmit(ev) {
+  ev.preventDefault();
+  $("passwordErr").style.display = "none";
+  if ($("pwNew").value !== $("pwNew2").value) {
+    $("passwordErr").style.display = "block";
+    $("passwordErr").textContent = "The two new passwords don't match.";
+    return;
+  }
+  $("pwSaveBtn").disabled = true;
+  try {
+    await api("/api/auth/password", {
+      method: "POST",
+      body: { current_password: $("pwCurrent").value, new_password: $("pwNew").value }
+    });
+    passwordChangeForced = false;
+    closePasswordModal();
+    showToast("✓ Password changed");
+  } catch(e) {
+    $("passwordErr").style.display = "block";
+    $("passwordErr").textContent = e.message;
+  } finally {
+    $("pwSaveBtn").disabled = false;
+  }
 }
 
 async function handleLoginSubmit(ev) {
@@ -1307,6 +1446,7 @@ async function handleLoginSubmit(ev) {
 
     showAuthenticatedState();
     showToast(`Welcome back, ${currentTherapist.name}`);
+    if (res.mustChangePassword) openPasswordModal(true);
   } catch(e) {
     $("loginErr").style.display = "block";
     $("loginErr").textContent = e.message || "Invalid credentials. Please verify your practitioner ID.";
@@ -1596,10 +1736,10 @@ function renderProgressChart() {
 function renderSessionHistory() {
   $("sessionHistoryBody").innerHTML = activeData.sessions.length ? activeData.sessions.map(s => `
     <tr>
-      <td style="font-weight:600">${s.started_at.slice(0, 10)}</td>
-      <td><span class="tag-status ${s.status}">
+      <td style="font-weight:600">${esc(String(s.started_at).slice(0, 10))}</td>
+      <td><span class="tag-status ${s.status === 'complete' ? 'complete' : 'incomplete'}">
         <i data-lucide="${s.status === 'complete' ? 'check' : 'clock'}" style="width:12px;height:12px"></i>
-        ${s.status}
+        ${esc(s.status)}
       </span></td>
       <td>${s.valid} / ${s.attempts} reps</td>
       <td style="font-weight:600;color:var(--teal)">${s.accuracy}%</td>
@@ -1637,7 +1777,7 @@ function renderPrescription() {
     <div class="rx-item">
       <div>
         <div class="rx-name">${esc(e.name)}</div>
-        <div class="rx-meta">${e.joint} · ${e.position}${e.side ? ' (' + e.side + ')' : ''}</div>
+        <div class="rx-meta">${esc(e.joint)} · ${esc(e.position)}${e.side ? ' (' + esc(e.side) + ')' : ''} · today: ${+e.reps} reps per set</div>
       </div>
       <div class="rx-input-group">
         <label>Target Angle (°)</label>
@@ -1664,6 +1804,7 @@ function renderPrescription() {
     </div>
   `).join("");
 
+  $("rxMaxReps").value = activeData.program.maxReps || 14;
   $("scheduleDaysRow").innerHTML = DOW.map((d, i) => `
     <label style="display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;cursor:pointer">
       <input type="checkbox" id="d${i}" ${activeData.program.days.includes(i) ? "checked" : ""}>
@@ -1681,8 +1822,8 @@ function openAddExerciseModal() {
   });
 
   sel.innerHTML = Object.keys(joints).map(j => `
-    <optgroup label="${j} Movements">
-      ${joints[j].map(l => `<option value="${l.code}">${l.name}</option>`).join("")}
+    <optgroup label="${esc(j)} Movements">
+      ${joints[j].map(l => `<option value="${esc(l.code)}">${esc(l.name)}</option>`).join("")}
     </optgroup>
   `).join("");
 
@@ -1748,7 +1889,7 @@ $("rxForm").addEventListener("submit", async ev => {
   ev.preventDefault();
   const body = {
     days: DOW.map((_, i) => $("d" + i).checked ? i : -1).filter(i => i >= 0),
-    maxReps: activeData.program.maxReps || 14,
+    maxReps: +$("rxMaxReps").value || activeData.program.maxReps || 14,
     exercises: activeData.exercises.map(e => ({
       id: e.id,
       side: e.side || "",
@@ -1990,7 +2131,7 @@ function openProtocolPhasesWidget(protId) {
 
   $("widgetActionButtons").innerHTML = `
     ${assignBtn}
-    <button class="btn btn-secondary btn-sm" onclick="confirmDeleteProtocol(${p.id}, '${esc(p.name)}')" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2" title="Remove protocol from library">
+    <button class="btn btn-secondary btn-sm" onclick="confirmDeleteProtocol(${+p.id})" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2" title="Remove protocol from library">
       <i data-lucide="trash-2" style="width:13px;height:13px"></i>
       Remove Protocol
     </button>
@@ -2100,7 +2241,9 @@ async function handleCreateProtocolSubmit(e) {
   }
 }
 
-async function confirmDeleteProtocol(id, name) {
+async function confirmDeleteProtocol(id) {
+  const prot = protocols.find(x => x.id === id);
+  const name = prot ? prot.name : "this protocol";
   const confirmed = await showConfirm(
     "Remove Exercise Protocol",
     `Permanently remove protocol "${name}" from the clinical library? Any patients currently assigned to this protocol will transition to independent custom prescriptions.`,
@@ -2228,7 +2371,7 @@ async function saveNewPatient() {
   }
 }
 
-const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // Initial Boot: Check session
 checkSession();
