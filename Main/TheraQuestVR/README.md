@@ -37,23 +37,23 @@ python app.py
 ```
 
 This launches the **Therapist Command Center as a native desktop application window** (powered by Windows WebView2, without any browser URL bars, navigation buttons, or tabs).
-The first run initializes `theraquest.db` with patient **P-001** and evidence-based clinical protocols.
+For the native window, install the optional package once: `pip install -r server/requirements.txt`. Without it, the launcher opens Edge in app mode.
 You can also view the dashboard via browser at **http://localhost:8000**.
-`python server.py --reset` resets the database.
+
+**Sign in.** The dashboard needs a therapist login. A new database is seeded with the clinician account `therapist` / `password123`. Treat this as a development login only: don't use it with real patient data.
+
+**Where the data lives.** The database is stored at `%LOCALAPPDATA%\TheraQuest\theraquest.db`, outside the project folder, so OneDrive or git never sync patient data (DEC-010).
+Set the environment variable `THERAQUEST_DB` to use another path. The first run copies an older `server/theraquest.db` there once; delete the old copy after you've checked the dashboard.
+The first run of a new database creates patient **P-001** and the evidence-based clinical protocols.
+`python server.py --reset` deletes the database (including its `-wal` / `-shm` files) and starts fresh.
 
 ## 3. Start the motion tracker
 
-First time only:
+Double-click **`start_tracker.bat`**. On the first run it checks for Python 3.11 / 3.12, creates `tracker\.venv` and installs the pinned packages from `tracker/requirements.txt`. If the install fails, it stops and retries on the next run.
 
-```
-cd tracker
-python -m venv .venv
-.venv\Scripts\activate
-pip install -r requirements.txt
-python test_angles.py          # optional: checks the angle math (12 tests should pass)
-```
+To check the angle math: `cd tracker` then `.venv\Scripts\python -m unittest test_angles`.
 
-Then, each time, double-click **`start_tracker.bat`**, or run:
+Manual use:
 
 ```
 cd tracker
@@ -86,10 +86,10 @@ Use good lighting, keep 2–3 m away, and don't stand in front of a window.
 
 ## 4. Set up the Unity project
 
-1. Unity Hub → **New project** → **Universal 3D** template. Name it `TheraQuestVR`.
-2. Copy the folder `unity/Assets/TheraQuest` into your project's `Assets` folder.
-3. Wait for Unity to compile, then use the menu **TheraQuest → Create Scene**.
-   This builds the room, the coach figure, the HUD and all the managers, and connects everything.
+1. Unity Hub → **Add → Add project from disk** → choose the `unity` folder.
+   The first open takes a while: Unity rebuilds its `Library` cache, which is not stored in git.
+2. Open `Assets/TheraQuest/TheraQuest.unity`. (If the scene is missing, use the menu **TheraQuest → Create Scene**: it builds the room, the coach figure, the HUD and all the managers, and connects everything.)
+3. Select the **TheraQuest** object and check **Api Client → Patient Code** (e.g. `P-001`). Unity loads that patient's program from `/api/vr/program` and uploads to `/api/vr/sessions`, from this computer only.
 4. Press **Play**. You'll see the scene on the laptop screen (desktop mode).
 
 You don't need to run **Create Scene** again after updating the scripts: the menu, music, subtitles,
@@ -209,7 +209,7 @@ Thresholds live in `MotionInput.cs` (posture), `ExerciseEvaluator.cs` (scoring),
 |---|---|
 | HUD says "No tracker data" | Start `tracker.py`. Allow Python **and** Unity through Windows Firewall (Private networks) when asked. Check that nothing else uses UDP port 5005. |
 | HUD says "(offline)" | Start `server.py` first, then press Play again. Offline sessions are saved and upload automatically later. |
-| `pip install mediapipe` fails | Use Python 3.11 or 3.12: `py -3.11 -m venv .venv` |
+| `pip install mediapipe` fails | Use Python 3.11 or 3.12, delete `tracker\.venv` and run `start_tracker.bat` again. |
 | Camera won't open | Close Zoom, Teams or the Camera app. Try `--camera 1`. |
 | Angles jump around | Improve the lighting, move back so the whole limb is in frame, use `--model full`. |
 | Nothing in the headset | Quest Link must be the active OpenXR runtime, and Link must be on *before* pressing Play. |
@@ -217,8 +217,7 @@ Thresholds live in `MotionInput.cs` (posture), `ExerciseEvaluator.cs` (scoring),
 
 ## 10. Next steps for the capstone
 
-- **Therapist login:** the dashboard has no authentication yet. Add it before testing with real patients.
-- **Patient privacy:** use patient codes (P-001), not names. Keep `theraquest.db` on the clinic laptop. This supports your Ethical Considerations section and the Data Privacy Act of 2012 (RA 10173).
+- **Patient privacy:** use patient codes (P-001), not names. The database stays on the clinic laptop, outside synced folders. This supports your Ethical Considerations section and the Data Privacy Act of 2012 (RA 10173).
 - **Adding exercises:** on the dashboard, pick one from **Add exercise**. To create a new type, add it to `LIBRARY` in `server.py`, plus a pose in `FigureVisualizer.cs` and (if needed) a posture check in `MotionInput.cs`. A new measured angle also goes in `tracker/angles.py` and `AngleSet`.
-- **Evaluation data:** each `performance_record` stores accuracy and mean angle error per exercise. Export it for your confusion-matrix and angle-error analysis (Section 3.9).
+- **Evaluation data:** each `performance_record` stores accuracy and the gap between target and achieved angle per exercise; the dashboard exports it as CSV / JSON. `evaluation/evaluate_clinical_metrics.py` computes the Section 3.9 metrics. Its built-in run uses **synthetic example data**, not study results; real goniometer, rep-label and survey inputs are being added in roadmap milestone M4.5.
 - **Avatar:** replace the primitive coach figure with a rigged character (e.g. from Mixamo) driven by the same angles.

@@ -1,9 +1,3 @@
 @echo off
-title TheraQuest VR - Therapist Command Center
-cd /d "%~dp0Main\TheraQuestVR\server"
-python app.py
-if errorlevel 1 (
-    echo.
-    echo Fallback: Opening dedicated application window...
-    start msedge.exe --app=http://localhost:8000 --window-size=1360,880
-)
+rem Kept for convenience: the real launcher lives in Main\TheraQuestVR.
+call "%~dp0Main\TheraQuestVR\Start_Therapist_App.bat"

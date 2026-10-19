@@ -44,7 +44,42 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(HERE, "theraquest.db")
+
+
+def default_db_path():
+    """DEC-010: keep patient data out of the synced project folder. THERAQUEST_DB overrides."""
+    if os.environ.get("THERAQUEST_DB"):
+        return os.path.abspath(os.environ["THERAQUEST_DB"])
+    base = os.environ.get("LOCALAPPDATA") or os.path.join(os.path.expanduser("~"), ".local", "share")
+    return os.path.join(base, "TheraQuest", "theraquest.db")
+
+
+DB_PATH = default_db_path()
+LEGACY_DB_PATH = os.path.join(HERE, "theraquest.db")   # where the database lived before DEC-010
+
+
+def migrate_legacy_db():
+    """Copy an old server/theraquest.db to DB_PATH once (SQLite backup API, so WAL contents are included)."""
+    if os.path.exists(DB_PATH) or not os.path.exists(LEGACY_DB_PATH):
+        return False
+    if os.path.normcase(os.path.abspath(DB_PATH)) == os.path.normcase(LEGACY_DB_PATH):
+        return False
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    src, dst = sqlite3.connect(LEGACY_DB_PATH), sqlite3.connect(DB_PATH)
+    try:
+        src.backup(dst)
+    finally:
+        dst.close()
+        src.close()
+    print(f"Moved clinical data to {DB_PATH}.\n"
+          f"The old copy is still at {LEGACY_DB_PATH}; delete it once you have checked the dashboard.")
+    return True
+
+
+def delete_db_files(path):
+    for suffix in ("", "-wal", "-shm"):
+        if os.path.exists(path + suffix):
+            os.remove(path + suffix)
 
 BADGES = {
     "first": "First steps", "perfect": "Perfect form", "combo10": "Combo 10",
@@ -349,6 +384,7 @@ def db():
 
 
 def init_db():
+    os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
     con = db()
     with open(os.path.join(HERE, "schema.sql"), encoding="utf-8") as f:
         con.executescript(f.read())
@@ -1378,10 +1414,13 @@ def main():
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--reset", action="store_true", help="delete the database first")
     args = ap.parse_args()
-    if args.reset and os.path.exists(DB_PATH):
-        os.remove(DB_PATH)
+    if args.reset:
+        delete_db_files(DB_PATH)
+    else:
+        migrate_legacy_db()
     init_db()
     print(f"TheraQuest server running.  Dashboard: http://localhost:{args.port}   (Ctrl+C to stop)")
+    print(f"Database: {DB_PATH}")
     try:
         ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
     except KeyboardInterrupt:

@@ -13,13 +13,14 @@ from urllib.request import urlopen
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from server import db, init_db, Handler, ThreadingHTTPServer
+from server import init_db, migrate_legacy_db, Handler, ThreadingHTTPServer
 
 def is_port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('127.0.0.1', port)) == 0
 
 def start_server_thread(port: int):
+    migrate_legacy_db()
     init_db()
     server = ThreadingHTTPServer(('127.0.0.1', port), Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
