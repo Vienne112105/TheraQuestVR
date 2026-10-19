@@ -1,0 +1,43 @@
+# ClinicalBackend
+
+## Purpose
+Provides a lightweight, local-first Python REST API and SQLite persistence layer to manage patient prescriptions, log rehabilitation sessions, track clinical protocol phases, and evaluate adherence and progression criteria.
+
+## Status
+`stable`
+
+## Responsibilities
+- Serve HTTP endpoints on port 8000 for clinician authentication, patients, prescriptions, session logs, performance records, telemetry exports, and clinical protocols.
+- Maintain relational database schema (`theraquest.db`) with 11 custom performance indexes and SQLite Write-Ahead Logging (WAL) mode for concurrent VR data writing.
+- Enforce secure credential hashing (PBKDF2-HMAC-SHA256 with unique 16-byte cryptographic salts) and manage bearer session tokens via `therapist_session` with 24-hour expiration.
+- Enforce authorization per [[30_DECISIONS]] DEC-009: every therapist route requires a valid bearer token (401 otherwise); the VR client uses separate patient-scoped `/api/vr/*` routes authorized by the `X-Patient-Code` header and accepted from loopback only.
+- Provide full clinical protocol lifecycle operations (`POST /api/protocols`, `DELETE /api/protocols/{id}`, and `DELETE /api/patients/{id}/protocol`) using parameterized cascading updates.
+- Pre-seed evidence-based clinical protocols (OHSU Knee and MGB Rotator Cuff) and load protocol hierarchies via an optimized 3-query bulk dictionary builder.
+- Validate target angles and safety maximums against normal physiological ROM benchmarks (AAOS / Norkin & White standards).
+- Evaluate patient stage progression: assess recent qualifying sessions for ≥85% accuracy, pain stability, and safety threshold compliance before suggesting phase advancement.
+- Automatically advance prescribed repetition targets (+2 reps/set up to cap) following qualifying adherence sessions.
+- Provide one-click telemetry data export in CSV and JSON formats (`/api/export`).
+
+## Dependencies
+- Standard Python standard libraries (`http.server`, `sqlite3`, `json`, `datetime`, `hashlib`, `secrets`, `csv`, `urllib`).
+- Inter-system: Serves `SessionOrchestration` and powers `TherapistDashboard`.
+
+## Runtime References
+- `Main/TheraQuestVR/server/server.py`: HTTP request handler, routing, authentication, protocol lifecycle, progression evaluation logic, and seed data.
+- `Main/TheraQuestVR/server/schema.sql`: Relational SQLite schema definition with 11 performance indexes.
+- `Main/TheraQuestVR/server/start_server.bat`: Windows execution batch launcher.
+- `Main/TheraQuestVR/server/test_authorization.py`: M3.2 authorization regression suite (therapist 401s, patient-code isolation, loopback-only VR routes).
+
+## Invariants
+- Patient identities must be stored as pseudonymous codes (e.g., `P-001`) to comply with healthcare privacy regulations.
+- A phase progression cannot be applied automatically without explicit therapist confirmation logged in `phase_history`.
+- Protocol deletions and patient detachments must preserve exercise histories and use parameterized SQL queries.
+- A patient code can only read or write its own record; a VR session whose `patient_id` differs from the code's patient is refused (403), and `patient_id` 0 means "recorded offline, attribute by code".
+- Patient codes are pseudonyms, not secrets, so VR routes must stay loopback-only while the server binds `0.0.0.0` for the dashboard.
+
+## Notes
+- Running `python server.py --reset` completely resets the SQLite database and re-seeds default clinician account (`therapist` / `password123`), patient `P-001`, and protocol records.
+- Database operates in WAL mode (`PRAGMA journal_mode = WAL;`) with normal synchronous I/O, memory temp store, and 32MB cache.
+
+## Future Changes
+- A per-device patient secret if the VR client ever runs on a different host than the server (would replace loopback-only trust).

@@ -1,0 +1,40 @@
+# Authoritative session RAM / cold-start handoff. AI-owned. See AGENTS.md → Ownership.
+# Execution state only. Milestone definitions live in 50_ROADMAP.md — do not duplicate them here.
+# Do not mirror working_on into the Backlog.
+
+schema_version: 2
+
+# ISO date of last SHUTDOWN update (YYYY-MM-DD)
+last_updated: 2026-10-20
+
+# Who last wrote this file (e.g. cursor-agent, agy-agent, agency:unity-specialist)
+last_agent: claude-code
+
+# Host that last wrote this file (e.g. cursor, antigravity, other)
+last_ide: claude-desktop
+
+# ID only — resolve objective/criteria in 50_ROADMAP.md
+current_milestone: M4.1
+
+# Active scene or primary file in focus, if any
+current_scene: null
+
+# System file basenames under brain/systems/ (without .md) to load on BOOT
+systems_in_scope:
+  - ClinicalBackend
+  - MotionTracking
+
+# Sole in-progress list (do not duplicate into Backlog)
+working_on:
+  - "M4.1 Repository & Environment Safety"
+
+# Known bugs or risks
+known_issues:
+  - "Single-camera tracking requires specific camera placement (sagittal vs frontal) per exercise."
+  - "Patient codes (P-001...) are guessable pseudonyms; VR routes are safe only because they are loopback-only. A remote VR client would need a per-device secret (see ClinicalBackend Future Changes)."
+
+# Blockers requiring human decision or external input
+blocked: []
+
+# Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
+session_summary: "M3 (Security, Therapist Authentication & Production Hardening) closed on human sign-off 2026-10-19; M3.1 and M3.2 are done. M3.2 delivered DEC-009: therapist bearer-token enforcement on all clinical /api routes (401), patient-scoped loopback-only VR routes /api/vr/program and /api/vr/sessions keyed by X-Patient-Code (403 on cross-patient writes), legacy POST /api/sessions removed, Unity ApiClient on patientCode with offline queue carrying the code and a rejected_sessions.jsonl for refused lines. Verified by server/test_authorization.py (13/13) and a human Play-mode run (online plus offline-queue flush). All defined roadmap milestones (M0-M3) are now done. Next agent: ask the human for the next program milestone scope; do not invent roadmap phases."

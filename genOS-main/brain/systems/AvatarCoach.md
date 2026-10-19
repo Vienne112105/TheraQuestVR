@@ -1,0 +1,35 @@
+# AvatarCoach
+
+## Purpose
+Visualizes a virtual physical therapy coach avatar that demonstrates exercise movements, mirrors kinematic angles in real time, and provides visual guidance for the patient.
+
+## Status
+`stable`
+
+## Responsibilities
+- Drive 3D humanoid avatar bone rotations according to target angles and detected patient angles.
+- Render visual guidance figures (wireframe/ghost demonstration avatar, geometric visualizer, or dual-zone holographic ROM guidance).
+- Automatically configure imported Mixamo FBX avatars with Unity Humanoid rigs and smooth materials across gender-segregated folders (`Assets/TheraQuest/Coaches/Male` and `Female`).
+- Maintain natural resting idle posture (breathing cycles, weight shifts, player eye tracking) prior to session start, only demonstrating repetitions during active exercise phases.
+- Support runtime switching between coach avatars, genders, styles, and demonstration modes (Coach vs. Silhouette) from the main menu.
+
+## Dependencies
+- Unity Animation and Humanoid Rig system.
+- Inter-system: Controlled by `SessionOrchestration` (`SessionManager.isSessionActive`) and synchronized with `ExerciseEvaluation`.
+
+## Runtime References
+- `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/HumanoidCoach.cs`: IK/FK bone rotation controller, blend trees, animation sequencing, and holographic target guidance markers.
+- `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/FigureVisualizer.cs`: Kinematic figure drawing for exercise demonstration poses.
+- `Main/TheraQuestVR/unity/Assets/TheraQuest/Editor/CoachModelImporter.cs`: FBX asset postprocessor for automatic Humanoid rigging.
+
+## Invariants
+- Coach movement demonstrations must align with clinical target angles defined in the active prescription.
+- Coach avatar must remain in resting idle during menus and free-roam, never moving unprompted before session begins.
+- Holographic range-of-motion guidance marker must be visible in both Coach Mode and Silhouette Mode.
+
+## Notes
+- Users can drop any Mixamo Humanoid FBX into `Assets/TheraQuest/Coaches/Male/` or `Assets/TheraQuest/Coaches/Female/` to expand the coach roster automatically.
+
+## Future Changes
+- Multi-coach vocalization and lip-syncing.
+- Augmented visual cues on the coach indicating movement pacing and hold countdowns.

@@ -1,0 +1,45 @@
+# --- Unity (Main/TheraQuestVR/unity) ---
+Main/TheraQuestVR/unity/[Ll]ibrary/
+Main/TheraQuestVR/unity/[Tt]emp/
+Main/TheraQuestVR/unity/[Ll]ogs/
+Main/TheraQuestVR/unity/[Uu]ser[Ss]ettings/
+Main/TheraQuestVR/unity/[Oo]bj/
+Main/TheraQuestVR/unity/[Bb]uild/
+Main/TheraQuestVR/unity/[Bb]uilds/
+Main/TheraQuestVR/unity/MemoryCaptures/
+*.csproj
+*.sln
+*.slnx
+*.suo
+*.user
+*.pidb
+*.booproj
+*.unityproj
+.vs/
+.vscode/
+.idea/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# --- Clinical data (DEC-010: never commit patient data) ---
+theraquest.db
+theraquest.db-*
+*.db-wal
+*.db-shm
+pending_sessions.jsonl
+rejected_sessions.jsonl
+
+# --- Tracker model (downloaded on first run) ---
+Main/TheraQuestVR/tracker/*.task
+Main/TheraQuestVR/tracker/*.task.tmp
+
+# --- Editors / OS ---
+.obsidian/workspace*.json
+.cursor/
+Thumbs.db
+Desktop.ini
+.DS_Store
