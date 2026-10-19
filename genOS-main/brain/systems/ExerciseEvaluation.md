@@ -21,9 +21,12 @@ Evaluates real-time patient kinematics against prescribed clinical rehabilitatio
 ## Runtime References
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/ExerciseEvaluator.cs`: Repetition state machine, accuracy formula, safety boundary checks, and hold timing.
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/MotionInput.cs`: Posture validation heuristics and keyboard/fake input bridging.
+- `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/ProgramRules.cs`: Validation and clamping of prescriptions before a session.
+- `Main/TheraQuestVR/unity/Assets/TheraQuest/Tests/Editor/ExerciseEvaluatorTests.cs`: EditMode tests for rep counting, scoring, safety, hold, rest and program validation.
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/DataModels.cs`: Data definitions for exercise prescriptions, performance metrics, and rep events.
 
 ## Invariants
+- Every exercise passes `ProgramRules` before evaluation: exercises with no positive target are dropped; tolerance ≥ 1°, reps and sets ≥ 1, side normalized to L / R / best side (M4.3).
 - An exercise repetition that breaches compensatory posture thresholds is flagged invalid and awarded minimal points (2 pts).
 - Exceeding the therapist's safety maximum halts repetition accumulation and logs an unsafe rep event.
 - Repetitions cannot count during set-rest periods.
