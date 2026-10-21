@@ -26,14 +26,20 @@ systems_in_scope:
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on:
-  - "M4.3 human check: Play mode in the Editor (online, offline with cached program, queue flush after the server returns, Therapist page PIN / patient switch / motion input)"
-  - "M4.3 human check: built player with -patient P-900 against a running server and tracker, plus Quest Link headset run (OpenXR loader is configured; Link must be the active OpenXR runtime)"
+  - "M4.3 human check 1 in progress: Play mode in the Editor. Online passed 2026-10-22 (session 9: input_source simulated, 63 rep events). Still to do: offline with cached program, queue flush after the server returns, Therapist page PIN / patient switch / motion input"
+
+# Human tests waiting to be done. Every agent: at the START of every session, remind the human of each item
+# below before other work, and keep reminding each new session until the human reports it done; then remove it.
+# M4.3 and M4 can only be marked done in 50_ROADMAP.md once this list (and working_on) is empty.
+pending_human_tests:
+  - "Check 2 (M4.3): built player Main/TheraQuestVR/unity/Builds/TheraQuestVR.exe -patient P-900 with server + tracker running (register P-900 on the dashboard first; session must show under P-900 with input source webcam; running without -patient must not keep P-900). Then a Quest Link run: Link app installed, Settings > General > OpenXR Runtime set to Meta Quest Link, Link on in the headset before launch; check head tracking, A/B/Y and thumbsticks, walking locked during an exercise; Link off = desktop window. Rebuild the player first if Unity code changed since 2026-10-21."
+  - "Check 3 (M4.6): extension exercises on real side-view footage. Close Unity, run start_tracker.bat with the camera at the side 2-3 m away, then 'python check_signed.py' (optionally --side L/R) in Main/TheraQuestVR/tracker. Do 10 shoulder extensions (value must go negative), 10 flexions (positive), 10 hip extensions holding a chair (negative), Ctrl+C for the summary; repeat facing the other way. Under ~5% 'can't tell' is fine; ~20% or more, or reversed signs, means Unity should keep the last known direction across short gaps."
 
 # Known bugs or risks
 known_issues:
   - "Single-camera tracking requires specific camera placement (sagittal vs frontal) per exercise."
   - "Patient codes (P-001...) are guessable pseudonyms; VR routes are safe only because they are loopback-only. A remote VR client would need a per-device secret (see ClinicalBackend Future Changes)."
-  - "Extension exercises (shoulderExt, hipExt) have no reading when the tracker can't tell which way the patient faces (signed angle -999); flexion exercises fall back to the unsigned angle. Check this on real side-view footage."
+  - "Extension exercises (shoulderExt, hipExt) have no reading when the tracker can't tell which way the patient faces (signed angle -999); flexion exercises fall back to the unsigned angle. Measured by pending_human_tests Check 3."
   - "Live webcam reconnect (M4.4) and the headset path are untested on hardware; this PC has no OpenXR runtime installed, so the batch player run only proved the desktop fallback."
 
 # Blockers requiring human decision or external input
