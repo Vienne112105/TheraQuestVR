@@ -5,7 +5,7 @@
 schema_version: 2
 
 # ISO date of last SHUTDOWN update (YYYY-MM-DD)
-last_updated: 2026-10-21
+last_updated: 2026-10-22
 
 # Who last wrote this file (e.g. cursor-agent, agy-agent, agency:unity-specialist)
 last_agent: claude-code
@@ -25,8 +25,7 @@ systems_in_scope:
   - VRClinicExperience
 
 # Sole in-progress list (do not duplicate into Backlog)
-working_on:
-  - "M4.3 human check 1 in progress: Play mode in the Editor. Online passed 2026-10-22 (session 9: input_source simulated, 63 rep events). Still to do: offline with cached program, queue flush after the server returns, Therapist page PIN / patient switch / motion input"
+working_on: []
 
 # Human tests waiting to be done. Every agent: at the START of every session, remind the human of each item
 # below before other work, and keep reminding each new session until the human reports it done; then remove it.
@@ -46,4 +45,4 @@ known_issues:
 blocked: []
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-10-21: worked through the rest of M4. M4.5 done: Unity records every rep attempt (RepEvent: attempt, set, peak, error, valid, fault, unsafe) and uploads it with the session; server stores it in rep_event (idempotent with session_uuid, unknown exercises ignored, empty input_source stored as unknown) and exports it with ?kind=reps; evaluate_clinical_metrics.py computes metrics only from rep events joined to study CSVs (rep labels, goniometer, SUS, PT survey; blank templates in evaluation/templates), webcam sessions only by default, 'not measured' per missing input, overall PASS / FAIL / INCOMPLETE / NOT MEASURED; --self-test is labelled SYNTHETIC; the old unlabelled report was replaced by self_test_report.md. M4.6 done: each LIBRARY entry carries _rules(posture, pose, direction, checks) sent in the VR program; MotionInput, HumanoidCoach and FigureVisualizer use them instead of code switches; side-view flex/ext exercises use shoulderElevSigned/hipElevSigned; program cache schema bumped to 2. M4.3: OpenXR (xr.management 4.6.1, openxr 1.18.0) installed and configured for Standalone (Init on Startup, Oculus Touch profile) via the new TheraQuest > Set Up OpenXR menu; dead Tab/X input switch removed; README updated (command line, config.json, Therapist PIN page, evaluation inputs, adding exercises). Verified: server 42 + tracker 27 + evaluation 14 Python tests and 26 Unity EditMode tests pass (Unity batch mode); Windows player builds and starts in desktop fallback. M4.3 stays active only for the human Play-mode, built-player and headset checks in working_on; once they pass, mark M4.3 and M4 done in 50_ROADMAP.md. Next after M4: ask the human for the next program milestone (new game / dashboard features)."
+session_summary: "2026-10-21: worked through the rest of M4. M4.5 done: Unity records every rep attempt (RepEvent: attempt, set, peak, error, valid, fault, unsafe) and uploads it with the session; server stores it in rep_event (idempotent with session_uuid, unknown exercises ignored, empty input_source stored as unknown) and exports it with ?kind=reps; evaluate_clinical_metrics.py computes metrics only from rep events joined to study CSVs (rep labels, goniometer, SUS, PT survey; blank templates in evaluation/templates), webcam sessions only by default, 'not measured' per missing input, overall PASS / FAIL / INCOMPLETE / NOT MEASURED; --self-test is labelled SYNTHETIC; the old unlabelled report was replaced by self_test_report.md. M4.6 done: each LIBRARY entry carries _rules(posture, pose, direction, checks) sent in the VR program; MotionInput, HumanoidCoach and FigureVisualizer use them instead of code switches; side-view flex/ext exercises use shoulderElevSigned/hipElevSigned; program cache schema bumped to 2. M4.3: OpenXR (xr.management 4.6.1, openxr 1.18.0) installed and configured for Standalone (Init on Startup, Oculus Touch profile) via the new TheraQuest > Set Up OpenXR menu; dead Tab/X input switch removed; README updated (command line, config.json, Therapist PIN page, evaluation inputs, adding exercises). Verified: server 42 + tracker 27 + evaluation 14 Python tests and 26 Unity EditMode tests pass (Unity batch mode); Windows player builds and starts in desktop fallback. 2026-10-22: human check 1 (Editor Play mode: online, offline cached program, queue flush, Therapist page) passed per the human. M4.3 stays active only for pending_human_tests (Check 2 built player + headset, Check 3 real-footage signed angles); once they pass, mark M4.3 and M4 done in 50_ROADMAP.md. Next after M4: ask the human for the next program milestone (new game / dashboard features)."
