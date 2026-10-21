@@ -8,7 +8,8 @@ AI-owned. See `AGENTS.md` → Ownership.
 
 Do not copy milestone criteria into Progress or Backlog. Progress stores only `current_milestone` (ID) plus execution RAM.
 
-**Status values:** `planned` | `active` | `done` | `cancelled`
+**Status values:** `planned` | `active` | `TBF` | `done` | `cancelled`
+- `TBF` (To-Be-Finished): implementation and automated tests are complete; only human verification is left, listed in [[20_PROGRESS.yaml]] → `pending_human_tests`. Set it to `done` once those checks pass. A parent milestone stays `active` while a child is `TBF`.
 
 **ID conventions:**
 - Program milestones: `M0`, `M1`, `M2`, …
@@ -38,7 +39,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M4 | — | active | Foundation Hardening (pre-feature stabilization) |
 | M4.1 | M4 | done | Repository & Environment Safety |
 | M4.2 | M4 | done | Backend Security & Data Integrity |
-| M4.3 | M4 | active | Unity Client Robustness & Deployability |
+| M4.3 | M4 | TBF | Unity Client Robustness & Deployability |
 | M4.4 | M4 | done | Tracker Measurement Correctness |
 | M4.5 | M4 | done | Evaluation Pipeline Integrity |
 | M4.6 | M4 | done | Single Source of Exercise Definitions |
@@ -186,7 +187,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 - **Children:**
   - `M4.1`: Repository & Environment Safety (done)
   - `M4.2`: Backend Security & Data Integrity (done)
-  - `M4.3`: Unity Client Robustness & Deployability (active)
+  - `M4.3`: Unity Client Robustness & Deployability (TBF)
   - `M4.4`: Tracker Measurement Correctness (done)
   - `M4.5`: Evaluation Pipeline Integrity (done)
   - `M4.6`: Single Source of Exercise Definitions (done)
@@ -209,7 +210,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 - **Systems:** ClinicalBackend, TherapistDashboard
 
 ### M4.3 — Unity Client Robustness & Deployability
-- **Status:** active
+- **Status:** TBF
+- **Verification so far:** EditMode tests pass (26); Windows player builds and starts with `-patient` in desktop fallback; Editor Play-mode check (online, offline cache, queue flush, Therapist page) passed 2026-10-22. Still to verify by a human: built player against a running server and tracker, and the Quest Link headset run.
 - **Objective:** Make the VR client deployable to a clinic and robust to bad input and failures.
 - **Deliverables:** patient code from command line / config / PIN-protected therapist page; OpenXR packages and loader; cached last program instead of hardcoded offline program; input source locked during sessions; resilient offline queue with session UUIDs; prescription validation; loopback-only UDP receiver; locomotion lock; quit checkpoint; EditMode tests.
 - **Completion criteria:** EditMode tests pass; a built player runs with `-patient`; headset and desktop fallback both work.

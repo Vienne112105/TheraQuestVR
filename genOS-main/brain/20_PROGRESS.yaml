@@ -14,7 +14,7 @@ last_agent: claude-code
 last_ide: claude-desktop
 
 # ID only — resolve objective/criteria in 50_ROADMAP.md
-current_milestone: M4.3
+current_milestone: M4
 
 # Active scene or primary file in focus, if any
 current_scene: null
@@ -23,13 +23,14 @@ current_scene: null
 systems_in_scope:
   - SessionOrchestration
   - VRClinicExperience
+  - ExerciseEvaluation
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on: []
 
 # Human tests waiting to be done. Every agent: at the START of every session, remind the human of each item
 # below before other work, and keep reminding each new session until the human reports it done; then remove it.
-# M4.3 and M4 can only be marked done in 50_ROADMAP.md once this list (and working_on) is empty.
+# M4.3 (TBF) and M4 can only be marked done in 50_ROADMAP.md once this list is empty.
 pending_human_tests:
   - "Check 2 (M4.3): built player Main/TheraQuestVR/unity/Builds/TheraQuestVR.exe -patient P-900 with server + tracker running (register P-900 on the dashboard first; session must show under P-900 with input source webcam; running without -patient must not keep P-900). Then a Quest Link run: Link app installed, Settings > General > OpenXR Runtime set to Meta Quest Link, Link on in the headset before launch; check head tracking, A/B/Y and thumbsticks, walking locked during an exercise; Link off = desktop window. Rebuild the player first if Unity code changed since 2026-10-21."
   - "Check 3 (M4.6): extension exercises on real side-view footage. Close Unity, run start_tracker.bat with the camera at the side 2-3 m away, then 'python check_signed.py' (optionally --side L/R) in Main/TheraQuestVR/tracker. Do 10 shoulder extensions (value must go negative), 10 flexions (positive), 10 hip extensions holding a chair (negative), Ctrl+C for the summary; repeat facing the other way. Under ~5% 'can't tell' is fine; ~20% or more, or reversed signs, means Unity should keep the last known direction across short gaps."
@@ -45,4 +46,4 @@ known_issues:
 blocked: []
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-10-21: worked through the rest of M4. M4.5 done: Unity records every rep attempt (RepEvent: attempt, set, peak, error, valid, fault, unsafe) and uploads it with the session; server stores it in rep_event (idempotent with session_uuid, unknown exercises ignored, empty input_source stored as unknown) and exports it with ?kind=reps; evaluate_clinical_metrics.py computes metrics only from rep events joined to study CSVs (rep labels, goniometer, SUS, PT survey; blank templates in evaluation/templates), webcam sessions only by default, 'not measured' per missing input, overall PASS / FAIL / INCOMPLETE / NOT MEASURED; --self-test is labelled SYNTHETIC; the old unlabelled report was replaced by self_test_report.md. M4.6 done: each LIBRARY entry carries _rules(posture, pose, direction, checks) sent in the VR program; MotionInput, HumanoidCoach and FigureVisualizer use them instead of code switches; side-view flex/ext exercises use shoulderElevSigned/hipElevSigned; program cache schema bumped to 2. M4.3: OpenXR (xr.management 4.6.1, openxr 1.18.0) installed and configured for Standalone (Init on Startup, Oculus Touch profile) via the new TheraQuest > Set Up OpenXR menu; dead Tab/X input switch removed; README updated (command line, config.json, Therapist PIN page, evaluation inputs, adding exercises). Verified: server 42 + tracker 27 + evaluation 14 Python tests and 26 Unity EditMode tests pass (Unity batch mode); Windows player builds and starts in desktop fallback. 2026-10-22: human check 1 (Editor Play mode: online, offline cached program, queue flush, Therapist page) passed per the human. M4.3 stays active only for pending_human_tests (Check 2 built player + headset, Check 3 real-footage signed angles); once they pass, mark M4.3 and M4 done in 50_ROADMAP.md. Next after M4: ask the human for the next program milestone (new game / dashboard features)."
+session_summary: "2026-10-22 SHUTDOWN. All M4 children are implemented: M4.1, M4.2, M4.4, M4.5, M4.6 done; M4.3 is TBF (To-Be-Finished, new roadmap status): code and automated tests complete (server 42, tracker 27, evaluation 14, Unity EditMode 26; player builds), Editor Play-mode human check passed 2026-10-22. Left: pending_human_tests Check 2 (built player -patient P-900 with server + tracker, then Quest Link headset) and Check 3 (tracker/check_signed.py on real side-view footage for extension exercises). current_milestone points at M4 because it is the only active milestone. Next agent: at session start remind the human of pending_human_tests; when both pass, set M4.3 and M4 to done in 50_ROADMAP.md and clear the list. If Check 3 shows ~20% or more frames without a direction, make Unity keep the last known direction across short gaps. After M4, ask the human for the next program milestone (no scope is defined yet; do not invent one)."
