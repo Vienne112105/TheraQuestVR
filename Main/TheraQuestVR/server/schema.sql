@@ -136,6 +136,25 @@ CREATE TABLE IF NOT EXISTS performance_record (
   feedback_log      TEXT                           -- corrective feedback given (JSON list)
 );
 
+-- One row per rep attempt, in order (M4.5). Joined to therapist rep labels for the confusion matrix.
+CREATE TABLE IF NOT EXISTS rep_event (
+  rep_event_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+  session_id     INTEGER NOT NULL REFERENCES session(session_id),
+  exercise_id    INTEGER NOT NULL REFERENCES exercise(exercise_id),
+  attempt        INTEGER NOT NULL,                 -- 1, 2, 3 ... per exercise in this session
+  set_no         INTEGER NOT NULL DEFAULT 1,
+  side           TEXT,                             -- L | R | '' (best side)
+  t_seconds      REAL NOT NULL DEFAULT 0,          -- time since this exercise started
+  peak_angle     REAL NOT NULL,                    -- degrees, theta_detected
+  angle_error    REAL NOT NULL,                    -- degrees, |theta_expected - theta_detected|
+  accuracy       REAL NOT NULL,                    -- %
+  valid          INTEGER NOT NULL,                 -- 1 = the system counted the rep
+  fault          TEXT,                             -- posture problem, if any
+  unsafe         INTEGER NOT NULL DEFAULT 0,       -- went past safety_max
+  too_fast       INTEGER NOT NULL DEFAULT 0,
+  held           INTEGER NOT NULL DEFAULT 1        -- hold exercises: held long enough
+);
+
 CREATE TABLE IF NOT EXISTS adherence_record (
   adherence_id    INTEGER PRIMARY KEY AUTOINCREMENT,
   patient_id      INTEGER NOT NULL REFERENCES patient(patient_id),
@@ -157,6 +176,7 @@ CREATE TABLE IF NOT EXISTS patient_badge (
 CREATE INDEX IF NOT EXISTS idx_session_patient_started ON session(patient_id, started_at);
 CREATE INDEX IF NOT EXISTS idx_perf_session ON performance_record(session_id);
 CREATE INDEX IF NOT EXISTS idx_perf_exercise ON performance_record(exercise_id);
+CREATE INDEX IF NOT EXISTS idx_rep_event_session ON rep_event(session_id, exercise_id, attempt);
 CREATE INDEX IF NOT EXISTS idx_adh_patient_date ON adherence_record(patient_id, session_date);
 CREATE INDEX IF NOT EXISTS idx_patient_program ON patient(program_id);
 CREATE INDEX IF NOT EXISTS idx_phase_protocol ON protocol_phase(protocol_id, phase_no);

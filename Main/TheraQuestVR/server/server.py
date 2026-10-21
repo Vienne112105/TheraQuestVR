@@ -35,6 +35,7 @@ Therapist API (header Authorization: Bearer <token> from /api/auth/login; 401 wi
   GET  /api/patients/{id}/dashboard          adherence + performance analytics
   GET  /api/patients/{id}/export             export telemetry as CSV or JSON (?format=csv|json)
   GET  /api/export                           export all patient telemetry (?format=csv|json)
+  Both export routes take ?kind=reps for one row per rep attempt instead of one per exercise.
   Export routes also accept ?token=<token> so the dashboard's download links work.
 """
 import argparse
@@ -113,68 +114,129 @@ BADGES = {
     "fullrom": "Bullseye", "streak3": "On a roll", "adh80": "Consistent", "lv5": "Level 5",
 }
 
+# Exercise rules sent to Unity in the VR program (DEC-012): Unity reads these instead of switching on codes.
+#   posture:   standing | seated | lying | sidelying (start position of the coach and figure)
+#   pose:      coach / figure animation, one of POSES (several exercises can share one)
+#   direction: flex | ext | abd | None. In side view, flex / ext use the tracker's signed elevation so a
+#              movement the wrong way never scores; abd and None use the unsigned angle.
+#   checks:    posture checks; the rep is invalid when `metric` goes over `max` (degrees). Metrics:
+#              trunkLean, elbowDrift (packet level) or any tracker angle of the measured side (kneeFlex, hipElev, ...)
+POSTURES = ("standing", "seated", "lying", "sidelying")
+POSES = ("shoulderAbd", "scaption", "shoulderFlex", "supineFlex", "shoulderExt", "elbowFlex", "wallPushUp",
+         "hipAbd", "hipExt", "slr", "march", "heelSlide", "hamstringCurl", "miniSquat", "miniLunge", "kneeExt",
+         "sitToStand")
+DIRECTIONS = ("flex", "ext", "abd", None)
+CHECK_METRICS = ("trunkLean", "elbowDrift", "shoulderElev", "elbowFlex", "hipElev", "kneeFlex", "kneeExt")
+
+
+def _rules(posture, pose, direction=None, checks=()):
+    return {"posture": posture, "pose": pose, "direction": direction, "checks": [dict(c) for c in checks]}
+
+
+def _check(metric, max_deg, message):
+    return {"metric": metric, "max": max_deg, "message": message}
+
+
+NO_CHECKS = ()
+UPRIGHT = (_check("trunkLean", 12, "Keep your trunk upright"),)
+NO_FORWARD_LEAN = (_check("trunkLean", 12, "Don't lean forward"),)
+NO_SIDE_LEAN = (_check("trunkLean", 12, "Don't lean to the side"),)
+NO_BACK_LEAN = (_check("trunkLean", 12, "Stand tall, don't lean back"),)
+ELBOW_IN = (_check("elbowDrift", 30, "Keep your elbow at your side"),)
+KNEE_STRAIGHT = (_check("kneeFlex", 15, "Keep your knee straight"),)
+THIGH_DOWN = (_check("hipElev", 20, "Keep your thigh pointing down"),)
+CHEST_UP = (_check("trunkLean", 35, "Keep your chest up"),)
+
 # Exercise library: every movement the tracker can measure with one webcam (2D, one plane of motion).
-# `code` drives the Unity coach figure and posture checks; `measure` is the tracker angle.
+# `measure` is the tracker angle; the rules (last item) drive the Unity coach, figure and posture checks.
 # Default numbers are starting points; the protocol phase or the therapist sets the real prescription.
-#   code: (name, joint, measure, view, start position, target, tol, safety max, hold s, sets, reps, rest s, cue)
+# A new exercise that uses an existing pose needs only an entry here (DEC-012).
+#   code: (name, joint, measure, view, start position, target, tol, safety max, hold s, sets, reps, rest s, cue,
+#          _rules(posture, pose, direction, checks))
 LIBRARY = {
     # Shoulder
     "shoulderAbd":  ("Shoulder abduction", "Shoulder", "shoulderElev", "front", "Standing, arm at your side, thumb up",
-                     90, 10, 120, 0, 2, 8, 30, "Raise your arm out to the side"),
+                     90, 10, 120, 0, 2, 8, 30, "Raise your arm out to the side",
+                     _rules("standing", "shoulderAbd", "abd", UPRIGHT)),
     "shoulderFlex": ("Active shoulder elevation", "Shoulder", "shoulderElev", "side", "Standing, arm at your side, thumb forward",
-                     120, 10, 140, 0, 2, 8, 30, "Raise your straight arm forward and up"),
+                     120, 10, 140, 0, 2, 8, 30, "Raise your straight arm forward and up",
+                     _rules("standing", "shoulderFlex", "flex", UPRIGHT)),
     "forwardReach": ("Active forward reach", "Shoulder", "shoulderElev", "side", "Standing, arm at your side",
-                     90, 10, 110, 0, 2, 8, 30, "Reach forward to shoulder height, elbow straight"),
+                     90, 10, 110, 0, 2, 8, 30, "Reach forward to shoulder height, elbow straight",
+                     _rules("standing", "shoulderFlex", "flex", UPRIGHT)),
     "supineFlex":   ("Supine shoulder flexion with cane", "Shoulder", "shoulderElev", "side",
                      "Lying on your back, holding a cane with both hands", 100, 10, 140, 0, 2, 8, 30,
-                     "Let your good arm help lift the cane up and overhead"),
+                     "Let your good arm help lift the cane up and overhead",
+                     _rules("lying", "supineFlex", "flex", NO_CHECKS)),
     "scaption":     ("Full can (scaption)", "Shoulder", "shoulderElev", "front", "Standing, arm slightly forward, thumb up",
-                     90, 10, 110, 0, 2, 8, 30, "Raise your arm at a slight angle in front of you, thumb up"),
+                     90, 10, 110, 0, 2, 8, 30, "Raise your arm at a slight angle in front of you, thumb up",
+                     _rules("standing", "scaption", "abd", UPRIGHT)),
     "wallSlide":    ("Wall slide (shoulder)", "Shoulder", "shoulderElev", "side", "Facing a wall, forearm resting on it",
-                     120, 10, 140, 2, 2, 8, 30, "Slide your hand up the wall"),
+                     120, 10, 140, 2, 2, 8, 30, "Slide your hand up the wall",
+                     _rules("standing", "shoulderFlex", "flex", UPRIGHT)),
     "shoulderExt":  ("Shoulder extension, straight arm", "Shoulder", "shoulderElev", "side", "Standing, arm at your side",
-                     45, 10, 60, 0, 2, 8, 30, "Move your straight arm back behind you"),
+                     45, 10, 60, 0, 2, 8, 30, "Move your straight arm back behind you",
+                     _rules("standing", "shoulderExt", "ext", NO_FORWARD_LEAN)),
     # Elbow
     "elbowFlex":    ("Elbow flexion", "Elbow", "elbowFlex", "side", "Standing, elbow at your side",
-                     130, 10, 150, 0, 2, 8, 30, "Bend your elbow and bring your hand up"),
+                     130, 10, 150, 0, 2, 8, 30, "Bend your elbow and bring your hand up",
+                     _rules("standing", "elbowFlex", None, ELBOW_IN)),
     "bicepsCurl":   ("Biceps curl", "Elbow", "elbowFlex", "side", "Standing, elbow at your side, palm up",
-                     130, 10, 150, 0, 2, 10, 30, "Curl your hand up toward your shoulder"),
+                     130, 10, 150, 0, 2, 10, 30, "Curl your hand up toward your shoulder",
+                     _rules("standing", "elbowFlex", None, ELBOW_IN)),
     "wallPushUp":   ("Wall push-up", "Elbow", "elbowFlex", "side", "Facing a wall, hands on it at shoulder height",
-                     90, 10, 0, 0, 2, 8, 30, "Bend your elbows to bring your chest toward the wall"),
+                     90, 10, 0, 0, 2, 8, 30, "Bend your elbows to bring your chest toward the wall",
+                     _rules("standing", "wallPushUp", None, NO_CHECKS)),
     # Hip
     "hipAbd":       ("Standing hip abduction", "Hip", "hipElev", "front", "Standing, holding a chair for balance",
-                     25, 5, 40, 0, 2, 8, 30, "Lift your leg out to the side, toes forward"),
+                     25, 5, 40, 0, 2, 8, 30, "Lift your leg out to the side, toes forward",
+                     _rules("standing", "hipAbd", "abd", NO_SIDE_LEAN)),
     "sidelyingHipAbd": ("Side-lying hip abduction", "Hip", "hipElev", "front", "Lying on your good side, operated leg on top",
-                     25, 5, 40, 0, 2, 8, 30, "Lift your top leg toward the ceiling, toes forward"),
+                     25, 5, 40, 0, 2, 8, 30, "Lift your top leg toward the ceiling, toes forward",
+                     _rules("sidelying", "hipAbd", "abd", NO_CHECKS)),
     "hipExt":       ("Standing hip extension", "Hip", "hipElev", "side", "Standing, holding a chair for balance",
-                     20, 5, 30, 0, 2, 8, 30, "Move your straight leg back without leaning forward"),
+                     20, 5, 30, 0, 2, 8, 30, "Move your straight leg back without leaning forward",
+                     _rules("standing", "hipExt", "ext", NO_FORWARD_LEAN)),
     "slr":          ("Straight leg raise", "Hip", "hipElev", "side", "Lying on your back, other knee bent",
-                     45, 5, 60, 0, 2, 8, 30, "Tighten your thigh and lift your straight leg"),
+                     45, 5, 60, 0, 2, 8, 30, "Tighten your thigh and lift your straight leg",
+                     _rules("lying", "slr", "flex", KNEE_STRAIGHT)),
     "march":        ("Standing march", "Hip", "hipElev", "side", "Standing, holding a chair for balance",
-                     70, 10, 100, 0, 2, 8, 30, "Lift your knee up toward your chest"),
+                     70, 10, 100, 0, 2, 8, 30, "Lift your knee up toward your chest",
+                     _rules("standing", "march", "flex", NO_BACK_LEAN)),
     # Knee
     "kneeExt":      ("Seated knee extension (LAQ)", "Knee", "kneeExt", "side", "Sitting tall, knee bent at 90°",
-                     85, 10, 0, 0, 2, 8, 30, "Straighten your knee slowly, then lower it slowly"),
+                     85, 10, 0, 0, 2, 8, 30, "Straighten your knee slowly, then lower it slowly",
+                     _rules("seated", "kneeExt", None, NO_CHECKS)),
     "heelSlide":    ("Heel slide", "Knee", "kneeFlex", "side", "Lying on your back, legs straight",
-                     90, 10, 110, 0, 2, 8, 30, "Slide your heel toward you, bending your knee"),
+                     90, 10, 110, 0, 2, 8, 30, "Slide your heel toward you, bending your knee",
+                     _rules("lying", "heelSlide", None, NO_CHECKS)),
     "hamstringCurl": ("Standing hamstring curl", "Knee", "kneeFlex", "side", "Standing, holding a chair for balance",
-                     90, 10, 120, 0, 2, 8, 30, "Bend your knee to bring your heel toward your buttock"),
+                     90, 10, 120, 0, 2, 8, 30, "Bend your knee to bring your heel toward your buttock",
+                     _rules("standing", "hamstringCurl", None, THIGH_DOWN)),
     "miniSquat":    ("Mini squat", "Knee", "kneeFlex", "side", "Standing, holding a chair, feet hip-width",
-                     30, 10, 50, 0, 2, 8, 30, "Bend your knees a little, chest up"),
+                     30, 10, 50, 0, 2, 8, 30, "Bend your knees a little, chest up",
+                     _rules("standing", "miniSquat", None, CHEST_UP)),
     "miniLunge":    ("Mini lunge", "Knee", "kneeFlex", "side", "Standing, operated leg a step forward, holding a chair",
-                     45, 10, 70, 0, 2, 8, 30, "Bend your front knee and lower your body a little"),
+                     45, 10, 70, 0, 2, 8, 30, "Bend your front knee and lower your body a little",
+                     _rules("standing", "miniLunge", None, CHEST_UP)),
     "kneeWallSlide": ("Wall slide to 90° (knee)", "Knee", "kneeFlex", "side", "Back against a wall, feet a step forward",
-                     90, 10, 100, 0, 2, 8, 30, "Slide down the wall until your knees bend to 90°"),
+                     90, 10, 100, 0, 2, 8, 30, "Slide down the wall until your knees bend to 90°",
+                     _rules("standing", "miniSquat", None, NO_CHECKS)),
     "sitToStand":   ("Sit to stand", "Knee", "kneeExt", "side", "Sitting on a firm chair, feet flat",
-                     85, 10, 0, 0, 2, 8, 45, "Lean forward and stand up tall"),
+                     85, 10, 0, 0, 2, 8, 45, "Lean forward and stand up tall",
+                     _rules("seated", "sitToStand", None, NO_CHECKS)),
     "wallSquatHold": ("Wall squat hold", "Knee", "kneeFlex", "side", "Back flat against wall, feet shoulder-width",
-                     60, 10, 85, 5, 2, 8, 30, "Slide down into a squat and hold steady"),
+                     60, 10, 85, 5, 2, 8, 30, "Slide down into a squat and hold steady",
+                     _rules("standing", "miniSquat", None, CHEST_UP)),
     "quadExtHold":  ("Seated quad extension hold", "Knee", "kneeExt", "side", "Sitting tall, knee bent at 90°",
-                     85, 10, 0, 3, 2, 8, 30, "Straighten your knee and hold steady at the top"),
+                     85, 10, 0, 3, 2, 8, 30, "Straighten your knee and hold steady at the top",
+                     _rules("seated", "kneeExt", None, NO_CHECKS)),
     "scaptionHold": ("Scaption hold (Full can)", "Shoulder", "shoulderElev", "front", "Standing, arm slightly forward, thumb up",
-                     90, 10, 110, 3, 2, 8, 30, "Raise arm to shoulder height in scaption plane and hold"),
+                     90, 10, 110, 3, 2, 8, 30, "Raise arm to shoulder height in scaption plane and hold",
+                     _rules("standing", "scaption", "abd", UPRIGHT)),
     "standingHipFlex": ("Standing hip flexion hold", "Hip", "hipElev", "side", "Standing, holding a chair for balance",
-                     70, 10, 95, 3, 2, 8, 30, "Lift your knee high and hold steady for balance"),
+                     70, 10, 95, 3, 2, 8, 30, "Lift your knee high and hold steady for balance",
+                     _rules("standing", "march", "flex", NO_BACK_LEAN)),
 }
 
 # Normal adult range of motion for each exercise's joint motion (AAOS values as tabulated in
@@ -570,7 +632,7 @@ def add_exercise(con, program_id, code, rx=None):
     """Add a library exercise to a program. `rx` overrides the library's prescription numbers."""
     if code not in LIBRARY:
         raise BadRequest(f"Unknown exercise '{code}'")
-    name, joint, measure, view, position, tgt, tol, smax, hold, sets, reps, rest, cue = LIBRARY[code]
+    name, joint, measure, view, position, tgt, tol, smax, hold, sets, reps, rest, cue, _ = LIBRARY[code]
     v = dict(target_angle=tgt, tolerance=tol, safety_max=smax, hold_seconds=hold, sets=sets, reps=reps, rest_seconds=rest)
     v.update({k: x for k, x in (rx or {}).items() if k in v and x is not None})
     v = clamp_rx_columns(v)
@@ -1032,8 +1094,21 @@ def get_program(con, patient_id, patient=None, program=None):
             "holdSeconds": e["hold_seconds"], "sets": e["sets"], "restSeconds": e["rest_seconds"],
             "baseReps": e["reps"], "reps": effective_reps(e, prog["max_reps"]), "stage": e["stage"], "cue": e["cue"],
             "normalRom": NORMAL_ROM.get(e["code"], ("", 0))[0], "normalMax": NORMAL_ROM.get(e["code"], ("", 0))[1],
+            **exercise_rules(e["code"], e["measure"], e["view"]),
         } for e in exs],
     }
+
+
+def exercise_rules(code, measure, view):
+    """DEC-012 rules for the VR program. Codes no longer in LIBRARY get a generic pose from the measured angle."""
+    if code in LIBRARY:
+        r = LIBRARY[code][13]
+        return {"posture": r["posture"], "pose": r["pose"], "direction": r["direction"] or "", "checks": r["checks"]}
+    front = view == "front"
+    pose = {"elbowFlex": "elbowFlex", "hipElev": "hipAbd" if front else "slr", "kneeFlex": "heelSlide",
+            "kneeExt": "kneeExt"}.get(measure, "shoulderAbd" if front else "shoulderFlex")
+    return {"posture": "seated" if pose == "kneeExt" else "lying" if pose in ("slr", "heelSlide") else "standing",
+            "pose": pose, "direction": "", "checks": []}
 
 
 def record_clinical(con, session_id, body):
@@ -1053,6 +1128,7 @@ def record_clinical(con, session_id, body):
 
 
 INPUT_SOURCES = ("webcam", "keyboard", "simulated")
+MAX_REP_EVENTS = 2000      # per session upload
 
 
 def _iso_time(value, field):
@@ -1081,6 +1157,39 @@ def _float_field(r, key, lo=0.0, hi=1000.0, default=0.0):
         return max(lo, min(hi, float(v)))
     except (TypeError, ValueError):
         raise BadRequest(f"{key} must be a number")
+
+
+def _rep_events(raw):
+    """Per-rep log from Unity (M4.5). Optional, so uploads from older clients still work."""
+    if raw is None:
+        return []
+    if not isinstance(raw, list) or not all(isinstance(r, dict) for r in raw):
+        raise BadRequest("rep_events must be a list of objects")
+    if len(raw) > MAX_REP_EVENTS:
+        raise BadRequest(f"rep_events has more than {MAX_REP_EVENTS} entries")
+    events = []
+    for r in raw:
+        try:
+            eid = int(r["exercise_id"])
+        except (KeyError, TypeError, ValueError):
+            raise BadRequest("every rep event needs an exercise_id")
+        side = str(r.get("side") or "").upper()[:1]
+        events.append({
+            "exercise_id": eid,
+            "attempt": _int_field(r, "attempt", 1, 100000, 1),
+            "set_no": _int_field(r, "set", 1, 1000, 1),
+            "side": side if side in ("L", "R") else "",
+            "t_seconds": _float_field(r, "t", 0, 86400),
+            "peak_angle": _float_field(r, "peak", -360, 360),
+            "angle_error": _float_field(r, "error", 0, 360),
+            "accuracy": _float_field(r, "accuracy", 0, 100),
+            "valid": 1 if r.get("valid") else 0,
+            "fault": str(r.get("fault") or "")[:200] or None,
+            "unsafe": 1 if r.get("past_safety_max") else 0,
+            "too_fast": 1 if r.get("too_fast") else 0,
+            "held": 0 if r.get("held") is False else 1,
+        })
+    return events
 
 
 def save_session(con, body):
@@ -1141,6 +1250,8 @@ def save_session(con, body):
     source = body.get("input_source") or ""
     if source not in INPUT_SOURCES + ("",):
         raise BadRequest(f"input_source must be one of {', '.join(INPUT_SOURCES)}")
+    source = source or "unknown"     # uploads from clients older than M4.3; never counted as webcam data
+    rep_events = _rep_events(body.get("rep_events"))
     points = _int_field(body, "points", 0, 100000)
     stars = _int_field(body, "stars", 0, 3)
 
@@ -1178,6 +1289,18 @@ def save_session(con, body):
             if nxt > effective_reps(e, prog["max_reps"]):
                 con.execute("UPDATE exercise SET stage = stage + 1 WHERE exercise_id=?", (eid,))
                 notes.append(f"{e['name']}: next session goes to {nxt} reps")
+
+    skipped = 0
+    for ev in rep_events:
+        if ev["exercise_id"] not in in_program:
+            skipped += 1
+            continue
+        con.execute("""INSERT INTO rep_event(session_id, exercise_id, attempt, set_no, side, t_seconds, peak_angle,
+                       angle_error, accuracy, valid, fault, unsafe, too_fast, held) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (sid, ev["exercise_id"], ev["attempt"], ev["set_no"], ev["side"], ev["t_seconds"], ev["peak_angle"],
+                     ev["angle_error"], ev["accuracy"], ev["valid"], ev["fault"], ev["unsafe"], ev["too_fast"], ev["held"]))
+    if skipped:
+        notes.append(f"{skipped} rep event(s) ignored: not part of this patient's program")
 
     session_day = started[:10]
     con.execute("""INSERT INTO adherence_record(patient_id, session_id, session_date, status, completion_flag)
@@ -1341,6 +1464,45 @@ def _csv_safe(v):
     return v
 
 
+def _export(rows, fields, fmt):
+    data = [dict(r) for r in rows]
+    if fmt == "json":
+        return data, "application/json"
+    out = io.StringIO()
+    writer = csv.DictWriter(out, fieldnames=fields)
+    writer.writeheader()
+    for row in data:
+        writer.writerow({k: _csv_safe(v) for k, v in row.items()})
+    return out.getvalue().encode("utf-8"), "text/csv; charset=utf-8"
+
+
+REP_EXPORT_FIELDS = [
+    "patient_code", "session_id", "session_uuid", "started_at", "input_source", "exercise_code", "exercise_name",
+    "joint", "target_angle", "tolerance", "safety_max", "attempt", "set_no", "side", "t_seconds", "peak_angle",
+    "angle_error", "accuracy", "valid", "fault", "unsafe", "too_fast", "held",
+]
+
+
+def export_rep_events(con, patient_id=None, fmt="csv"):
+    """One row per rep attempt (M4.5): the input for therapist rep labels and goniometer comparison."""
+    query = """
+        SELECT p.code AS patient_code, s.session_id, s.session_uuid, s.started_at, s.input_source,
+               e.code AS exercise_code, e.name AS exercise_name, e.joint, e.target_angle, e.tolerance, e.safety_max,
+               v.attempt, v.set_no, v.side, v.t_seconds, v.peak_angle, v.angle_error, v.accuracy, v.valid,
+               v.fault, v.unsafe, v.too_fast, v.held
+        FROM rep_event v
+        JOIN session s ON s.session_id = v.session_id
+        JOIN patient p ON p.patient_id = s.patient_id
+        JOIN exercise e ON e.exercise_id = v.exercise_id
+    """
+    params = ()
+    if patient_id is not None:
+        query += " WHERE p.patient_id = ? "
+        params = (patient_id,)
+    query += " ORDER BY s.session_id, v.exercise_id, v.attempt"
+    return _export(con.execute(query, params).fetchall(), REP_EXPORT_FIELDS, fmt)
+
+
 def export_telemetry(con, patient_id=None, fmt="csv"):
     query = """
         SELECT 
@@ -1348,6 +1510,7 @@ def export_telemetry(con, patient_id=None, fmt="csv"):
             p.name AS patient_name,
             p.condition AS patient_condition,
             s.session_id,
+            s.session_uuid,
             s.started_at,
             s.ended_at,
             s.input_source,
@@ -1382,25 +1545,14 @@ def export_telemetry(con, patient_id=None, fmt="csv"):
         params = (patient_id,)
     query += " ORDER BY s.session_id ASC, r.record_id ASC"
 
-    rows = con.execute(query, params).fetchall()
-    data = [dict(r) for r in rows]
-
-    if fmt == "json":
-        return data, "application/json"
-
-    out = io.StringIO()
     fields = [
-        "patient_code", "patient_name", "patient_condition", "session_id", "started_at", "ended_at",
+        "patient_code", "patient_name", "patient_condition", "session_id", "session_uuid", "started_at", "ended_at",
         "input_source", "session_status", "session_points", "session_stars", "pain_before", "pain_after",
         "soreness_over_2h", "swelling_cm", "exercise_code", "exercise_name", "joint", "target_angle",
         "tolerance", "hold_seconds", "target_reps", "valid_reps", "attempts", "avg_accuracy",
         "mean_angle_error", "unsafe_reps", "feedback_log"
     ]
-    writer = csv.DictWriter(out, fieldnames=fields)
-    writer.writeheader()
-    for row in data:
-        writer.writerow({k: _csv_safe(v) for k, v in row.items()})
-    return out.getvalue().encode("utf-8"), "text/csv; charset=utf-8"
+    return _export(con.execute(query, params).fetchall(), fields, fmt)
 
 
 # ---------------------------------------------------------------- HTTP
@@ -1572,16 +1724,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"therapist": therapist})
         if method == "POST" and parts == ["api", "auth", "password"]:
             return self._send(200, change_password(con, therapist["therapist_id"], self._body()))
-        if method == "GET" and parts == ["api", "export"]:
-            payload, ctype = export_telemetry(con, None, fmt)
+        if method == "GET" and (parts == ["api", "export"] or
+                                (len(parts) == 4 and parts[1] == "patients" and parts[3] == "export")):
+            pid = self._id(parts[2]) if len(parts) == 4 else None
+            reps = parse_qs(urlparse(self.path).query).get("kind", [""])[0].lower() == "reps"
+            payload, ctype = (export_rep_events if reps else export_telemetry)(con, pid, fmt)
             if fmt == "csv":
-                return self._send_file(payload, ctype, "theraquest_telemetry_all.csv")
-            return self._send(200, payload)
-        if method == "GET" and len(parts) == 4 and parts[1] == "patients" and parts[3] == "export":
-            pid = self._id(parts[2])
-            payload, ctype = export_telemetry(con, pid, fmt)
-            if fmt == "csv":
-                return self._send_file(payload, ctype, f"theraquest_telemetry_patient_{pid}.csv")
+                who = "all" if pid is None else f"patient_{pid}"
+                return self._send_file(payload, ctype, f"theraquest_{'reps' if reps else 'telemetry'}_{who}.csv")
             return self._send(200, payload)
         if method == "GET" and parts == ["api", "patients"]:
             rows = con.execute("""
@@ -1619,7 +1769,7 @@ class Handler(BaseHTTPRequestHandler):
                 "code": c, "name": v[0], "joint": v[1], "measure": v[2], "view": v[3], "position": v[4],
                 "targetAngle": v[5], "tolerance": v[6], "safetyMax": v[7], "holdSeconds": v[8],
                 "sets": v[9], "reps": v[10], "restSeconds": v[11], "cue": v[12],
-                "normalRom": NORMAL_ROM.get(c, ("", 0))[0]
+                "normalRom": NORMAL_ROM.get(c, ("", 0))[0], "pose": v[13]["pose"], "posture": v[13]["posture"]
             } for c, v in LIBRARY.items()])
         if len(parts) == 4 and parts[1] == "sessions" and parts[3] == "clinical" and method == "PUT":
             return self._send(200, record_clinical(con, self._id(parts[2]), self._body()))

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace TheraQuest.Tests
 {
@@ -8,13 +9,13 @@ namespace TheraQuest.Tests
     {
         const float Dt = 0.02f;
 
-        static ExerciseDef Ex(float target = 90, float tol = 10, int reps = 3, int sets = 1, float safetyMax = 0,
+        internal static ExerciseDef Ex(float target = 90, float tol = 10, int reps = 3, int sets = 1, float safetyMax = 0,
                               float hold = 0, float rest = 0) =>
             new ExerciseDef { id = 1, code = "shoulderAbd", name = "Test", targetAngle = target, tolerance = tol,
                               reps = reps, sets = sets, safetyMax = safetyMax, holdSeconds = hold, restSeconds = rest };
 
         /// <summary>Raise from 0 to peak, optionally stay there, then lower to 0, at a steady pace.</summary>
-        static List<RepResult> Rep(ExerciseEvaluator ev, float peak, float upSeconds = 1f, float holdSeconds = 0f,
+        internal static List<RepResult> Rep(ExerciseEvaluator ev, float peak, float upSeconds = 1f, float holdSeconds = 0f,
                                    float downSeconds = 1f, string fault = null)
         {
             var results = new List<RepResult>();
@@ -172,6 +173,128 @@ namespace TheraQuest.Tests
         {
             Assert.AreEqual("P-002", ClientConfig.NormalizeCode("  p-002 "));
             Assert.AreEqual("", ClientConfig.NormalizeCode(null));
+        }
+    }
+
+    /// <summary>Per-rep log (M4.5) and exercise rules sent by the server (M4.6, DEC-012).</summary>
+    public class RepLogAndRulesTests
+    {
+        // ---------------------------------------------------------- per-rep log (M4.5)
+        [Test]
+        public void RepEventsRecordEveryAttemptWithItsSet()
+        {
+            var ev = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex(reps: 2, sets: 2));
+            ExerciseEvaluatorTests.Rep(ev, 90f);
+            ExerciseEvaluatorTests.Rep(ev, 70f);                       // short: an attempt, not a rep
+            ExerciseEvaluatorTests.Rep(ev, 90f);                       // completes set 1
+            ExerciseEvaluatorTests.Rep(ev, 90f, fault: "Keep your trunk upright");
+            var log = ev.RepEvents;
+            Assert.AreEqual(4, log.Count);
+            CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, log.ConvertAll(e => e.attempt));
+            CollectionAssert.AreEqual(new[] { 1, 1, 1, 2 }, log.ConvertAll(e => e.set));
+            CollectionAssert.AreEqual(new[] { true, false, true, false }, log.ConvertAll(e => e.valid));
+            Assert.AreEqual("Keep your trunk upright", log[3].fault);
+            Assert.AreEqual(1, log[0].exercise_id);
+            Assert.AreEqual(90f, log[0].peak, 0.5f);
+            Assert.Less(log[0].t, log[2].t);
+        }
+
+        // ---------------------------------------------------------- exercise rules from the server (M4.6)
+        static ExerciseDef Rule(string measure = "shoulderElev", string view = "side", string direction = "",
+                                string pose = "shoulderFlex", params PostureCheck[] checks) =>
+            new ExerciseDef { id = 7, code = "anyNewCode", measure = measure, view = view, direction = direction,
+                              pose = pose, posture = "standing", targetAngle = 90, tolerance = 10, reps = 1, sets = 1,
+                              checks = checks };
+
+        static PostureCheck Check(string metric, float max, string message) =>
+            new PostureCheck { metric = metric, max = max, message = message };
+
+        [Test]
+        public void PostureChecksComeFromTheExercise()
+        {
+            var ex = Rule(checks: Check("trunkLean", 12, "Keep your trunk upright"));
+            var p = new MotionPacket { trunkLean = 20 };
+            Assert.AreEqual("Keep your trunk upright", MotionInput.PostureFault(ex, p, p));
+            p.trunkLean = 5;
+            Assert.IsNull(MotionInput.PostureFault(ex, p, p));
+            p.trunkLean = -1;                                   // not visible: never a fault
+            Assert.IsNull(MotionInput.PostureFault(ex, p, p));
+            Assert.IsNull(MotionInput.PostureFault(Rule(), new MotionPacket { trunkLean = 40 }, new MotionPacket()));
+            Assert.AreEqual("Keep your trunk upright", MotionInput.FaultText(ex));
+        }
+
+        [Test]
+        public void SideAngleChecksUseTheMeasuredSide()
+        {
+            var ex = Rule(checks: Check("kneeFlex", 15, "Keep your knee straight"));
+            var p = new MotionPacket { kneeFlex = 0 };
+            p.R.kneeFlex = 30;
+            Assert.IsNull(MotionInput.PostureFault(ex, p, p));
+            Assert.AreEqual("Keep your knee straight", MotionInput.PostureFault(ex, p, p.R));
+        }
+
+        [Test]
+        public void ExtensionScoresOnlyMovementBehindTheTrunk()
+        {
+            var ex = Rule(direction: "ext", pose: "shoulderExt");
+            var s = new AngleSet { shoulderElev = 40, shoulderElevSigned = 40 };     // arm forward
+            Assert.AreEqual(0f, MotionInput.MeasuredAngle(ex, s));
+            s.shoulderElevSigned = -40;                                               // arm back
+            Assert.AreEqual(40f, MotionInput.MeasuredAngle(ex, s));
+            s.shoulderElevSigned = AngleSet.SignedInvalid;                            // direction unknown
+            Assert.AreEqual(-1f, MotionInput.MeasuredAngle(ex, s));
+        }
+
+        [Test]
+        public void FlexionIgnoresMovementBehindTheTrunk()
+        {
+            var ex = Rule(measure: "hipElev", direction: "flex", pose: "march");
+            var s = new AngleSet { hipElev = 30, hipElevSigned = -30 };
+            Assert.AreEqual(0f, MotionInput.MeasuredAngle(ex, s));
+            s.hipElevSigned = 30;
+            Assert.AreEqual(30f, MotionInput.MeasuredAngle(ex, s));
+            s.hipElevSigned = AngleSet.SignedInvalid;                                 // older tracker: unsigned
+            Assert.AreEqual(30f, MotionInput.MeasuredAngle(ex, s));
+            Assert.AreEqual(30f, MotionInput.MeasuredAngle(Rule(measure: "hipElev", view: "front", direction: "flex"), s));
+        }
+
+        [Test]
+        public void ServerJsonFillsRulesAndSignedAngles()
+        {
+            var ex = JsonUtility.FromJson<ExerciseDef>(
+                "{\"id\":3,\"code\":\"x\",\"measure\":\"shoulderElev\",\"view\":\"side\",\"pose\":\"shoulderExt\"," +
+                "\"posture\":\"standing\",\"direction\":\"ext\",\"checks\":[{\"metric\":\"trunkLean\",\"max\":12,\"message\":\"m\"}]}");
+            Assert.AreEqual("shoulderExt", ex.pose);
+            Assert.AreEqual(1, ex.checks.Length);
+            Assert.AreEqual(12f, ex.checks[0].max);
+            var p = JsonUtility.FromJson<MotionPacket>("{\"shoulderElev\":30,\"shoulderElevSigned\":-30,\"R\":{\"hipElevSigned\":12.5}}");
+            Assert.AreEqual(-30f, p.shoulderElevSigned);
+            Assert.AreEqual(AngleSet.SignedInvalid, p.hipElevSigned);
+            Assert.AreEqual(12.5f, p.R.hipElevSigned);
+        }
+
+        [Test]
+        public void NewExerciseWithAnExistingPoseNeedsNoClientCode()
+        {
+            // An exercise code Unity has never seen, defined only by its server LIBRARY entry
+            var ex = Rule(measure: "shoulderElev", view: "front", direction: "abd", pose: "shoulderAbd",
+                          checks: Check("trunkLean", 12, "Keep your trunk upright"));
+            ex.code = "brandNewRaise";
+            Assert.AreEqual("shoulderAbd", FigureVisualizer.PoseOf(ex));
+            var s = new MotionPacket { shoulderElev = 90, trunkLean = 3 };
+            Assert.AreEqual(90f, MotionInput.MeasuredAngle(ex, s));
+            Assert.IsNull(MotionInput.PostureFault(ex, s, s));
+            var ev = new ExerciseEvaluator(ex);
+            Assert.IsTrue(ExerciseEvaluatorTests.Rep(ev, 90f)[0].valid);
+            Assert.IsTrue(ev.Done);
+        }
+
+        [Test]
+        public void MissingPoseFallsBackToTheMeasuredAngle()
+        {
+            Assert.AreEqual("hipAbd", FigureVisualizer.PoseOf(new ExerciseDef { measure = "hipElev", view = "front" }));
+            Assert.AreEqual("slr", FigureVisualizer.PoseOf(new ExerciseDef { measure = "hipElev", view = "side" }));
+            Assert.AreEqual("shoulderFlex", FigureVisualizer.PoseOf(new ExerciseDef { measure = "shoulderElev", view = "side" }));
         }
     }
 }

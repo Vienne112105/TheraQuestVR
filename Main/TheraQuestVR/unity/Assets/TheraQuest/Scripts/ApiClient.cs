@@ -20,7 +20,7 @@ namespace TheraQuest
     /// </summary>
     public class ApiClient : MonoBehaviour
     {
-        const int CacheSchema = 1;
+        const int CacheSchema = 2;   // 2: exercises carry pose, posture, direction and checks (DEC-012)
 
         public string baseUrl = "http://127.0.0.1:8000";
         [Tooltip("Synthetic patient code from the therapist dashboard, e.g. P-001. " +

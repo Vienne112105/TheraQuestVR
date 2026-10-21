@@ -21,9 +21,9 @@ No Android build is needed.
 
 ## 1. Install the tools (one time)
 
-1. **Python 3.11** from python.org. During setup tick **"Add python.exe to PATH"**.
-   Use 3.11 or 3.12: MediaPipe may not install on the newest Python yet.
-2. **Unity Hub** → install **Unity 6 LTS**. The default modules are enough. You do **not** need Android Build Support.
+1. **Python 3.12** (or 3.11) from python.org. During setup tick **"Add python.exe to PATH"**.
+   MediaPipe may not install on the newest Python yet; the pinned packages are tested with 3.12.
+2. **Unity Hub** → install **Unity 6** (the project uses `6000.6.5f1`; see `unity/ProjectSettings/ProjectVersion.txt`). The default modules are enough. You do **not** need Android Build Support.
 3. **Meta Quest Link** app for Windows (only for VR). Connect the Quest with a USB-C cable or Air Link.
 4. A **webcam**. The laptop's built-in one works for testing. A USB webcam on a tripod is better for real sessions.
 
@@ -82,6 +82,7 @@ A preview window shows your skeleton and the live angles. The first run download
 Unity shows the start position and camera view before each exercise and waits for Start.
 
 The tracker sends 5 angles (`shoulderElev`, `elbowFlex`, `hipElev`, `kneeFlex`, `kneeExt`) for the best-seen side and for each side separately (`L`, `R`).
+In side view it also sends `shoulderElevSigned` and `hipElevSigned` (+ = limb in front of the trunk, − = behind). Unity uses them so that an extension exercise only scores movement backwards, and a flexion exercise never scores movement behind the trunk.
 When the therapist sets an exercise's operated side, Unity uses that side; otherwise it uses whichever side the camera sees best.
 
 Use good lighting, keep 2–3 m away, and don't stand in front of a window.
@@ -91,8 +92,23 @@ Use good lighting, keep 2–3 m away, and don't stand in front of a window.
 1. Unity Hub → **Add → Add project from disk** → choose the `unity` folder.
    The first open takes a while: Unity rebuilds its `Library` cache, which is not stored in git.
 2. Open `Assets/TheraQuest/TheraQuest.unity`. (If the scene is missing, use the menu **TheraQuest → Create Scene**: it builds the room, the coach figure, the HUD and all the managers, and connects everything.)
-3. Select the **TheraQuest** object and check **Api Client → Patient Code** (e.g. `P-001`). Unity loads that patient's program from `/api/vr/program` and uploads to `/api/vr/sessions`, from this computer only.
+3. Choose the patient (see **Which patient this computer is for** below). In the Editor the simplest way is the **TheraQuest** object → **Api Client → Patient Code** (e.g. `P-001`). Unity loads that patient's program from `/api/vr/program` and uploads to `/api/vr/sessions`, from this computer only.
 4. Press **Play**. You'll see the scene on the laptop screen (desktop mode).
+
+**Which patient this computer is for.** The app takes the patient code and server address from the first of these that is set:
+
+1. The command line: `TheraQuestVR.exe -patient P-002 -server http://127.0.0.1:8000` (both optional).
+2. `config.json` in the app's data folder (`%USERPROFILE%\AppData\LocalLow\DefaultCompany\TheraQuestVR\` for a built player). Keys: `patientCode`, `serverUrl`, `pinHash`. The Therapist page writes it.
+3. The Inspector values on **Api Client**.
+
+The app never runs a session on a made-up program. It uses the program the server sent, or the last one it received for that patient (saved in the same data folder). With neither, the menu explains why and **Start** stays disabled.
+Sessions recorded offline wait in `pending_sessions.jsonl` and upload when the server is back. Sessions the server refuses (for example another patient's) move to `rejected_sessions.jsonl` instead of being deleted.
+
+**Therapist page (PIN).** Main menu → **Therapist** (only between sessions). There is no default PIN: the first visit asks the therapist to choose a 4-digit PIN, which is stored only as a hash in `config.json`. After 5 wrong PINs the page locks for a minute. The page can:
+- switch this computer to another patient code `P-000` … `P-999` (other codes: start with `-patient`),
+- change the **motion input** (webcam → keyboard → simulated); it can't change during a session,
+- turn **Show numbers (therapist)** on or off,
+- change the PIN.
 
 You don't need to run **Create Scene** again after updating the scripts: the menu, music, subtitles,
 clinic room and walking are added automatically when you press Play.
@@ -103,8 +119,8 @@ Press Play and the **main menu** opens in front of you:
 - **Start today's quest** brings you to the exercise spot and starts the session.
 - **Explore the clinic** lets you walk around the room.
 - **Coach** and **Guide** choose the avatar and how it guides you.
-- **Settings** has music volume, effects volume, subtitles on/off and size, motion input, snap or smooth turning, and walking speed. Settings are saved.
-- **Settings → Show numbers (therapist)** switches the HUD from the simple patient view to one with degrees, accuracy % and tracker details. The patient view uses a power meter (green zone, ★ at the target, red STOP line), rep dots and friendly coach lines. The dashboard always has the full data.
+- **Settings** has music volume, effects volume, subtitles on/off and size, snap or smooth turning, and walking speed. Settings are saved.
+- **Therapist** (PIN) chooses the patient and motion input. Its **Show numbers (therapist)** switches the HUD from the simple patient view to one with degrees, accuracy % and tracker details. The patient view uses a power meter (green zone, ★ at the target, red STOP line), rep dots and friendly coach lines. The dashboard always has the full data.
 
 During a session, **Esc / B pauses** the exercise. The pause menu can resume, take you back to the exercise spot, open Settings, or end the session and save it.
 **Subtitles** at the bottom of your view caption the coach's instructions and every sound cue, for example *[Perfect chime] Perfect! 97%*.
@@ -119,10 +135,11 @@ During a session, **Esc / B pauses** the exercise. The pause menu can resume, ta
 | Walk | W A S D (Shift = faster) | Left thumbstick |
 | Turn / look around | Q / E, Left / Right, or hold the right mouse button | Right thumbstick (snap 30° or smooth) |
 | Back to the exercise spot | R | Y |
-| Switch input: webcam → keyboard → simulated | Tab (or Settings) | X |
 | Move limb (keyboard input mode) | Up / Down | Right thumbstick up / down |
 
-To watch a full session without the camera, choose **Settings → Motion input → simulated**, go back, then **Start today's quest**. The session runs by itself and uploads to the dashboard.
+Walking is turned off while an exercise is running, so the patient stays at the station.
+
+To watch a full session without the camera, choose **Therapist → Motion input → Simulated**, go back, then **Start today's quest**. The session runs by itself and uploads to the dashboard.
 
 **Coach characters and Mixamo**
 
@@ -139,16 +156,14 @@ The exercise movements are still driven by the tracker angles, so they work with
 ## 5. Show it in the Quest (Quest Link)
 
 1. In the **Meta Quest Link** PC app: Settings → General → **OpenXR Runtime → Set Meta Quest Link as active**.
-2. Unity: **Edit → Project Settings → XR Plug-in Management** → click Install if asked.
-   On the **Windows** tab, tick **OpenXR** and **Initialize XR on Startup**.
-3. Under **XR Plug-in Management → OpenXR**, add the **Oculus Touch Controller Profile** to Interaction Profiles.
-   Fix any yellow warnings with the "Fix All" button.
+2. The project already has OpenXR set up for Windows: **XR Plug-in Management → OpenXR** with **Initialize XR on Startup** and the **Oculus Touch Controller Profile**. If those settings get lost, run **TheraQuest → Set Up OpenXR** in Unity.
+3. Under **XR Plug-in Management → OpenXR**, fix any yellow warnings with the "Fix All" button.
 4. Put on the headset, enable **Link** (Quick Settings → Link), then press **Play** in Unity.
    The scene appears in the headset with head tracking. Press **Y** (or R) to recenter.
 
 Without the headset connected, the same Play button falls back to desktop mode.
 
-**Make a standalone .exe:** File → Build Profiles → Windows → Build. Run the .exe while the server and tracker are running.
+**Make a standalone .exe:** File → Build Profiles → Windows → Build. Run the .exe while the server and tracker are running, for example `TheraQuestVR.exe -patient P-002`, or set the patient once on the Therapist page.
 
 ## 6. A full test run (checklist)
 
@@ -193,7 +208,7 @@ Two protocols are loaded from the published documents (`PROTOCOLS` in `server.py
 
 - **Rep counter:** a rep starts above 60% of the target angle and ends below 25%. The peak angle is scored.
 - **Accuracy:** within tolerance = 85–100% (linear), outside = 85% minus 3% per extra degree.
-- **Posture checks:** trunk lean > 12° (shoulder exercises, hip abduction, march), upper arm > 30° from trunk (elbow flexion), knee bent > 15° (straight leg raise), trunk lean > 35° (mini squat). Any of them invalidates the rep.
+- **Posture checks:** trunk lean > 12° (shoulder exercises, hip abduction and extension, march), upper arm > 30° from trunk (elbow flexion), knee bent > 15° (straight leg raise), thigh > 20° from vertical (hamstring curl), trunk lean > 35° (mini squat, lunge, wall squat). Any of them invalidates the rep. Each exercise's checks are part of its `LIBRARY` entry in `server.py`.
 - **Safety max:** going past it shows a red STOP warning with a warning tone. The rep isn't counted, and it's logged as unsafe for the therapist (0 = no limit).
 - **Hold:** when set, the patient must stay inside target ± tolerance for that many seconds (up to 0.3 s of jitter is forgiven).
 - **Sets:** reps are per set. After each set there's a rest countdown, and reps aren't counted during it.
@@ -203,7 +218,7 @@ Two protocols are loaded from the published documents (`PROTOCOLS` in `server.py
 - **Adherence status:** *complete* = every exercise reached its rep target; *incomplete* = started but not finished; *missed* = a scheduled day with no session.
 - **XP levels:** 100 XP for level 2, then +60 more XP per level.
 
-Thresholds live in `MotionInput.cs` (posture), `ExerciseEvaluator.cs` (scoring), `GamificationManager.cs` (points, badges) and `server.py` (progression, adherence, and the exercise `LIBRARY` defaults). The library's targets, safety limits, holds, sets and rest are **placeholders**. Tune them with your physical therapist and document the final values in your manuscript.
+Thresholds live in `server.py` `LIBRARY` (posture checks per exercise), `ExerciseEvaluator.cs` (scoring), `GamificationManager.cs` (points, badges) and `server.py` (progression, adherence, and the exercise `LIBRARY` defaults). The library's targets, safety limits, holds, sets and rest are **placeholders**. Tune them with your physical therapist and document the final values in your manuscript.
 
 ## 9. Troubleshooting
 
@@ -220,6 +235,11 @@ Thresholds live in `MotionInput.cs` (posture), `ExerciseEvaluator.cs` (scoring),
 ## 10. Next steps for the capstone
 
 - **Patient privacy:** use patient codes (P-001), not names. The database stays on the clinic laptop, outside synced folders. This supports your Ethical Considerations section and the Data Privacy Act of 2012 (RA 10173).
-- **Adding exercises:** on the dashboard, pick one from **Add exercise**. To create a new type, add it to `LIBRARY` in `server.py`, plus a pose in `FigureVisualizer.cs` and (if needed) a posture check in `MotionInput.cs`. A new measured angle also goes in `tracker/angles.py` and `AngleSet`.
-- **Evaluation data:** each `performance_record` stores accuracy and the gap between target and achieved angle per exercise; the dashboard exports it as CSV / JSON. `evaluation/evaluate_clinical_metrics.py` computes the Section 3.9 metrics. Its built-in run uses **synthetic example data**, not study results; real goniometer, rep-label and survey inputs are being added in roadmap milestone M4.5.
+- **Adding exercises:** on the dashboard, pick one from **Add exercise**. To create a new type that moves like an existing one, add one entry to `LIBRARY` in `server.py` with its posture, pose, direction and posture checks (`_rules(...)`); Unity needs no change. A new kind of movement also needs a pose in `FigureVisualizer.cs` and `HumanoidCoach.cs` (and in `POSES`). A new measured angle also goes in `tracker/angles.py` and `AngleSet`.
+- **Evaluation data:** every rep attempt is uploaded with its session (`rep_event` table): peak angle, error, counted or not, posture fault. The dashboard's export links add `&kind=reps` for one row per rep. `evaluation/evaluate_clinical_metrics.py` computes the Section 3.9 metrics **only from real data**:
+  - therapist rep labels (`--rep-labels`) → confusion matrix, matched to rep events by `session_uuid`, exercise code and attempt number
+  - goniometer readings of the same reps (`--goniometer`) → angle error
+  - SUS answers (`--sus`) and the PT evaluation survey (`--pt-survey`)
+
+  Blank CSV templates are in `evaluation/templates/`. Only webcam sessions count unless you pass `--include-non-webcam`. A metric without input is reported as **not measured**, and the overall status is never PASS on missing data. `--self-test` runs the formulas on synthetic example vectors and labels the output **SYNTHETIC EXAMPLE DATA** (`evaluation/self_test_report.md`); never report those numbers as results.
 - **Avatar:** replace the primitive coach figure with a rigged character (e.g. from Mixamo) driven by the same angles.

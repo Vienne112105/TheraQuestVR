@@ -16,12 +16,7 @@ namespace TheraQuest
         public MotionReceiver receiver;
         public InputSource source = InputSource.Webcam;
 
-        [Header("Posture limits (Error Detector)")]
-        public float maxTrunkLean = 12f;     // degrees from vertical: shoulder exercises, hip abduction, march
-        public float maxElbowDrift = 30f;    // upper arm away from trunk during elbow flexion
-        public float maxKneeBend = 15f;      // knee must stay straight during a straight leg raise
-        public float maxSquatLean = 35f;     // forward trunk lean allowed in a mini squat or lunge
-        public float maxThighSwing = 20f;    // thigh must stay pointing down during a hamstring curl
+        // Posture limits come with each exercise from the server LIBRARY (ExerciseDef.checks, DEC-012).
 
         [Header("Smoothing")]
         [Range(0f, 0.95f)] public float smoothing = 0.6f;
@@ -43,37 +38,46 @@ namespace TheraQuest
             keyboardAngle = 0f;
         }
 
-        /// <summary>Corrective message for each exercise's posture check (null = no check).</summary>
-        public static string FaultText(string code)
+        /// <summary>Corrective message of the exercise's first posture check (null = no check).</summary>
+        public static string FaultText(ExerciseDef ex) =>
+            ex != null && ex.checks != null && ex.checks.Length > 0 && ex.checks[0] != null ? ex.checks[0].message : null;
+
+        /// <summary>Message of the first posture check the packet breaks, or null. Not-visible values (-1) never break one.</summary>
+        public static string PostureFault(ExerciseDef ex, MotionPacket p, AngleSet s)
         {
-            switch (code)
+            if (ex == null || ex.checks == null || p == null || s == null) return null;
+            foreach (var c in ex.checks)
+                if (c != null && CheckValue(c.metric, p, s) > c.max) return c.message;
+            return null;
+        }
+
+        static float CheckValue(string metric, MotionPacket p, AngleSet s)
+        {
+            switch (metric)
             {
-                case "shoulderAbd": case "shoulderFlex": case "scaption": case "scaptionHold": case "wallSlide": case "forwardReach":
-                    return "Keep your trunk upright";
-                case "shoulderExt": case "hipExt": return "Don't lean forward";
-                case "elbowFlex": case "bicepsCurl": return "Keep your elbow at your side";
-                case "hipAbd": return "Don't lean to the side";
-                case "march": case "standingHipFlex": return "Stand tall, don't lean back";
-                case "slr": return "Keep your knee straight";
-                case "hamstringCurl": return "Keep your thigh pointing down";
-                case "miniSquat": case "miniLunge": case "wallSquatHold": return "Keep your chest up";
-                default: return null;   // supineFlex, sidelyingHipAbd, wallPushUp, kneeWallSlide, heelSlide, kneeExt, quadExtHold, sitToStand
+                case "trunkLean": return p.trunkLean;
+                // Upper arm away from the trunk; for one chosen side that is the side's shoulder elevation
+                case "elbowDrift": return s == p ? p.elbowDrift : s.shoulderElev;
+                default: return s.Get(metric);
             }
         }
 
-        bool PostureFault(string code, MotionPacket p, AngleSet s)
+        /// <summary>
+        /// The exercise's angle from one side's tracker reading, or -1 when it can't be measured.
+        /// In side view, flexion / extension exercises use the signed elevation (M4.4 / M4.6): an extension
+        /// exercise scores only movement behind the trunk, and a flexion exercise scores nothing behind it.
+        /// </summary>
+        public static float MeasuredAngle(ExerciseDef ex, AngleSet s)
         {
-            switch (code)
-            {
-                case "shoulderAbd": case "shoulderFlex": case "scaption": case "scaptionHold": case "wallSlide": case "forwardReach":
-                case "shoulderExt": case "hipAbd": case "hipExt": case "march": case "standingHipFlex":
-                    return p.trunkLean > maxTrunkLean;
-                case "elbowFlex": case "bicepsCurl": return (s == p ? p.elbowDrift : s.shoulderElev) > maxElbowDrift;
-                case "slr": return s.kneeFlex > maxKneeBend;
-                case "hamstringCurl": return s.hipElev > maxThighSwing;
-                case "miniSquat": case "miniLunge": case "wallSquatHold": return p.trunkLean > maxSquatLean;
-                default: return false;
-            }
+            string measure = ex != null && !string.IsNullOrEmpty(ex.measure) ? ex.measure : "shoulderElev";
+            float a = s.Get(measure);
+            if (a < 0f || ex == null || ex.view != "side") return a;
+            if (ex.direction != "flex" && ex.direction != "ext") return a;
+            float signed = measure == "shoulderElev" ? s.shoulderElevSigned
+                         : measure == "hipElev" ? s.hipElevSigned : AngleSet.SignedInvalid;
+            if (measure != "shoulderElev" && measure != "hipElev") return a;
+            if (ex.direction == "ext") return AngleSet.SignedValid(signed) ? Mathf.Max(0f, -signed) : -1f;
+            return AngleSet.SignedValid(signed) && signed < 0f ? 0f : a;
         }
 
         public void Sample(ExerciseDef ex, float dt)
@@ -81,8 +85,6 @@ namespace TheraQuest
             float raw = 0f;
             Fault = null;
             HasReading = true;
-            string code = ex != null ? ex.code : "shoulderAbd";
-            string measure = ex != null && !string.IsNullOrEmpty(ex.measure) ? ex.measure : "shoulderElev";
             float target = ex != null ? ex.targetAngle : 90f;
 
             switch (source)
@@ -91,13 +93,14 @@ namespace TheraQuest
                     var p = receiver != null ? receiver.Latest : null;
                     var s = p?.For(ex != null ? ex.side : "");
                     MeasuredSide = ex != null && !string.IsNullOrEmpty(ex.side) ? ex.side : p?.side;
-                    if (receiver == null || !receiver.IsReceiving || p == null || !p.visible || s.Get(measure) < 0f)
+                    float measured = p != null && s != null ? MeasuredAngle(ex, s) : -1f;
+                    if (receiver == null || !receiver.IsReceiving || p == null || !p.visible || measured < 0f)
                     {
                         HasReading = false;
                         return;
                     }
-                    raw = s.Get(measure);
-                    if (PostureFault(code, p, s)) Fault = FaultText(code);
+                    raw = measured;
+                    Fault = PostureFault(ex, p, s);
                     break;
 
                 case InputSource.Keyboard:
@@ -118,7 +121,7 @@ namespace TheraQuest
                         float noise = (Random.value + Random.value + Random.value - 1.5f) * tol * 1.4f;
                         simPeak = Mathf.Clamp(target + noise, 5f, 170f);
                         if (ex != null && ex.safetyMax > 0f && Random.value < 0.04f) simPeak = ex.safetyMax + 5f;
-                        simFault = FaultText(code) != null && Random.value < 0.12f;
+                        simFault = FaultText(ex) != null && Random.value < 0.12f;
                         float hold = ex != null ? ex.holdSeconds : 0f;
                         simPlateau = hold > 0f ? (Random.value < 0.1f ? hold * 0.5f : hold + 0.4f) : 0.15f;
                         simPeriod = rise * 2f + simPlateau;
@@ -127,7 +130,7 @@ namespace TheraQuest
                             : simTime < rise + simPlateau ? 1f
                             : Ease(1f - (simTime - rise - simPlateau) / rise);
                     raw = simPeak * k;
-                    if (simFault && simTime > rise * 0.7f && simTime < rise + simPlateau) Fault = FaultText(code);
+                    if (simFault && simTime > rise * 0.7f && simTime < rise + simPlateau) Fault = FaultText(ex);
                     break;
             }
 

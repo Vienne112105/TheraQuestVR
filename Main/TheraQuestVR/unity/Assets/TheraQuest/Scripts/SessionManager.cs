@@ -450,6 +450,7 @@ namespace TheraQuest
             foreach (var e in evaluators)
             {
                 upload.exercises.Add(e.ToResult());
+                upload.rep_events.AddRange(e.RepEvents);
                 foreach (var a in e.Accuracies) { accSum += a; accN++; }
                 foreach (var x in e.Errors) errSum += x;
                 valid += e.ValidReps; attempts += e.Attempts; unsafeReps += e.UnsafeReps;

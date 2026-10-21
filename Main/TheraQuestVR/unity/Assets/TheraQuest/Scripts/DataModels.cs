@@ -10,11 +10,19 @@ namespace TheraQuest
     [Serializable]
     public class AngleSet
     {
+        /// <summary>A signed angle that can't be measured (-1 is a real signed value).</summary>
+        public const float SignedInvalid = -999f;
+
         public float shoulderElev = -1f;
         public float elbowFlex = -1f;
         public float hipElev = -1f;
         public float kneeFlex = -1f;
         public float kneeExt = -1f;
+        // Side view only: + = limb in front of the trunk (flexion), - = behind it (extension)
+        public float shoulderElevSigned = SignedInvalid;
+        public float hipElevSigned = SignedInvalid;
+
+        public static bool SignedValid(float v) => v > SignedInvalid + 1f;
 
         public float Get(string measure)
         {
@@ -93,9 +101,25 @@ namespace TheraQuest
         public int reps;          // per set; effective reps for today (includes progression stage)
         public int stage;
         public string cue;
+        public string normalRom;
+        public float normalMax;
+        // Exercise rules from the server LIBRARY (DEC-012); Unity never switches on `code`
+        public string posture;    // standing | seated | lying | sidelying
+        public string pose;       // coach / figure animation (several exercises share one)
+        public string direction;  // flex | ext | abd | "" (side view: flex / ext use the signed angle)
+        public PostureCheck[] checks = new PostureCheck[0];
 
         public int TotalReps => reps * Math.Max(1, sets);
         public string CameraText => view == "front" ? "in front of you" : "at your side";
+    }
+
+    /// <summary>Posture check: the rep is invalid when <see cref="metric"/> goes over <see cref="max"/> degrees.</summary>
+    [Serializable]
+    public class PostureCheck
+    {
+        public string metric;     // trunkLean | elbowDrift | a tracker angle of the measured side (kneeFlex, hipElev, ...)
+        public float max;
+        public string message;
     }
 
     /// <summary>The patient's protocol phase. Empty name = custom program without a protocol.</summary>
@@ -151,6 +175,29 @@ namespace TheraQuest
         public int stars;
         public List<string> badges_earned = new List<string>();
         public List<ExerciseResult> exercises = new List<ExerciseResult>();
+        public List<RepEvent> rep_events = new List<RepEvent>();
+    }
+
+    /// <summary>
+    /// One rep attempt, valid or not (M4.5). Therapist rep labels and goniometer readings are joined to these
+    /// by session_uuid + exercise + attempt, so the evaluation uses real per-rep data.
+    /// </summary>
+    [Serializable]
+    public class RepEvent
+    {
+        public int exercise_id;
+        public int attempt;           // 1, 2, 3 ... within this exercise
+        public int set;               // 1-based set the attempt belonged to
+        public string side;           // operated side: L | R | "" = best-seen side
+        public float t;               // seconds since this exercise started
+        public float peak;
+        public float error;
+        public int accuracy;
+        public bool valid;
+        public string fault;          // posture problem, or ""
+        public bool past_safety_max;
+        public bool too_fast;
+        public bool held = true;      // hold exercises: held long enough
     }
 
     [Serializable]

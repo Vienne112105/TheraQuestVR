@@ -21,7 +21,6 @@ namespace TheraQuest
     ///   Turn                Q / E, Left / Right, or    right thumbstick left / right
     ///                       hold the right mouse button and move the mouse to look around
     ///   Back to the station R                          Y (left)
-    ///   Next input mode     Tab                        X (left)
     ///   Show / hide quest   M                          left thumbstick click
     ///   Angle up / down     Up / Down arrows           right thumbstick up / down (keyboard input mode)
     ///
@@ -29,13 +28,12 @@ namespace TheraQuest
     /// </summary>
     public static class InputHelper
     {
-        enum B { Start, Back, Source, Recenter, Left, Right, Up, Down, Quest, Count }
+        enum B { Start, Back, Recenter, Left, Right, Up, Down, Quest, Count }
         static readonly bool[] now = new bool[(int)B.Count];
         static readonly bool[] before = new bool[(int)B.Count];
 
         public static bool StartPressed => Pressed(B.Start);
         public static bool BackPressed => Pressed(B.Back);
-        public static bool NextSourcePressed => Pressed(B.Source);
         public static bool RecenterPressed => Pressed(B.Recenter);
         public static bool QuestTogglePressed => Pressed(B.Quest);
         public static bool LeftPressed => Pressed(B.Left);
@@ -56,7 +54,6 @@ namespace TheraQuest
             now[(int)B.Start] = Key(KeyCode.Space) || Key(KeyCode.Return) || Xr(XRNode.RightHand, XRUsages.primaryButton) || Xr(XRNode.RightHand, XRUsages.triggerButton);
             now[(int)B.Back] = Key(KeyCode.Escape) || Key(KeyCode.P) || Key(KeyCode.Backspace) ||
                                Xr(XRNode.RightHand, XRUsages.secondaryButton) || Xr(XRNode.LeftHand, XRUsages.menuButton);
-            now[(int)B.Source] = Key(KeyCode.Tab) || Xr(XRNode.LeftHand, XRUsages.primaryButton);
             now[(int)B.Recenter] = Key(KeyCode.R) || Xr(XRNode.LeftHand, XRUsages.secondaryButton);
             now[(int)B.Quest] = Key(KeyCode.M) || Xr(XRNode.LeftHand, XRUsages.primary2DAxisClick);
 
@@ -112,7 +109,6 @@ namespace TheraQuest
                 case KeyCode.Return: return kb.enterKey.isPressed || kb.numpadEnterKey.isPressed;
                 case KeyCode.Escape: return kb.escapeKey.isPressed;
                 case KeyCode.Backspace: return kb.backspaceKey.isPressed;
-                case KeyCode.Tab: return kb.tabKey.isPressed;
                 case KeyCode.LeftShift: return kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed;
                 case KeyCode.UpArrow: return kb.upArrowKey.isPressed;
                 case KeyCode.DownArrow: return kb.downArrowKey.isPressed;

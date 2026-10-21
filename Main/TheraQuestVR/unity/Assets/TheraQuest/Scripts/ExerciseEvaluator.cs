@@ -37,12 +37,13 @@ namespace TheraQuest
         public readonly List<int> Accuracies = new List<int>();
         public readonly List<float> Errors = new List<float>();
         public readonly List<string> FeedbackLog = new List<string>();
+        public readonly List<RepEvent> RepEvents = new List<RepEvent>();   // every attempt, for the evaluation (M4.5)
 
         public event Action<RepResult> RepCompleted;
         public event Action<float> HoldCompleted;
 
         bool inRep, pastMax, holdFiredThisRep;
-        float peak, bestHold, outOfBand;
+        float peak, bestHold, outOfBand, elapsed;
         string repFault;
 
         public ExerciseEvaluator(ExerciseDef ex) { Exercise = ex; }
@@ -57,6 +58,7 @@ namespace TheraQuest
         public void Update(float angle, string fault, float dt)
         {
             CurrentAngle = angle;
+            elapsed += dt;
             if (Resting)
             {
                 RestRemaining = Mathf.Max(0f, RestRemaining - dt);
@@ -140,7 +142,24 @@ namespace TheraQuest
                 tooFast = tooFast,
                 valid = err <= tol && repFault == null && !pastMax && held && !tooFast
             };
+            int set = SetNumber;   // before this rep is counted
             Attempts++;
+            RepEvents.Add(new RepEvent
+            {
+                exercise_id = Exercise.id,
+                attempt = Attempts,
+                set = set,
+                side = Exercise.side ?? "",
+                t = Mathf.Round(elapsed * 100f) / 100f,
+                peak = Mathf.Round(peak * 10f) / 10f,
+                error = Mathf.Round(err * 10f) / 10f,
+                accuracy = acc,
+                valid = r.valid,
+                fault = repFault ?? "",
+                past_safety_max = pastMax,
+                too_fast = tooFast,
+                held = held
+            });
             if (r.valid) ValidReps++;
             if (pastMax) UnsafeReps++;
             Accuracies.Add(acc);

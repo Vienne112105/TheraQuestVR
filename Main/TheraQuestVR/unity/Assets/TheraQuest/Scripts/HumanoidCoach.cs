@@ -15,7 +15,7 @@ namespace TheraQuest
     /// The Animator is switched off and the pose is written in LateUpdate: every limb is aimed at a
     /// direction in the body's frame (+Z forward, +Y up, +X the character's right), so it works
     /// whatever the rig's rest pose (T-pose or A-pose).
-    /// Motions match the tracker angles (tracker/angles.py), picked by exercise code:
+    /// Motions match the tracker angles (tracker/angles.py), picked by the exercise's pose from the server LIBRARY:
     ///   shoulderAbd (+ scaption), shoulderFlex (+ wallSlide, forwardReach), supineFlex (cane, both arms),
     ///   shoulderExt, elbowFlex (+ bicepsCurl), wallPushUp, hipAbd (+ side-lying), hipExt, hipFlex (slr),
     ///   march, kneeFlex (heelSlide, hamstringCurl), miniSquat (+ kneeWallSlide), miniLunge, kneeExt, sitStand.
@@ -354,15 +354,13 @@ namespace TheraQuest
             currentCode = ex.code;
             currentSide = ex.side;
             motion = MotionFor(ex);
-            posture = ex.code == "slr" || ex.code == "heelSlide" || ex.code == "supineFlex" ? Posture.Lying
-                    : ex.code == "sidelyingHipAbd" ? Posture.SideLying
-                    : motion == Motion.KneeExt || motion == Motion.SitStand ? Posture.Seated : Posture.Standing;
+            posture = PostureFor(ex.posture, motion);
             int patient = ex.side == "L" ? -1 : 1;   // "" = right
             side = mirror ? -patient : patient;
 
-            // Front view for movements out to the side, side view (moving limb toward the player) otherwise,
-            // matching where the tracker camera should be.
-            bool front = motion == Motion.ShoulderAbd || motion == Motion.Scaption || motion == Motion.HipAbd;
+            // Face the player the way the tracker camera sees the patient: front view for movements out to
+            // the side, side view (moving limb toward the player) otherwise.
+            bool front = ex.view == "front";
             float yaw = front ? 0f : side > 0 ? -90f : 90f;
             foreach (var b in built)
             {
@@ -377,28 +375,41 @@ namespace TheraQuest
             popTime = 0f;
         }
 
+        static Posture PostureFor(string posture, Motion motion)
+        {
+            switch (posture)
+            {
+                case "lying": return Posture.Lying;
+                case "sidelying": return Posture.SideLying;
+                case "seated": return Posture.Seated;
+                case "standing": return Posture.Standing;
+                default: return motion == Motion.KneeExt || motion == Motion.SitStand ? Posture.Seated : Posture.Standing;
+            }
+        }
+
+        /// <summary>Animation for the exercise's pose from the server LIBRARY (DEC-012).</summary>
         static Motion MotionFor(ExerciseDef ex)
         {
-            switch (ex.code)
+            switch (ex.pose)
             {
                 case "shoulderAbd": return Motion.ShoulderAbd;
-                case "scaption": case "scaptionHold": return Motion.Scaption;
-                case "shoulderFlex": case "wallSlide": case "forwardReach": return Motion.ShoulderFlex;
+                case "scaption": return Motion.Scaption;
+                case "shoulderFlex": return Motion.ShoulderFlex;
                 case "supineFlex": return Motion.SupineFlex;
                 case "shoulderExt": return Motion.ShoulderExt;
-                case "elbowFlex": case "bicepsCurl": return Motion.ElbowFlex;
+                case "elbowFlex": return Motion.ElbowFlex;
                 case "wallPushUp": return Motion.WallPushUp;
-                case "hipAbd": case "sidelyingHipAbd": return Motion.HipAbd;
+                case "hipAbd": return Motion.HipAbd;
                 case "hipExt": return Motion.HipExt;
                 case "slr": return Motion.HipFlex;
-                case "march": case "standingHipFlex": return Motion.March;
+                case "march": return Motion.March;
                 case "heelSlide": case "hamstringCurl": return Motion.KneeFlex;
-                case "miniSquat": case "kneeWallSlide": case "wallSquatHold": return Motion.MiniSquat;
+                case "miniSquat": return Motion.MiniSquat;
                 case "miniLunge": return Motion.MiniLunge;
-                case "kneeExt": case "quadExtHold": return Motion.KneeExt;
+                case "kneeExt": return Motion.KneeExt;
                 case "sitToStand": return Motion.SitStand;
             }
-            // Unknown code: go by the tracker angle and camera view.
+            // Unknown pose: go by the tracker angle and camera view.
             bool front = ex.view == "front";
             switch (ex.measure)
             {

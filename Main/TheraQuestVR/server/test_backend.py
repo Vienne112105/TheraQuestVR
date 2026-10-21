@@ -237,6 +237,86 @@ class BackendTests(ServerTestCase):
         self.assertIn(b"'=HYPERLINK", body)
         self.assertNotIn(b",=HYPERLINK", body)
 
+    # ------------------------------------------------ exercise rules (M4.6, DEC-012)
+    def test_every_library_entry_has_valid_rules(self):
+        for code, entry in server.LIBRARY.items():
+            with self.subTest(code=code):
+                self.assertEqual(len(entry), 14)
+                rules = entry[13]
+                self.assertIn(rules["posture"], server.POSTURES)
+                self.assertIn(rules["pose"], server.POSES)
+                self.assertIn(rules["direction"], server.DIRECTIONS)
+                if rules["direction"] in ("flex", "ext"):
+                    self.assertIn(entry[2], ("shoulderElev", "hipElev"))   # only these have a signed angle
+                for check in rules["checks"]:
+                    self.assertIn(check["metric"], server.CHECK_METRICS)
+                    self.assertGreater(check["max"], 0)
+                    self.assertTrue(check["message"])
+
+    def test_vr_program_carries_rules(self):
+        for e in self.vr_program()["exercises"]:
+            with self.subTest(code=e["code"]):
+                rules = server.LIBRARY[e["code"]][13]
+                self.assertEqual(e["pose"], rules["pose"])
+                self.assertEqual(e["posture"], rules["posture"])
+                self.assertEqual(e["direction"], rules["direction"] or "")
+                self.assertEqual(e["checks"], rules["checks"])
+
+    def test_rules_fallback_for_codes_no_longer_in_library(self):
+        r = server.exercise_rules("retiredCode", "hipElev", "front")
+        self.assertEqual((r["pose"], r["posture"], r["checks"]), ("hipAbd", "standing", []))
+
+    # ------------------------------------------------ per-rep events (M4.5)
+    def rep(self, eid, attempt, **extra):
+        r = {"exercise_id": eid, "attempt": attempt, "set": 1, "side": "", "t": attempt * 3.0, "peak": 88.5,
+             "error": 1.5, "accuracy": 97, "valid": True, "fault": "", "past_safety_max": False, "too_fast": False,
+             "held": True}
+        r.update(extra)
+        return r
+
+    def test_rep_events_stored_once_and_exported(self):
+        status, _ = self.call("POST", "/api/patients", {"code": "P-953", "name": "Reps"}, self.auth)
+        self.assertEqual(status, 201)
+        pid = self.patient_ids()["P-953"]
+        prog = self.vr_program("P-953")
+        eid = prog["exercises"][0]["id"]
+        reps = [self.rep(eid, 1), self.rep(eid, 2, valid=False, fault="Keep your trunk upright"),
+                self.rep(eid, 3, past_safety_max=True, valid=False), self.rep(999999, 1)]
+        body = self.session_body(pid, self.full_results(prog), session_uuid="reps-uuid-1", rep_events=reps)
+        hdr = {"X-Patient-Code": "P-953"}
+        status, res = self.call("POST", "/api/vr/sessions", body, hdr)
+        self.assertEqual(status, 201, res)
+        self.assertTrue(any("rep event" in n for n in res["notes"]))      # the unknown exercise is ignored
+        self.call("POST", "/api/vr/sessions", body, hdr)                   # retry: same uuid, no new rows
+        status, rows = self.call("GET", f"/api/patients/{pid}/export?format=json&kind=reps", headers=self.auth)
+        self.assertEqual(status, 200)
+        self.assertEqual([r["attempt"] for r in rows], [1, 2, 3])
+        self.assertEqual([r["valid"] for r in rows], [1, 0, 0])
+        self.assertEqual(rows[1]["fault"], "Keep your trunk upright")
+        self.assertEqual(rows[2]["unsafe"], 1)
+        self.assertEqual(rows[0]["session_uuid"], "reps-uuid-1")
+        self.assertEqual(rows[0]["input_source"], "webcam")
+        status, _, csv_body = self.raw_get(f"/api/patients/{pid}/export?format=csv&kind=reps&token={self.token}")
+        self.assertEqual(status, 200)
+        self.assertTrue(csv_body.startswith(b"patient_code,session_id,session_uuid"))
+
+    def test_bad_rep_events_rejected(self):
+        eid = self.vr_program()["exercises"][0]["id"]
+        for bad in ("nope", [1, 2], [{"attempt": 1}], [self.rep(eid, 1)] * (server.MAX_REP_EVENTS + 1)):
+            with self.subTest(bad=str(bad)[:40]):
+                status, _ = self.call("POST", "/api/vr/sessions", self.session_body(self.p1, rep_events=bad), self.vr)
+                self.assertEqual(status, 400)
+
+    def test_missing_input_source_stored_as_unknown(self):
+        body = self.session_body(self.p1, session_uuid="no-source-1")
+        del body["input_source"]
+        status, res = self.call("POST", "/api/vr/sessions", body, self.vr)
+        self.assertEqual(status, 201, res)
+        con = sqlite3.connect(server.DB_PATH)
+        src = con.execute("SELECT input_source FROM session WHERE session_uuid='no-source-1'").fetchone()[0]
+        con.close()
+        self.assertEqual(src, "unknown")
+
 
 class ProtocolReplaceTests(ServerTestCase):
 
