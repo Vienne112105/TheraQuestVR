@@ -11,9 +11,9 @@ Coordinates the patient workout lifecycle: patient profile selection, prescripti
 - Fetch patient prescription from the clinical backend over HTTP, identified by the configured synthetic patient code (no clinician credentials; see [[30_DECISIONS]] DEC-009).
 - Cache completed session metrics locally if the network/server is offline, with automated retry when reconnected; every upload carries a `session_uuid` so retries are never counted twice.
 - Resolve the patient code and server URL from the command line (`-patient`, `-server`), `config.json` in the persistent data folder, or the Inspector; a PIN-protected therapist page in the main menu changes the patient code, input source and therapist numbers (M4.3).
-- Cache the last server-issued program per patient and use it when the server is unreachable; with no cached program, no session starts.
+- Cache the last server-issued program per patient and use it when the server is unreachable; with no cached program, no session starts. Caches from before the exercise rules (cache schema 1) are ignored.
 - Present pause/resume menu (triggered by Esc or Quest B button) allowing exercise recentering, setting adjustments, or early save/exit.
-- Track total session duration, per-exercise reps completed, mean angle error, and unsafe rep counts.
+- Track total session duration, per-exercise reps completed, mean angle error, and unsafe rep counts, and upload the per-rep log with the session.
 
 ## Dependencies
 - Inter-system: Coordinates `ExerciseEvaluation`, `VRClinicExperience`, `AvatarCoach`, and communicates with `ClinicalBackend` via `ApiClient`.

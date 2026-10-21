@@ -17,7 +17,7 @@ Renders an immersive 3D physical therapy clinic environment in Unity 6, handles 
 
 ## Dependencies
 - Unity 6 LTS Universal Render Pipeline (URP).
-- Unity OpenXR plugin & XR Interaction Toolkit.
+- Unity XR Plug-in Management + OpenXR (loader on for Windows with Initialize on Startup and the Oculus Touch profile; `TheraQuest → Set Up OpenXR` reapplies it). No XR Interaction Toolkit: input goes through `UnityEngine.XR` device reads.
 - Inter-system: Relies on `ExerciseEvaluation` and `Gamification` for HUD data binding.
 
 ## Runtime References

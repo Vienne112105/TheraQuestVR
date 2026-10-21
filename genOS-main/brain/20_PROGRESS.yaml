@@ -5,7 +5,7 @@
 schema_version: 2
 
 # ISO date of last SHUTDOWN update (YYYY-MM-DD)
-last_updated: 2026-10-20
+last_updated: 2026-10-21
 
 # Who last wrote this file (e.g. cursor-agent, agy-agent, agency:unity-specialist)
 last_agent: claude-code
@@ -22,22 +22,22 @@ current_scene: null
 # System file basenames under brain/systems/ (without .md) to load on BOOT
 systems_in_scope:
   - SessionOrchestration
-  - ExerciseEvaluation
   - VRClinicExperience
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on:
-  - "M4.3 remaining: install com.unity.xr.management + com.unity.xr.openxr, enable the OpenXR loader for Standalone with the Oculus Touch profile, check desktop fallback without a headset"
-  - "M4.3 remaining: README controls (Tab/X source switch removed; therapist page + PIN; -patient / -server command line; config.json)"
-  - "M4.3 remaining: human Play-mode check (online, offline cache, queue flush, therapist page) and a built player run with -patient P-900"
+  - "M4.3 human check: Play mode in the Editor (online, offline with cached program, queue flush after the server returns, Therapist page PIN / patient switch / motion input)"
+  - "M4.3 human check: built player with -patient P-900 against a running server and tracker, plus Quest Link headset run (OpenXR loader is configured; Link must be the active OpenXR runtime)"
 
 # Known bugs or risks
 known_issues:
   - "Single-camera tracking requires specific camera placement (sagittal vs frontal) per exercise."
   - "Patient codes (P-001...) are guessable pseudonyms; VR routes are safe only because they are loopback-only. A remote VR client would need a per-device secret (see ClinicalBackend Future Changes)."
+  - "Extension exercises (shoulderExt, hipExt) have no reading when the tracker can't tell which way the patient faces (signed angle -999); flexion exercises fall back to the unsigned angle. Check this on real side-view footage."
+  - "Live webcam reconnect (M4.4) and the headset path are untested on hardware; this PC has no OpenXR runtime installed, so the batch player run only proved the desktop fallback."
 
 # Blockers requiring human decision or external input
 blocked: []
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "M4 Foundation Hardening in progress (approved 2026-10-20 after a project-wide audit). Done: M4.1 (git repo, DB moved to %LOCALAPPDATA%/TheraQuest per DEC-010, pinned deps, launchers, README), M4.2 (static traversal fix, no CORS, XSS escaping, first-run setup with no default password, change password, login throttling, hashed tokens, server-side completion rules, idempotent session_uuid, protocol reload keeps custom protocols, 400/404/409 errors; server tests 13 + 23 pass), M4.4 (tracker per-landmark visibility, signed elevation angles, camera reconnect, verified model download; 27 tests pass; done in a parallel session, live webcam reconnect untested on hardware). M4.3 code is in place and committed as a checkpoint: ClientConfig (command line / config.json / PIN-protected therapist page for patient code, motion input, therapist numbers), cached last program instead of the hardcoded offline program, resilient queue with session_uuid and rejected file, ProgramRules validation, loopback-only UDP receiver, locomotion locked during exercises, quit checkpoint, TheraQuest.Runtime asmdef + 18 EditMode tests passing. M4.3 still needs the items in working_on. Then M4.5 (evaluation integrity) and M4.6 (single source of exercise definitions; must consume the tracker's new signed fields shoulderElevSigned/hipElevSigned). Next agent: finish M4.3, then continue in order."
+session_summary: "2026-10-21: worked through the rest of M4. M4.5 done: Unity records every rep attempt (RepEvent: attempt, set, peak, error, valid, fault, unsafe) and uploads it with the session; server stores it in rep_event (idempotent with session_uuid, unknown exercises ignored, empty input_source stored as unknown) and exports it with ?kind=reps; evaluate_clinical_metrics.py computes metrics only from rep events joined to study CSVs (rep labels, goniometer, SUS, PT survey; blank templates in evaluation/templates), webcam sessions only by default, 'not measured' per missing input, overall PASS / FAIL / INCOMPLETE / NOT MEASURED; --self-test is labelled SYNTHETIC; the old unlabelled report was replaced by self_test_report.md. M4.6 done: each LIBRARY entry carries _rules(posture, pose, direction, checks) sent in the VR program; MotionInput, HumanoidCoach and FigureVisualizer use them instead of code switches; side-view flex/ext exercises use shoulderElevSigned/hipElevSigned; program cache schema bumped to 2. M4.3: OpenXR (xr.management 4.6.1, openxr 1.18.0) installed and configured for Standalone (Init on Startup, Oculus Touch profile) via the new TheraQuest > Set Up OpenXR menu; dead Tab/X input switch removed; README updated (command line, config.json, Therapist PIN page, evaluation inputs, adding exercises). Verified: server 42 + tracker 27 + evaluation 14 Python tests and 26 Unity EditMode tests pass (Unity batch mode); Windows player builds and starts in desktop fallback. M4.3 stays active only for the human Play-mode, built-player and headset checks in working_on; once they pass, mark M4.3 and M4 done in 50_ROADMAP.md. Next after M4: ask the human for the next program milestone (new game / dashboard features)."

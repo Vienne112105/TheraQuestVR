@@ -17,7 +17,9 @@ Provides a lightweight, local-first Python REST API and SQLite persistence layer
 - Validate target angles and safety maximums against normal physiological ROM benchmarks (AAOS / Norkin & White standards).
 - Evaluate patient stage progression: assess recent qualifying sessions for ≥85% accuracy, pain stability, and safety threshold compliance before suggesting phase advancement.
 - Automatically advance prescribed repetition targets (+2 reps/set up to cap) following qualifying adherence sessions.
-- Provide one-click telemetry data export in CSV and JSON formats (`/api/export`).
+- Provide one-click telemetry data export in CSV and JSON formats (`/api/export`); `?kind=reps` exports one row per rep attempt.
+- Store the per-rep log Unity uploads with each session (`rep_event`: attempt, set, peak angle, error, counted or not, posture fault, unsafe) as the evaluation pipeline's real input (M4.5, [[30_DECISIONS]] DEC-011).
+- Own the exercise `LIBRARY`: each entry carries its prescription defaults and its rules (posture, pose, movement direction, posture checks), which the VR program sends to Unity (M4.6, DEC-012).
 
 ## Dependencies
 - Standard Python standard libraries (`http.server`, `sqlite3`, `json`, `datetime`, `hashlib`, `secrets`, `csv`, `urllib`).
@@ -40,9 +42,12 @@ Provides a lightweight, local-first Python REST API and SQLite persistence layer
 - Protocol deletions and patient detachments must preserve exercise histories and use parameterized SQL queries.
 - A patient code can only read or write its own record; a VR session whose `patient_id` differs from the code's patient is refused (403), and `patient_id` 0 means "recorded offline, attribute by code".
 - Patient codes are pseudonyms, not secrets, so VR routes must stay loopback-only while the server binds `0.0.0.0` for the dashboard.
+- The `LIBRARY` entry is the single source of an exercise's rules; adding an exercise that uses an existing pose needs no Unity change (DEC-012).
+- Rep events are stored with their session in the same transaction, only for exercises in the patient's program; a repeated `session_uuid` never adds rows.
+- A session without an input source is stored as `unknown`, never counted as webcam data.
 
 ## Notes
-- Running `python server.py --reset` completely resets the SQLite database and re-seeds default clinician account (`therapist` / `password123`), patient `P-001`, and protocol records.
+- Running `python server.py --reset` completely resets the SQLite database and re-seeds patient `P-001` and protocol records; the first clinician login is created at first run (no default password since M4.2).
 - Database operates in WAL mode (`PRAGMA journal_mode = WAL;`) with normal synchronous I/O, memory temp store, and 32MB cache.
 
 ## Future Changes

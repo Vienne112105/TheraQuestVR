@@ -13,6 +13,8 @@ Durable ad-hoc queue for non-milestone work (bugs, ideas). AI-owned. See `AGENTS
 ## Todo
 
 <!-- Queued work not yet started -->
+- [TASK-001] Dashboard button for the per-rep export (`/api/patients/{id}/export?kind=reps`); today it is only reachable by URL (ref: DEC-011)
+- [TASK-002] Human: delete the legacy `Main/TheraQuestVR/server/theraquest.db` once the dashboard shows the migrated data (ref: DEC-010)
 
 ## Done
 

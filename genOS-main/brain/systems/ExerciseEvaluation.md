@@ -9,7 +9,9 @@ Evaluates real-time patient kinematics against prescribed clinical rehabilitatio
 ## Responsibilities
 - Track repetition progress through a biomechanical state machine: start threshold (>60% of target), peak angle capture, and return threshold (<25%).
 - Assess repetition accuracy against target angles and tolerance windows (linear scoring: 85–100% within tolerance, -3% penalty per extra degree).
-- Perform compensatory posture checks (trunk lean > 12° or > 35°, upper arm abduction > 30°, knee flexion > 15°) to invalidate bad-form reps.
+- Perform compensatory posture checks to invalidate bad-form reps. The checks (metric, limit, message) come with each exercise from the server `LIBRARY` (DEC-012): trunk lean > 12° or > 35°, upper arm > 30° from the trunk, knee flexion > 15°, thigh > 20° from vertical.
+- In side view, use the tracker's signed elevation for flexion / extension exercises, so a movement in the wrong direction never scores (M4.6).
+- Record every rep attempt (valid or not) as a rep event uploaded with the session, the real input of the evaluation pipeline (M4.5).
 - Enforce therapist-defined safety maximum angles, instantly triggering visual/auditory STOP alerts on hyperextension/overreach.
 - Manage isometric hold timers and tolerance jitter windows for static endurance exercises.
 
@@ -30,6 +32,8 @@ Evaluates real-time patient kinematics against prescribed clinical rehabilitatio
 - An exercise repetition that breaches compensatory posture thresholds is flagged invalid and awarded minimal points (2 pts).
 - Exceeding the therapist's safety maximum halts repetition accumulation and logs an unsafe rep event.
 - Repetitions cannot count during set-rest periods.
+- An extension exercise scores only when the signed angle shows the limb behind the trunk; with no signed reading it has no reading at all.
+- Unity holds no per-exercise rules keyed by code: posture checks, direction and pose come from the program.
 
 ## Notes
 - Posture thresholds were derived from clinical physical therapy literature to avoid hip/spine substitution patterns during isolated limb exercises.

@@ -40,8 +40,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M4.2 | M4 | done | Backend Security & Data Integrity |
 | M4.3 | M4 | active | Unity Client Robustness & Deployability |
 | M4.4 | M4 | done | Tracker Measurement Correctness |
-| M4.5 | M4 | planned | Evaluation Pipeline Integrity |
-| M4.6 | M4 | planned | Single Source of Exercise Definitions |
+| M4.5 | M4 | done | Evaluation Pipeline Integrity |
+| M4.6 | M4 | done | Single Source of Exercise Definitions |
 
 ---
 
@@ -188,8 +188,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
   - `M4.2`: Backend Security & Data Integrity (done)
   - `M4.3`: Unity Client Robustness & Deployability (active)
   - `M4.4`: Tracker Measurement Correctness (done)
-  - `M4.5`: Evaluation Pipeline Integrity
-  - `M4.6`: Single Source of Exercise Definitions
+  - `M4.5`: Evaluation Pipeline Integrity (done)
+  - `M4.6`: Single Source of Exercise Definitions (done)
 - **Done when:** all children are done and the server, tracker, evaluation and Unity EditMode test suites pass, followed by a human Play-mode and headset check.
 
 ### M4.1 — Repository & Environment Safety
@@ -225,7 +225,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 - **Systems:** MotionTracking
 
 ### M4.5 — Evaluation Pipeline Integrity
-- **Status:** planned
+- **Status:** done
 - **Objective:** Make research metrics come only from real, labelled data.
 - **Deliverables:** synthetic run renamed `--self-test` with a banner and computed status; CSV templates for goniometer, therapist rep labels, SUS and PT survey; per-rep `rep_event` log from Unity; confusion matrix from labels joined to rep events; webcam-only filtering; tests.
 - **Completion criteria:** a known CSV yields known metrics; with no real inputs the report says "not measured", never PASS.
@@ -233,7 +233,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 - **Systems:** ClinicalBackend, ExerciseEvaluation
 
 ### M4.6 — Single Source of Exercise Definitions
-- **Status:** planned
+- **Status:** done
 - **Objective:** Stop exercise rules being duplicated across server and Unity.
 - **Deliverables:** `LIBRARY` fields for posture, posture checks, direction and figure pose sent in the VR program; Unity `MotionInput`, `HumanoidCoach` and `FigureVisualizer` read them instead of switching on codes.
 - **Completion criteria:** a new exercise using an existing pose works after adding only a `LIBRARY` entry.
