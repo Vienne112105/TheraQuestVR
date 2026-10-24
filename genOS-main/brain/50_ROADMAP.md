@@ -37,10 +37,10 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M3 | — | done | Security, Therapist Authentication & Production Hardening |
 | M3.1 | M3 | done | Dashboard Authentication & Session Security |
 | M3.2 | M3 | done | Clinical Endpoint Authorization & Patient Code Isolation |
-| M4 | — | active | Foundation Hardening (pre-feature stabilization) |
+| M4 | — | done | Foundation Hardening (pre-feature stabilization) |
 | M4.1 | M4 | done | Repository & Environment Safety |
 | M4.2 | M4 | done | Backend Security & Data Integrity |
-| M4.3 | M4 | TBF | Unity Client Robustness & Deployability |
+| M4.3 | M4 | done | Unity Client Robustness & Deployability |
 | M4.4 | M4 | done | Tracker Measurement Correctness |
 | M4.5 | M4 | done | Evaluation Pipeline Integrity |
 | M4.6 | M4 | done | Single Source of Exercise Definitions |
@@ -54,7 +54,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 
 ## Suggested sequence
 
-`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (active: foundation hardening before new game & dashboard features)
+`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ next program milestone not decided yet
 
 Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided.
 
@@ -183,7 +183,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 
 ## M4 — Foundation Hardening (pre-feature stabilization)
 
-- **Status:** active
+- **Status:** done
 - **Objective:** Fix the underlying security, data-integrity, deployability, measurement and research-integrity problems found in the 2026-10-20 project-wide audit, so new game and dashboard features are built on a safe, testable base.
 - **Success criteria:**
   - Project is under version control with generated folders ignored, and the live database lives outside OneDrive (DEC-010).
@@ -195,7 +195,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Children:**
   - `M4.1`: Repository & Environment Safety (done)
   - `M4.2`: Backend Security & Data Integrity (done)
-  - `M4.3`: Unity Client Robustness & Deployability (TBF)
+  - `M4.3`: Unity Client Robustness & Deployability (done)
   - `M4.4`: Tracker Measurement Correctness (done)
   - `M4.5`: Evaluation Pipeline Integrity (done)
   - `M4.6`: Single Source of Exercise Definitions (done)
@@ -218,8 +218,8 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** ClinicalBackend, TherapistDashboard
 
 ### M4.3 — Unity Client Robustness & Deployability
-- **Status:** TBF
-- **Verification so far:** EditMode tests pass (26); Windows player builds and starts with `-patient` in desktop fallback; Editor Play-mode check (online, offline cache, queue flush, Therapist page) passed 2026-10-22. Still to verify by a human: built player against a running server and tracker (desktop).
+- **Status:** done
+- **Verification so far:** EditMode tests pass (26); Windows player builds and starts with `-patient` in desktop fallback; Editor Play-mode check (online, offline cache, queue flush, Therapist page) passed 2026-10-22; built player with `-patient` against a running server and tracker passed 2026-10-25 (human-verified).
 - **Objective:** Make the VR client deployable to a clinic and robust to bad input and failures.
 - **Deliverables:** patient code from command line / config / PIN-protected therapist page; OpenXR packages and loader; cached last program instead of hardcoded offline program; input source locked during sessions; resilient offline queue with session UUIDs; prescription validation; loopback-only UDP receiver; locomotion lock; quit checkpoint; EditMode tests.
 - **Completion criteria:** EditMode tests pass; a built player runs with `-patient`; desktop fallback works. (Amended 2026-10-25 by the human: the headset run moved to HW.2, because no headset is available yet.)
