@@ -14,6 +14,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 **ID conventions:**
 - Program milestones: `M0`, `M1`, `M2`, …
 - Child milestones: `M0.1`, `M0.2`, `M1.1`, … under a parent
+- Unscheduled future milestones: a temporary ID (e.g. `HW`, children `HW.1`) and no number until the human decides where they go in the sequence; they get the next `M` number then.
 
 ---
 
@@ -43,17 +44,19 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M4.4 | M4 | done | Tracker Measurement Correctness |
 | M4.5 | M4 | done | Evaluation Pipeline Integrity |
 | M4.6 | M4 | done | Single Source of Exercise Definitions |
-| M5 | — | planned | Hardware Integration & Field Validation |
-| M5.1 | M5 | planned | Hardware Setup & Compatibility Baseline |
-| M5.2 | M5 | planned | Headset Integration Test |
-| M5.3 | M5 | planned | Webcam and Headset Concurrent Operation |
-| M5.4 | M5 | planned | End-to-End Integration Run |
+| HW | — | planned | Hardware Integration & Field Validation |
+| HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
+| HW.2 | HW | planned | Headset Integration Test |
+| HW.3 | HW | planned | Webcam and Headset Concurrent Operation |
+| HW.4 | HW | planned | End-to-End Integration Run |
 
 ---
 
 ## Suggested sequence
 
-`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (active: foundation hardening before new game & dashboard features) ➔ `M5` (planned: hardware integration & field validation, when the hardware is available)
+`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (active: foundation hardening before new game & dashboard features)
+
+Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided.
 
 ---
 
@@ -196,7 +199,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
   - `M4.4`: Tracker Measurement Correctness (done)
   - `M4.5`: Evaluation Pipeline Integrity (done)
   - `M4.6`: Single Source of Exercise Definitions (done)
-- **Done when:** all children are done and the server, tracker, evaluation and Unity EditMode test suites pass, followed by a human Play-mode check. (The headset check moved to M5.2 on 2026-10-25.)
+- **Done when:** all children are done and the server, tracker, evaluation and Unity EditMode test suites pass, followed by a human Play-mode check. (The headset check moved to HW.2 on 2026-10-25.)
 
 ### M4.1 — Repository & Environment Safety
 - **Status:** done
@@ -219,7 +222,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 - **Verification so far:** EditMode tests pass (26); Windows player builds and starts with `-patient` in desktop fallback; Editor Play-mode check (online, offline cache, queue flush, Therapist page) passed 2026-10-22. Still to verify by a human: built player against a running server and tracker (desktop).
 - **Objective:** Make the VR client deployable to a clinic and robust to bad input and failures.
 - **Deliverables:** patient code from command line / config / PIN-protected therapist page; OpenXR packages and loader; cached last program instead of hardcoded offline program; input source locked during sessions; resilient offline queue with session UUIDs; prescription validation; loopback-only UDP receiver; locomotion lock; quit checkpoint; EditMode tests.
-- **Completion criteria:** EditMode tests pass; a built player runs with `-patient`; desktop fallback works. (Amended 2026-10-25 by the human: the headset run moved to M5.2, because no headset is available yet.)
+- **Completion criteria:** EditMode tests pass; a built player runs with `-patient`; desktop fallback works. (Amended 2026-10-25 by the human: the headset run moved to HW.2, because no headset is available yet.)
 - **Dependencies:** M4.2 (session UUID, 4xx semantics)
 - **Systems:** SessionOrchestration, ExerciseEvaluation, VRClinicExperience
 
@@ -248,9 +251,9 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 - **Systems:** ExerciseEvaluation, AvatarCoach, ClinicalBackend
 
 
-## M5 — Hardware Integration & Field Validation
+## HW — Hardware Integration & Field Validation (unscheduled)
 
-- **Status:** planned
+- **Status:** planned (unscheduled: not yet numbered or placed in the sequence)
 - **Objective:** Bring together the real hardware the project needs (Meta Quest headset over Quest Link, a VR-ready Windows PC, a clinic webcam) and test how well the whole system works on it: VR client, motion tracker, clinical server and therapist dashboard running together on one machine, as a patient and therapist would use them.
 - **Success criteria:**
   - The VR client runs in the headset over Quest Link (OpenXR) with head tracking and controller input, and falls back to desktop mode when Link is off (DEC-002).
@@ -258,14 +261,14 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
   - A full session done in the headset with the webcam tracker reaches the dashboard with correct per-rep data.
   - Every hardware problem found is fixed, or recorded with a workaround, in the brain.
 - **Children:**
-  - `M5.1`: Hardware Setup & Compatibility Baseline
-  - `M5.2`: Headset Integration Test
-  - `M5.3`: Webcam and Headset Concurrent Operation
-  - `M5.4`: End-to-End Integration Run
+  - `HW.1`: Hardware Setup & Compatibility Baseline
+  - `HW.2`: Headset Integration Test
+  - `HW.3`: Webcam and Headset Concurrent Operation
+  - `HW.4`: End-to-End Integration Run
 - **Done when:** all children are done; the findings and the clinic setup steps are recorded.
 - **Dependencies:** M4 (software foundation); access to the hardware.
 
-### M5.1 — Hardware Setup & Compatibility Baseline
+### HW.1 — Hardware Setup & Compatibility Baseline
 - **Status:** planned
 - **Objective:** Get the hardware working with the software stack and record what a clinic machine needs.
 - **Deliverables:** Meta Quest Link app installed and set as the active OpenXR runtime; headset connection by cable and/or Air Link; webcam chosen and mounted (USB on a tripod preferred); a clinic setup checklist covering PC/GPU, cable, camera placement, 2 x 2 m space and lighting (README).
@@ -273,26 +276,26 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 - **Dependencies:** M4
 - **Systems:** VRClinicExperience, MotionTracking
 
-### M5.2 — Headset Integration Test
+### HW.2 — Headset Integration Test
 - **Status:** planned
 - **Objective:** Verify the VR client on the real headset (moved here from M4.3's completion criteria on 2026-10-25).
 - **Deliverables:** test run covering head tracking and recentering (Y / R), controller mapping (A select, B pause, thumbsticks for menus, walking and turning), locomotion locked during exercises, HUD and menu legibility and comfort at the configured distances, subtitles, pause and quit in the headset, and the desktop fallback with Link off; fixes for problems found.
 - **Completion criteria:** every item passes in the headset, or has a recorded fix or workaround; a session done in the headset uploads to the dashboard.
-- **Dependencies:** M5.1
+- **Dependencies:** HW.1
 - **Systems:** VRClinicExperience, SessionOrchestration
 
-### M5.3 — Webcam and Headset Concurrent Operation
+### HW.3 — Webcam and Headset Concurrent Operation
 - **Status:** planned
 - **Objective:** Check that tracking and VR rendering can share one PC, and that tracking works for a patient wearing a headset.
-- **Deliverables:** measurements of headset frame rate, tracker rate and CPU/GPU load with everything running; tracker accuracy and visibility while the patient wears the headset (the headset can hide the face landmarks used to tell facing direction); front and side camera placement checked for each tracked exercise; live webcam unplug and reconnect test (open from M4.4).
-- **Completion criteria:** the headset frame rate and tracker rate stay usable during a full session; facing direction and posture checks work with the headset on, or a fix is made; camera placement guidance is confirmed or corrected.
-- **Dependencies:** M5.1, M5.2
+- **Deliverables:** measurements of headset frame rate, tracker rate and CPU/GPU load with everything running; a real side-view footage check of the signed elevation angles with `tracker/check_signed.py` (moved here from M4.6 verification on 2026-10-25): shoulder and hip extension must read negative and flexion positive, facing both ways, with and without the headset, measuring the share of frames where the facing direction can't be told; tracker accuracy and visibility while the patient wears the headset (the headset can hide the face landmarks used to tell facing direction); front and side camera placement checked for each tracked exercise; live webcam unplug and reconnect test (open from M4.4).
+- **Completion criteria:** the headset frame rate and tracker rate stay usable during a full session; signed angles have the right sign and the facing direction is missing in under ~5% of frames (at ~20% or more, Unity keeps the last known direction across short gaps), with the headset on and off; posture checks work with the headset on, or a fix is made; camera placement guidance is confirmed or corrected.
+- **Dependencies:** HW.1, HW.2
 - **Systems:** MotionTracking, ExerciseEvaluation, VRClinicExperience
 
-### M5.4 — End-to-End Integration Run
+### HW.4 — End-to-End Integration Run
 - **Status:** planned
 - **Objective:** Run the complete clinical workflow on the real hardware.
 - **Deliverables:** therapist prescribes on the dashboard; patient runs the session in the headset with webcam tracking; the session, adherence, per-rep log and clinical notes appear on the dashboard; offline mode and the upload queue tested on the real setup; a findings list with each problem fixed or recorded.
 - **Completion criteria:** at least one complete prescribe → exercise → review cycle succeeds on the target hardware with no manual workarounds; findings are recorded in the brain.
-- **Dependencies:** M5.2, M5.3
+- **Dependencies:** HW.2, HW.3
 - **Systems:** SessionOrchestration, ClinicalBackend, TherapistDashboard, VRClinicExperience, MotionTracking
