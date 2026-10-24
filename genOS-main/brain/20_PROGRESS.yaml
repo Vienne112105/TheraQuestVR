@@ -5,7 +5,7 @@
 schema_version: 2
 
 # ISO date of last SHUTDOWN update (YYYY-MM-DD)
-last_updated: 2026-10-22
+last_updated: 2026-10-25
 
 # Who last wrote this file (e.g. cursor-agent, agy-agent, agency:unity-specialist)
 last_agent: claude-code
@@ -32,7 +32,7 @@ working_on: []
 # below before other work, and keep reminding each new session until the human reports it done; then remove it.
 # M4.3 (TBF) and M4 can only be marked done in 50_ROADMAP.md once this list is empty.
 pending_human_tests:
-  - "Check 2 (M4.3): built player Main/TheraQuestVR/unity/Builds/TheraQuestVR.exe -patient P-900 with server + tracker running (register P-900 on the dashboard first; session must show under P-900 with input source webcam; running without -patient must not keep P-900). Then a Quest Link run: Link app installed, Settings > General > OpenXR Runtime set to Meta Quest Link, Link on in the headset before launch; check head tracking, A/B/Y and thumbsticks, walking locked during an exercise; Link off = desktop window. Rebuild the player first if Unity code changed since 2026-10-21."
+  - "Check 2 (M4.3): built player on the desktop. Register P-900 on the dashboard, start the server (Start_Therapist_App.bat) and tracker (start_tracker.bat), run Main/TheraQuestVR/unity/Builds/TheraQuestVR.exe -patient P-900; the session must show under P-900 with input source webcam (Export CSV, input_source column; use Simulated input if there is no webcam); running again without -patient must not keep P-900. The headset run is no longer part of M4.3: it moved to M5.2. Rebuild the player first if Unity code changed since 2026-10-21."
   - "Check 3 (M4.6): extension exercises on real side-view footage. Close Unity, run start_tracker.bat with the camera at the side 2-3 m away, then 'python check_signed.py' (optionally --side L/R) in Main/TheraQuestVR/tracker. Do 10 shoulder extensions (value must go negative), 10 flexions (positive), 10 hip extensions holding a chair (negative), Ctrl+C for the summary; repeat facing the other way. Under ~5% 'can't tell' is fine; ~20% or more, or reversed signs, means Unity should keep the last known direction across short gaps."
 
 # Known bugs or risks
@@ -40,10 +40,10 @@ known_issues:
   - "Single-camera tracking requires specific camera placement (sagittal vs frontal) per exercise."
   - "Patient codes (P-001...) are guessable pseudonyms; VR routes are safe only because they are loopback-only. A remote VR client would need a per-device secret (see ClinicalBackend Future Changes)."
   - "Extension exercises (shoulderExt, hipExt) have no reading when the tracker can't tell which way the patient faces (signed angle -999); flexion exercises fall back to the unsigned angle. Measured by pending_human_tests Check 3."
-  - "Live webcam reconnect (M4.4) and the headset path are untested on hardware; this PC has no OpenXR runtime installed, so the batch player run only proved the desktop fallback."
+  - "Live webcam reconnect (M4.4) and the headset path are untested on hardware (no headset available; this PC has no OpenXR runtime installed). Both are scheduled in M5 (M5.2, M5.3)."
 
 # Blockers requiring human decision or external input
 blocked: []
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-10-22 SHUTDOWN. All M4 children are implemented: M4.1, M4.2, M4.4, M4.5, M4.6 done; M4.3 is TBF (To-Be-Finished, new roadmap status): code and automated tests complete (server 42, tracker 27, evaluation 14, Unity EditMode 26; player builds), Editor Play-mode human check passed 2026-10-22. Left: pending_human_tests Check 2 (built player -patient P-900 with server + tracker, then Quest Link headset) and Check 3 (tracker/check_signed.py on real side-view footage for extension exercises). current_milestone points at M4 because it is the only active milestone. Next agent: at session start remind the human of pending_human_tests; when both pass, set M4.3 and M4 to done in 50_ROADMAP.md and clear the list. If Check 3 shows ~20% or more frames without a direction, make Unity keep the last known direction across short gaps. After M4, ask the human for the next program milestone (no scope is defined yet; do not invent one)."
+session_summary: "2026-10-25: the human has no Meta Quest headset yet, so a new program milestone M5 (Hardware Integration & Field Validation, planned; children M5.1 setup baseline, M5.2 headset test, M5.3 webcam + headset concurrent operation, M5.4 end-to-end run) was added at the human's request. M4.3's completion criteria were amended: the headset run moved to M5.2. State otherwise as of 2026-10-22: M4.1, M4.2, M4.4, M4.5, M4.6 done; M4.3 TBF (code and automated tests complete: server 42, tracker 27, evaluation 14, Unity EditMode 26; Editor Play-mode check passed). Left for M4: pending_human_tests Check 2 (built player -patient P-900 on the desktop) and Check 3 (tracker/check_signed.py on real side-view footage; needs a webcam). Next agent: at session start remind the human of pending_human_tests; when both pass, set M4.3 and M4 to done in 50_ROADMAP.md and clear the list. If Check 3 shows ~20% or more frames without a direction, make Unity keep the last known direction across short gaps. After M4, ask the human which milestone comes next (M5 needs the hardware; new game / dashboard features are not defined yet)."
