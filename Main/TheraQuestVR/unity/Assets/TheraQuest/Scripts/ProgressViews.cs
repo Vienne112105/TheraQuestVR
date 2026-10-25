@@ -25,37 +25,6 @@ namespace TheraQuest
             return new XpSpan { fromLevel = l0, toLevel = l1, fromFrac = (float)i0 / n0, toFrac = (float)i1 / n1 };
         }
 
-        /// <summary>One line per exercise: done or not, good reps out of the target, accuracy for the therapist view.</summary>
-        public static List<string> ExerciseLines(IList<ExerciseEvaluator> evs, bool details)
-        {
-            var lines = new List<string>();
-            if (evs == null) return lines;
-            foreach (var e in evs)
-            {
-                string mark = e.Done ? $"<color={UIKit.HexGood}>✓</color>" : $"<color={UIKit.HexMuted}>○</color>";
-                string acc = "";
-                if (details && e.Accuracies.Count > 0)
-                {
-                    float sum = 0f;
-                    foreach (var a in e.Accuracies) sum += a;
-                    acc = $" · {sum / e.Accuracies.Count:0}%";
-                }
-                string unsafeNote = e.UnsafeReps > 0 ? $" · <color={UIKit.HexBad}>{e.UnsafeReps} too far</color>" : "";
-                lines.Add($"{mark}  {e.Exercise.name}  <b>{e.ValidReps}/{e.Exercise.TotalReps}</b>{acc}{unsafeNote}");
-            }
-            return lines;
-        }
-
-        /// <summary>Server notes still worth showing as text; level-ups and badges get their own animation.</summary>
-        public static List<string> OtherNotes(IEnumerable<string> notes)
-        {
-            var keep = new List<string>();
-            if (notes == null) return keep;
-            foreach (var n in notes)
-                if (!string.IsNullOrEmpty(n) && !n.StartsWith("Level up") && !n.StartsWith("Badge unlocked")) keep.Add(n);
-            return keep;
-        }
-
         /// <summary>Display names for badge codes (unknown codes are shown as they are).</summary>
         public static List<string> BadgeNames(IEnumerable<string> codes)
         {

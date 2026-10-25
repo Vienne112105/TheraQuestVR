@@ -288,20 +288,20 @@ namespace TheraQuest
 
         void BuildSummary()
         {
-            var c = summaryCanvas = UIKit.Canvas(transform, "Summary", Vector3.zero, 0f, new Vector2(900, 940));
+            var c = summaryCanvas = UIKit.Canvas(transform, "Summary", Vector3.zero, 0f, new Vector2(900, 640));
             c.sortingOrder = 10;
             summary = c.gameObject;
-            var card = UIKit.Card(c.transform, new Vector2(900, 940), UIKit.Cream, UIKit.Yellow).fill.transform;
+            var card = UIKit.Card(c.transform, new Vector2(900, 640), UIKit.Cream, UIKit.Yellow).fill.transform;
             sumTitle = UIKit.Stroke(Label(card, new Vector2(0, -36), new Vector2(884, 90), 72, UIKit.Orange, TextAnchor.UpperCenter, FontStyle.Bold), UIKit.Outline, 3f);
             sumStars = UIKit.Stroke(Label(card, new Vector2(0, -130), new Vector2(884, 140), 124, UIKit.Yellow, TextAnchor.UpperCenter, FontStyle.Bold), UIKit.Outline, 4f);
             UIKit.Bouncy(sumStars);
-            sumBody = Label(card, new Vector2(60, -280), new Vector2(764, 490), 30, UIKit.Ink, TextAnchor.UpperLeft);
+            sumBody = Label(card, new Vector2(60, -280), new Vector2(764, 160), 34, UIKit.Ink, TextAnchor.UpperCenter);
             // XP row and badge reveal along the bottom of the card
-            sumLevel = UIKit.Pill(card, new Vector2(60, -786), new Vector2(170, 52), UIKit.Purple, "LEVEL 1", 28, Color.white);
-            Box(card, new Vector2(246, -799), new Vector2(SumXpW, 26), UIKit.Track, "Summary XP track");
-            sumXpFill = Box(card, new Vector2(246, -799), new Vector2(26, 26), UIKit.Yellow, "Summary XP fill");
-            sumXpGain = Label(card, new Vector2(246, -760), new Vector2(SumXpW, 34), 24, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
-            sumBadges = Label(card, new Vector2(60, -852), new Vector2(764, 70), 30, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
+            sumLevel = UIKit.Pill(card, new Vector2(60, -486), new Vector2(170, 52), UIKit.Purple, "LEVEL 1", 28, Color.white);
+            Box(card, new Vector2(246, -499), new Vector2(SumXpW, 26), UIKit.Track, "Summary XP track");
+            sumXpFill = Box(card, new Vector2(246, -499), new Vector2(26, 26), UIKit.Yellow, "Summary XP fill");
+            sumXpGain = Label(card, new Vector2(246, -460), new Vector2(SumXpW, 34), 24, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
+            sumBadges = Label(card, new Vector2(60, -556), new Vector2(764, 60), 30, UIKit.Ink, TextAnchor.UpperCenter, FontStyle.Bold);
             UIKit.Bouncy(sumBadges);
             summary.SetActive(false);
         }
@@ -583,7 +583,7 @@ namespace TheraQuest
             sumOnBadge = onBadge;
             sumLevel.text = $"LEVEL {xp.fromLevel}";
             SetSumXp(xp.fromFrac);
-            sumXpGain.text = xpGained > 0 ? $"+{xpGained} XP" + (pending ? " (added when it's sent)" : "") : "";
+            sumXpGain.text = xpGained > 0 ? $"+{xpGained} XP" : "";
             sumBadgeNames = new List<string>(newBadges ?? new string[0]);
             sumBadgesShown = 0;
             sumBadgeT = 0f;

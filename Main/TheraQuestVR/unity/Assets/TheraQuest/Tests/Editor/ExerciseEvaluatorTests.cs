@@ -443,25 +443,8 @@ namespace TheraQuest.Tests
         }
 
         [Test]
-        public void ExerciseLinesShowGoodRepsOutOfTarget()
+        public void BadgeCodesBecomeNamesOnce()
         {
-            var done = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex(reps: 1));
-            ExerciseEvaluatorTests.Rep(done, 90f);
-            var notDone = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex(reps: 3));
-            var lines = ProgressViews.ExerciseLines(new[] { done, notDone }, details: true);
-            Assert.AreEqual(2, lines.Count);
-            StringAssert.Contains("<b>1/1</b>", lines[0]);
-            StringAssert.Contains("100%", lines[0]);
-            StringAssert.Contains("✓", lines[0]);
-            StringAssert.Contains("<b>0/3</b>", lines[1]);
-            StringAssert.DoesNotContain("%", ProgressViews.ExerciseLines(new[] { done }, details: false)[0]);
-        }
-
-        [Test]
-        public void LevelUpAndBadgeNotesAreLeftToTheAnimation()
-        {
-            var keep = ProgressViews.OtherNotes(new[] { "Level up! Reached level 3", "Badge unlocked: Combo 10", "Heel slide: next session goes to 10 reps" });
-            CollectionAssert.AreEqual(new[] { "Heel slide: next session goes to 10 reps" }, keep);
             CollectionAssert.AreEqual(new[] { "Combo 10", "mystery" }, ProgressViews.BadgeNames(new[] { "combo10", "mystery", "combo10" }));
         }
 
