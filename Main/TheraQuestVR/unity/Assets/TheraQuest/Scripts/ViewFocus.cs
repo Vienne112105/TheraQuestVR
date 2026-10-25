@@ -4,8 +4,9 @@ namespace TheraQuest
 {
     /// <summary>
     /// Auto-focus on the exercise (requested 2026-10-26). On the laptop, at every exercise's get-ready card the
-    /// camera eases forward and turns to frame the coach doing that exercise: closer for small motions, wider for
-    /// standing ones, tilted down for exercises on the treatment table. It then stays there for the exercise.
+    /// camera eases forward and turns to frame the coach, and again at "Go!" once the coach has taken the exercise
+    /// pose (it stands idle beside the chair or table until then): closer for small motions, wider for standing
+    /// ones, tilted down for exercises on the treatment table. It then stays there for the exercise.
     /// In the headset the view is never moved on its own (motion sickness); SessionManager re-centers instead.
     /// Put it on the camera Rig (SessionManager adds it at runtime).
     /// </summary>
@@ -16,11 +17,12 @@ namespace TheraQuest
         [Tooltip("Seconds to wait before measuring the coach, so its new pose (and the 'pop') has settled.")]
         public float settleSeconds = 0.45f;
         public float easeSeconds = 1.2f;
-        [Tooltip("Room left around the coach, as a share of its size.")]
-        public float margin = 1.25f;
+        [Tooltip("Room left around the coach, as a share of its size (1.3: the coach fills about three quarters of the view's height).")]
+        public float margin = 1.3f;
         [Tooltip("Extra height above a standing coach for raised arms.")]
         public float headroom = 0.35f;
         public float minDistance = 1.3f, maxDistance = 4.5f;
+        const float MinMove = 0.12f, MinTurn = 3f;   // smaller changes are skipped
 
         Transform target;
         float wait, t = -1f;
@@ -69,7 +71,7 @@ namespace TheraQuest
             if (cam == null) return false;
             float eye = head != null ? head.desktopEyeHeight : 1.55f;
             var camPos = transform.position + Vector3.up * eye;
-            bool standing = b.size.y > 1.2f;
+            bool standing = b.size.y > 1.6f;   // a seated coach is about 1.5 m tall: no raised-arm headroom
             var pose = Frame(camPos, eye, b, standing ? headroom : 0f, cam.fieldOfView, cam.aspect, margin, minDistance, maxDistance);
             fromPos = transform.position;
             fromRot = transform.rotation;
@@ -77,7 +79,9 @@ namespace TheraQuest
             toPos = ClampToRoom(pose.rigPosition);
             toRot = Quaternion.Euler(0f, pose.yaw, 0f);
             toPitch = pose.pitch;
-            return true;
+            // Already framed well enough: don't nudge the view for nothing (it is framed twice per exercise)
+            return Vector3.Distance(fromPos, toPos) > MinMove || Quaternion.Angle(fromRot, toRot) > MinTurn
+                   || Mathf.Abs(fromPitch - toPitch) > MinTurn;
         }
 
         Vector3 ClampToRoom(Vector3 p)
@@ -117,8 +121,8 @@ namespace TheraQuest
             float halfW = Mathf.Max(coach.extents.x, coach.extents.z);
             float tanV = Mathf.Tan(vFovDeg * 0.5f * Mathf.Deg2Rad);
             float tanH = tanV * Mathf.Max(0.1f, aspect);
-            // Distance to the coach's centre so both its height and width fit, plus half its depth (it has volume)
-            float d = Mathf.Max(halfH / tanV, halfW / tanH) * margin + Mathf.Min(coach.extents.x, coach.extents.z);
+            // Distance to the coach's centre so both its height and width fit, with room left for the coach bubble on top
+            float d = Mathf.Max(halfH / tanV, halfW / tanH) * margin;
             d = Mathf.Clamp(d, minDistance, maxDistance);
 
             var flat = new Vector3(center.x - camPos.x, 0f, center.z - camPos.z);

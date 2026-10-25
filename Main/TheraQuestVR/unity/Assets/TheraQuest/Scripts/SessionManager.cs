@@ -342,6 +342,7 @@ namespace TheraQuest
                         awaitingReady = false;
                         ShowRepMessage(ex.cue, Tone.Neutral, 2f);
                         Subtitles.Say(ex.cue, 3f, "Coach");
+                        FocusOnExercise();   // frame again: the coach only takes the exercise pose (seated, lying) now
                     }
                     else hud.SetFeedback(countdown.Number > 0 ? $"Starting in… {countdown.Number}" : "Starting in… Go!", Tone.Neutral);
                     return;

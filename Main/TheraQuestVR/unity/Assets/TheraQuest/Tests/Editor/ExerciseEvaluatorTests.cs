@@ -352,6 +352,15 @@ namespace TheraQuest.Tests
         }
 
         [Test]
+        public void TooFastMessageShowsTheDurationWithOneDecimal()
+        {
+            var ev = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex());
+            var r = ExerciseEvaluatorTests.Rep(ev, 90f, upSeconds: 0.25f, downSeconds: 0.25f);
+            Assert.IsTrue(r[0].tooFast);
+            StringAssert.IsMatch(@"Moved too quickly \(\d\.\ds\)", ev.Describe(r[0]));
+        }
+
+        [Test]
         public void ControlHintsMatchTheDevice()
         {
             Assert.AreEqual("Space", ControlHints.For(false).Start);
@@ -368,7 +377,7 @@ namespace TheraQuest.Tests
         static readonly Vector3 Cam = new Vector3(0f, 1.55f, 0f);
 
         static ViewFocus.RigPose Frame(Bounds b, float headroom = 0f) =>
-            ViewFocus.Frame(Cam, 1.55f, b, headroom, 60f, 16f / 9f, 1.25f, 1.3f, 4.5f);
+            ViewFocus.Frame(Cam, 1.55f, b, headroom, 60f, 16f / 9f, 1.3f, 1.3f, 4.5f);
 
         [Test]
         public void StandingCoachIsFramedHeadToFootStraightAhead()

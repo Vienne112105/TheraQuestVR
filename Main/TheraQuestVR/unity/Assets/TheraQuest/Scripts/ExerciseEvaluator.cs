@@ -202,7 +202,7 @@ namespace TheraQuest
             float tol = Exercise.tolerance, target = Exercise.targetAngle;
             if (r.pastSafetyMax) return $"Went past the safe limit of {Exercise.safetyMax:0}°";
             if (r.fault != null) return r.fault;
-            if (r.tooFast) return $"Moved too quickly ({r.duration:0.1}s). Maintain controlled 2-3s tempo";
+            if (r.tooFast) return $"Moved too quickly ({r.duration:0.0}s). Maintain controlled 2-3s tempo";
             if (r.overshoot) return $"Overshot by {Mathf.RoundToInt(r.peak - target - tol)}°";
             if (r.error > tol) return $"Short by {Mathf.RoundToInt(target - tol - r.peak)}°";
             if (!r.heldLongEnough) return $"Hold for {Exercise.holdSeconds:0.#} s at the top (held {r.held:0.0} s)";
