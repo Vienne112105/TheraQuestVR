@@ -361,4 +361,52 @@ namespace TheraQuest.Tests
             StringAssert.DoesNotContain("Esc", ControlHints.Controller.MenuFooter);
         }
     }
+
+    /// <summary>Auto-focus framing math (ViewFocus.Frame).</summary>
+    public class ViewFocusTests
+    {
+        static readonly Vector3 Cam = new Vector3(0f, 1.55f, 0f);
+
+        static ViewFocus.RigPose Frame(Bounds b, float headroom = 0f) =>
+            ViewFocus.Frame(Cam, 1.55f, b, headroom, 60f, 16f / 9f, 1.25f, 1.3f, 4.5f);
+
+        [Test]
+        public void StandingCoachIsFramedHeadToFootStraightAhead()
+        {
+            var b = new Bounds(new Vector3(0f, 0.9f, 3.5f), new Vector3(0.6f, 1.8f, 0.4f));
+            var p = Frame(b, 0.35f);
+            Assert.AreEqual(0f, p.yaw, 0.01f);
+            Assert.AreEqual(0f, p.rigPosition.x, 0.001f);
+            Assert.AreEqual(0f, p.rigPosition.y, 0.001f);                     // stays on the floor
+            Assert.AreEqual(3.5f - p.distance, p.rigPosition.z, 0.001f);      // moved along the line to the coach
+            float halfV = Mathf.Atan((b.extents.y + 0.175f) / p.distance) * Mathf.Rad2Deg;
+            Assert.Less(halfV, 30f, "coach height fits inside the 60° view");
+        }
+
+        [Test]
+        public void ExerciseOnTheTableLooksDownMoreThanStanding()
+        {
+            var standing = Frame(new Bounds(new Vector3(0f, 0.9f, 3.5f), new Vector3(0.6f, 1.8f, 0.4f)), 0.35f);
+            var lying = Frame(new Bounds(new Vector3(0f, 0.55f, 3.5f), new Vector3(0.8f, 0.7f, 2.0f)));
+            Assert.Greater(lying.pitch, standing.pitch);
+            Assert.Greater(lying.pitch, 0f);
+        }
+
+        [Test]
+        public void SmallMotionsGetCloserButNeverInsideTheMinimum()
+        {
+            var small = Frame(new Bounds(new Vector3(0f, 1.2f, 3.5f), new Vector3(0.2f, 0.2f, 0.2f)));
+            var big = Frame(new Bounds(new Vector3(0f, 0.9f, 3.5f), new Vector3(0.6f, 1.8f, 0.4f)), 0.35f);
+            Assert.AreEqual(1.3f, small.distance, 0.001f);
+            Assert.Greater(big.distance, small.distance);
+        }
+
+        [Test]
+        public void TurnsToACoachOffToTheSide()
+        {
+            var p = Frame(new Bounds(new Vector3(3f, 0.9f, 0f), new Vector3(0.6f, 1.8f, 0.4f)), 0.35f);
+            Assert.AreEqual(90f, p.yaw, 0.01f);
+            Assert.AreEqual(3f - p.distance, p.rigPosition.x, 0.001f);
+        }
+    }
 }

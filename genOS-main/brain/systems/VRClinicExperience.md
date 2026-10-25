@@ -29,6 +29,7 @@ Renders an immersive 3D physical therapy clinic environment in Unity 6, handles 
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Editor/TheraQuestSceneBuilder.cs`: Scene builder automation.
 
 ## Invariants
+- In the headset the view is never moved or turned by the game on its own (motion sickness); only an instant re-center facing the coach is allowed. Smooth camera framing (ViewFocus, M5.4) runs on the laptop screen only.
 - The application must remain fully functional in desktop mode when no VR headset is detected.
 - HUD elements must remain readable and positioned within the comfortable field of view (FOV), with configurable `hudScale` defaulting to `0.00092f` for high legibility at 1.45m VR distance.
 - Floating menus are positioned at 1.35m depth with 0.00115f scale to prevent visual fatigue.

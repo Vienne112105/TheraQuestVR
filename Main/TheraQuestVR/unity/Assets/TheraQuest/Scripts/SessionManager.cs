@@ -31,6 +31,7 @@ namespace TheraQuest
         [Header("Added at runtime when empty")]
         public MenuController menu;
         public PlayerMover mover;
+        public ViewFocus focus;         // laptop: frames the coach at every exercise
 
         enum Phase { Loading, Ready, Running, Uploading, Summary }
         Phase phase = Phase.Loading;
@@ -70,6 +71,13 @@ namespace TheraQuest
                 mover = rig.GetComponent<PlayerMover>();
                 if (mover == null) mover = rig.AddComponent<PlayerMover>();
                 mover.head = head;
+            }
+            if (focus == null && mover != null)
+            {
+                focus = mover.GetComponent<ViewFocus>();
+                if (focus == null) focus = mover.gameObject.AddComponent<ViewFocus>();
+                focus.head = head;
+                focus.mover = mover;
             }
         }
 
@@ -224,6 +232,7 @@ namespace TheraQuest
 
         public void ReturnToStation()
         {
+            if (focus != null) focus.Release();
             if (mover != null) mover.ReturnToStation();
             else if (head != null) head.Recenter();
         }
@@ -434,6 +443,18 @@ namespace TheraQuest
             string intro = restarted ? $"Starting {ex.name} again from set 1. Your earlier tries are still saved for your therapist."
                                      : $"{(index > 0 ? "Next: " : "")}{ex.name}.";
             Subtitles.Say($"{intro} {ex.position}. Put the camera {ex.CameraText}, then press {Keys.Start}.", 5f, "Coach");
+            FocusOnExercise();
+        }
+
+        /// <summary>
+        /// Auto-focus: on the laptop the camera eases in to frame the coach doing this exercise; in the headset the
+        /// view never moves on its own (motion sickness), so the player is only re-centered facing the coach.
+        /// </summary>
+        void FocusOnExercise()
+        {
+            if (head != null && head.HeadsetActive) { ReturnToStation(); return; }
+            Transform who = coach != null && coach.Ready ? coach.transform : figure != null ? figure.transform : null;
+            if (focus != null && who != null) focus.FocusOn(who);
         }
 
         /// <summary>The short "exercise complete" moment between exercises (M5.4).</summary>
