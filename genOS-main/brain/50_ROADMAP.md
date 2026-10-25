@@ -45,12 +45,13 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M4.5 | M4 | done | Evaluation Pipeline Integrity |
 | M4.6 | M4 | done | Single Source of Exercise Definitions |
 | M5 | — | active | Dashboard & Game Experience |
-| M5.1 | M5 | active | Dashboard UX & Accessibility Polish |
-| M5.2 | M5 | planned | Patient & Protocol Management |
+| M5.1 | M5 | TBF | Dashboard UX & Accessibility Polish |
+| M5.2 | M5 | TBF | Patient & Protocol Management |
 | M5.3 | M5 | planned | Clinical Insights & Attention Flags |
 | M5.4 | M5 | planned | Session Flow Polish |
 | M5.5 | M5 | planned | Session Summary & Progress Screens |
 | M5.6 | M5 | planned | Audio & Visual Assets |
+| M5.7 | M5 | TBF | Additional Built-in Clinical Protocols |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -263,31 +264,34 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Status:** active
 - **Objective:** Make the therapist dashboard easier and safer to use, give therapists patient/protocol management and early warnings, and make the patient game more rewarding and polished. Scope chosen by the human on 2026-10-26; showing the unused dashboard data (TASK-001) and the high-priority backlog (TASK-003..TASK-006) are deliberately outside M5.
 - **Success criteria:**
-  - The dashboard works fully by keyboard, is usable on a narrow screen, and shows honest empty, loading and error states.
+  - The dashboard app works fully by keyboard, fits its window from the minimum size up (DEC-013), and shows honest empty, loading and error states.
   - Therapists can edit and archive patients and edit protocol phases without losing clinical records.
   - The caseload flags patients who need attention, with the reasons and the input sources counted.
   - The game has clear pacing between exercises, a rewarding summary and a progress page (history, streak, level, badges).
   - Placeholder sounds, music, badge art and text rendering are replaced with licensed assets, with credits recorded.
 - **Children:**
-  - `M5.1`: Dashboard UX & Accessibility Polish (active)
-  - `M5.2`: Patient & Protocol Management
+  - `M5.1`: Dashboard UX & Accessibility Polish (TBF)
+  - `M5.2`: Patient & Protocol Management (TBF)
   - `M5.3`: Clinical Insights & Attention Flags
   - `M5.4`: Session Flow Polish
   - `M5.5`: Session Summary & Progress Screens
   - `M5.6`: Audio & Visual Assets
+  - `M5.7`: Additional Built-in Clinical Protocols (TBF; added by the human 2026-10-26)
 - **Done when:** all children are done; the server, tracker, evaluation and Unity EditMode test suites pass; the human has done a dashboard walkthrough and a Play-mode walkthrough of the game (listed in `pending_human_tests` while open; the milestone is TBF until then).
 - **Dependencies:** M4. The dashboard children (M5.1–M5.3) and the game children (M5.4–M5.6) don't depend on each other.
 
 ### M5.1 — Dashboard UX & Accessibility Polish
-- **Status:** active
+- **Status:** TBF
+- **Verification so far (2026-10-26):** server tests pass (backend 30, authorization 13, including the new session-paging test). Browser check on a throwaway database: sign-in, caseload, chart and dialogs work by keyboard (Tab stays inside dialogs; Escape closes them and returns focus); no horizontal scroll at the app's minimum window size (980 × 640) on any view; empty states for a patient with no sessions; inline errors with Retry when the server stops; no console errors; no requests outside localhost. Left: the human walkthrough in the desktop app (`pending_human_tests`).
 - **Objective:** Make the existing dashboard robust, accessible and consistent before adding features to it.
-- **Deliverables:** empty, loading and inline error states (no fake "No Data" chart point; library/protocol load failures shown); keyboard-reachable navigation; dialogs that close on Escape, trap and restore focus, with labelled fields; tab roles on sub-tabs; status not shown by colour alone; responsive layout (`@media`, dialog grids); colours from CSS variables and no emoji in status text; unused Tailwind script removed; no `@latest` CDN fallback; session time shown, paging past 50 rows, duplicate CSV button removed.
-- **Completion criteria:** the dashboard is fully usable by keyboard and at ~400 px width; empty and error states are correct; the server test suites pass; human dashboard walkthrough.
+- **Deliverables:** empty, loading and inline error states (no fake "No Data" chart point; library/protocol load failures shown); keyboard-reachable navigation; dialogs that close on Escape, trap and restore focus, with labelled fields; tab roles on sub-tabs; status not shown by colour alone; layout that fits the app window from its minimum 980 × 640 up (DEC-013; the narrow-screen rules added also cover a small Edge fallback window); colours from CSS variables and no emoji in status text; unused Tailwind script removed; no `@latest` CDN fallback; session time shown, paging past 50 rows, duplicate CSV button removed.
+- **Completion criteria:** the dashboard app is fully usable by keyboard and at its minimum window size; empty and error states are correct; the server test suites pass; human walkthrough in the desktop app.
 - **Dependencies:** M4.2
 - **Systems:** TherapistDashboard
 
 ### M5.2 — Patient & Protocol Management
-- **Status:** planned
+- **Status:** TBF
+- **Verification so far (2026-10-26):** backend tests 39 (9 new: edit, code lock, length limits, archive/unarchive, archived VR program refused while queued uploads still save, built-in read-only, add/edit phase, criteria bounds, wrong-protocol phase, patients on an edited phase keep their prescription) and authorization tests (new routes refuse missing and bad tokens) pass; migration test checks `archived_at`. Browser check on a throwaway database at the app's minimum window size: edit details, archive with confirmation, archived banner and Reactivate, caseload hides archived unless "Show archived patients", phase editor (edit and add) on a custom protocol, read-only note on built-in protocols. Decision: DEC-014. Left: the human check in the desktop app (`pending_human_tests`).
 - **Objective:** Let therapists correct and retire records and refine protocols without touching the database.
 - **Deliverables:** edit patient details; archive / unarchive patients (records kept, archived hidden from the caseload by default; decision recorded); edit and add phases on therapist-authored protocols (built-in protocols read-only); new endpoints with authorization, bounds checks and escaping as in M4.2; schema migration in the existing order; tests. The patient name field keeps its current behaviour (TASK-004 decides its future).
 - **Completion criteria:** backend and authorization tests cover each new endpoint, including unauthorized access and archived-patient behaviour, and pass.
@@ -326,6 +330,15 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Dependencies:** M5.5 (badge reveal and progress page use the badge icons)
 - **Systems:** VRClinicExperience, AvatarCoach, Gamification
 
+
+### M5.7 — Additional Built-in Clinical Protocols
+- **Status:** TBF
+- **Objective:** Give therapists more evidence-based protocols to assign (requested by the human 2026-10-26): ACL reconstruction, hip fracture fixation, a second total knee arthroplasty source, ORIF for ankle, distal radius and tibial plateau fractures, and lateral ankle sprain.
+- **Deliverables:** seven `PROTOCOLS` entries summarized from published documents (ACL, TKA, ankle ORIF and ankle sprain: Mass General Brigham; distal radius ORIF: Brigham and Women's 2021; tibial plateau ORIF: Twin Cities Orthopedics, Dr. Butterfield 04/2024; hip fracture fixation: Dr. Jason Ferrel 07/2024), with the camera-measurable exercises in VR phases and the rest listed as done without the camera; protocol version 3; the built-in reload keeps unchanged protocols so patients on them keep their phase; tests.
+- **Completion criteria:** backend tests pass, including reload and data-shape tests; the protocols appear read-only in the library; human check that the phases read correctly.
+- **Verification so far (2026-10-26):** backend tests 42 pass (3 new: unchanged built-in keeps patients on their phase, changed built-in is replaced, every built-in is well formed); the upgrade was run on a copy of the live database (OHSU and MGB rotator cuff kept, seven added); the library shows all nine read-only. Left: the human check (`pending_human_tests`) and the licensed-PT review of targets (TASK-007).
+- **Dependencies:** M5.2 (read-only built-ins, DEC-014)
+- **Systems:** ClinicalBackend, TherapistDashboard
 
 ## HW — Hardware Integration & Field Validation (unscheduled)
 

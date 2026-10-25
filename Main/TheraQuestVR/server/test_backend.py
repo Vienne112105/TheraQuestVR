@@ -81,6 +81,19 @@ class BackendTests(ServerTestCase):
         _, dash = self.call("GET", f"/api/patients/{self.p1}/dashboard", headers=self.auth)
         self.assertFalse(any("<" in s["started_at"] for s in dash["sessions"]))
 
+    def test_dashboard_session_paging(self):
+        for _ in range(2):
+            self.call("POST", "/api/vr/sessions", self.session_body(self.p1), self.vr)
+        con = sqlite3.connect(server.DB_PATH)
+        total = con.execute("SELECT COUNT(*) FROM session WHERE patient_id=?", (self.p1,)).fetchone()[0]
+        con.close()
+        # A limit below one page still returns a full page (the 14-day KPIs come from these rows)
+        _, dash = self.call("GET", f"/api/patients/{self.p1}/dashboard?sessions=1", headers=self.auth)
+        self.assertEqual(dash["sessionsTotal"], total)
+        self.assertEqual(len(dash["sessions"]), min(total, server.SESSION_PAGE))
+        status, _ = self.call("GET", f"/api/patients/{self.p1}/dashboard?sessions=abc", headers=self.auth)
+        self.assertEqual(status, 400)
+
     def test_unknown_input_source_rejected(self):
         status, _ = self.call("POST", "/api/vr/sessions", self.session_body(self.p1, input_source="<b>x</b>"), self.vr)
         self.assertEqual(status, 400)
@@ -333,6 +346,166 @@ class ProtocolReplaceTests(ServerTestCase):
         self.assertIn("Clinic custom knee", names)
         self.assertEqual(sum(1 for n in names if n in {p[0] for p in server.PROTOCOLS}), len(server.PROTOCOLS))
 
+    def builtin(self, name):
+        _, protocols = self.call("GET", "/api/protocols", headers=self.auth)
+        return next(p for p in protocols if p["name"] == name)
+
+    def bump_version(self):
+        con = sqlite3.connect(server.DB_PATH)
+        con.execute("UPDATE app_meta SET value='old' WHERE key='protocol_version'")
+        con.commit()
+        con.close()
+        server.init_db()
+
+    def test_unchanged_builtin_keeps_patients_on_their_phase(self):
+        prot = self.builtin(server.PROTOCOLS[0][0])
+        phase_id = prot["phases"][1]["id"]
+        pid = self.patient_ids()["P-001"]
+        self.assertEqual(self.call("POST", f"/api/patients/{pid}/phase", {"phase_id": phase_id}, self.auth)[0], 200)
+        self.bump_version()
+        _, prog = self.call("GET", f"/api/patients/{pid}/program", headers=self.auth)
+        self.assertEqual(prog["phase"]["id"], phase_id)
+        self.assertEqual(self.builtin(server.PROTOCOLS[0][0])["id"], prot["id"])
+
+    def test_changed_builtin_is_replaced(self):
+        name = server.PROTOCOLS[1][0]
+        old = self.builtin(name)
+        con = sqlite3.connect(server.DB_PATH)
+        con.execute("UPDATE protocol_phase SET goals='edited outside the app' WHERE phase_id=?", (old["phases"][0]["id"],))
+        con.commit()
+        con.close()
+        self.bump_version()
+        new = self.builtin(name)
+        self.assertNotEqual(new["id"], old["id"])
+        self.assertEqual(new["phases"][0]["goals"], server.PROTOCOLS[1][3][0][3])
+
+    def test_every_builtin_protocol_is_well_formed(self):
+        for name, condition, source, phases in server.PROTOCOLS:
+            for ph in phases:
+                with self.subTest(protocol=name, phase=ph[0]):
+                    self.assertTrue(source and condition)
+                    if ph[2]:
+                        self.assertTrue(ph[10], "a VR phase needs at least one camera exercise")
+                    for code, target, tol, safety, hold, sets, reps, rest in ph[10]:
+                        self.assertIn(code, server.LIBRARY)
+                        self.assertLessEqual(target, server.NORMAL_ROM[code][1])
+                        if safety:
+                            self.assertLessEqual(target, safety)
+
+
+class PatientManagementTests(ServerTestCase):
+    """M5.2: edit patient details, archive instead of delete (DEC-014)."""
+
+    def new_patient(self, code):
+        status, body = self.call("POST", "/api/patients", {"code": code, "condition": "Test"}, self.auth)
+        self.assertEqual(status, 201, body)
+        return body["id"]
+
+    def test_edit_name_and_condition(self):
+        pid = self.new_patient("P-510")
+        status, body = self.call("PUT", f"/api/patients/{pid}", {"name": "Alias A", "condition": "Rotator cuff"}, self.auth)
+        self.assertEqual(status, 200, body)
+        _, dash = self.call("GET", f"/api/patients/{pid}/dashboard", headers=self.auth)
+        self.assertEqual(dash["patient"]["name"], "Alias A")
+
+    def test_edit_rejects_code_change_and_long_text(self):
+        pid = self.new_patient("P-511")
+        self.assertEqual(self.call("PUT", f"/api/patients/{pid}", {"code": "P-999"}, self.auth)[0], 400)
+        self.assertEqual(self.call("PUT", f"/api/patients/{pid}", {"code": "p-511", "name": "ok"}, self.auth)[0], 200)
+        self.assertEqual(self.call("PUT", f"/api/patients/{pid}", {"name": "x" * 201}, self.auth)[0], 400)
+        self.assertEqual(self.call("PUT", "/api/patients/999999", {"name": "x"}, self.auth)[0], 404)
+
+    def test_archive_hides_patient_and_keeps_records(self):
+        pid = self.new_patient("P-512")
+        vr = {"X-Patient-Code": "P-512"}
+        self.assertEqual(self.call("POST", "/api/vr/sessions", self.session_body(pid), vr)[0], 201)
+        status, body = self.call("POST", f"/api/patients/{pid}/archive", {"archived": True}, self.auth)
+        self.assertEqual(status, 200, body)
+        self.assertTrue(body["archivedAt"])
+        self.assertNotIn("P-512", self.patient_ids())
+        _, everyone = self.call("GET", "/api/patients?include_archived=1", headers=self.auth)
+        self.assertTrue(next(p for p in everyone if p["code"] == "P-512")["archived_at"])
+        # The chart and its sessions are still there
+        _, dash = self.call("GET", f"/api/patients/{pid}/dashboard", headers=self.auth)
+        self.assertTrue(dash["archivedAt"])
+        self.assertEqual(dash["sessionsTotal"], 1)
+        # No new sessions from the VR app, but sessions already recorded (offline queue) still upload
+        self.assertEqual(self.call("GET", "/api/vr/program", headers=vr)[0], 403)
+        later = self.session_body(pid, started_at="2026-10-21T09:00:00", ended_at="2026-10-21T09:20:00")
+        self.assertEqual(self.call("POST", "/api/vr/sessions", later, vr)[0], 201)
+        # Archiving again keeps the first date; unarchiving brings the patient back
+        _, again = self.call("POST", f"/api/patients/{pid}/archive", {"archived": True}, self.auth)
+        self.assertEqual(again["archivedAt"], body["archivedAt"])
+        self.call("POST", f"/api/patients/{pid}/archive", {"archived": False}, self.auth)
+        self.assertIn("P-512", self.patient_ids())
+        self.assertEqual(self.call("GET", "/api/vr/program", headers=vr)[0], 200)
+
+    def test_archive_needs_boolean(self):
+        pid = self.new_patient("P-513")
+        for body in ({}, {"archived": "yes"}, {"archived": 1}):
+            with self.subTest(body=body):
+                self.assertEqual(self.call("POST", f"/api/patients/{pid}/archive", body, self.auth)[0], 400)
+
+
+class ProtocolPhaseEditTests(ServerTestCase):
+    """M5.2: therapists edit and add phases of their own protocols; built-in protocols are read-only."""
+
+    def custom_protocol(self, name="Clinic ACL"):
+        status, prot = self.call("POST", "/api/protocols", {"name": name, "phases": [
+            {"name": "Phase I", "exercises": [{"code": "slr"}]}]}, self.auth)
+        self.assertEqual(status, 201, prot)
+        return prot
+
+    def test_builtin_protocols_are_read_only(self):
+        _, protocols = self.call("GET", "/api/protocols", headers=self.auth)
+        builtin = next(p for p in protocols if p["builtin"])
+        ph = builtin["phases"][0]
+        self.assertEqual(self.call("PUT", f"/api/protocols/{builtin['id']}/phases/{ph['id']}", {"goals": "x"}, self.auth)[0], 403)
+        self.assertEqual(self.call("POST", f"/api/protocols/{builtin['id']}/phases", {"name": "Extra"}, self.auth)[0], 403)
+
+    def test_add_phase_appends(self):
+        prot = self.custom_protocol("Clinic add phase")
+        self.assertFalse(prot["builtin"])
+        status, prot = self.call("POST", f"/api/protocols/{prot['id']}/phases",
+                                 {"name": "Phase II", "weeks": "Weeks 5-8", "exercises": ["heelSlide", "nope"]}, self.auth)
+        self.assertEqual(status, 201, prot)
+        self.assertEqual([p["phaseNo"] for p in prot["phases"]], [1, 2])
+        self.assertEqual([e["code"] for e in prot["phases"][1]["exerciseDetails"]], ["heelSlide"])
+        self.assertEqual(self.call("POST", f"/api/protocols/{prot['id']}/phases", {"name": " "}, self.auth)[0], 400)
+
+    def test_update_phase_fields_and_bounds(self):
+        prot = self.custom_protocol("Clinic update")
+        ph = prot["phases"][0]
+        status, prot = self.call("PUT", f"/api/protocols/{prot['id']}/phases/{ph['id']}", {
+            "goals": "Full extension", "minAccuracy": 150, "minSessions": 0, "maxPainIncrease": 3,
+            "maxSwellingCm": "", "exercises": [{"code": "heelSlide", "targetAngle": 999}]}, self.auth)
+        self.assertEqual(status, 200, prot)
+        ph = prot["phases"][0]
+        self.assertEqual(ph["name"], "Phase I")              # left out = unchanged
+        self.assertEqual(ph["goals"], "Full extension")
+        self.assertEqual(ph["minAccuracy"], 100)
+        self.assertEqual(ph["minSessions"], 1)
+        self.assertEqual(ph["maxPainIncrease"], 3)
+        self.assertIsNone(ph["maxSwellingCm"])
+        self.assertEqual([e["code"] for e in ph["exerciseDetails"]], ["heelSlide"])
+        self.assertLessEqual(ph["exerciseDetails"][0]["targetAngle"], 180)
+
+    def test_update_phase_wrong_protocol_or_name(self):
+        a, b = self.custom_protocol("Clinic A"), self.custom_protocol("Clinic B")
+        ph_b = b["phases"][0]["id"]
+        self.assertEqual(self.call("PUT", f"/api/protocols/{a['id']}/phases/{ph_b}", {"goals": "x"}, self.auth)[0], 404)
+        self.assertEqual(self.call("PUT", f"/api/protocols/{b['id']}/phases/{ph_b}", {"name": ""}, self.auth)[0], 400)
+        self.assertEqual(self.call("PUT", "/api/protocols/999999/phases/1", {"goals": "x"}, self.auth)[0], 404)
+
+    def test_patient_on_phase_keeps_prescription(self):
+        prot = self.custom_protocol("Clinic keep rx")
+        ph = prot["phases"][0]
+        pid = self.patient_ids()["P-001"]
+        self.assertEqual(self.call("POST", f"/api/patients/{pid}/phase", {"phase_id": ph["id"]}, self.auth)[0], 200)
+        self.call("PUT", f"/api/protocols/{prot['id']}/phases/{ph['id']}", {"exercises": ["heelSlide"]}, self.auth)
+        _, prog = self.call("GET", f"/api/patients/{pid}/program", headers=self.auth)
+        self.assertEqual([e["code"] for e in prog["exercises"]], ["slr"])
+
 
 OLD_SCHEMA = """
 CREATE TABLE physical_therapist (therapist_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, license_no TEXT, email TEXT);
@@ -374,6 +547,9 @@ class MigrationTests(unittest.TestCase):
             self.assertIn("Custom from 2025", names)
             self.assertEqual(names.count(server.PROTOCOLS[0][0]), 1)
             self.assertIn("idx_patient_phase", idx)
+            con = sqlite3.connect(server.DB_PATH)
+            self.assertIn("archived_at", {r[1] for r in con.execute("PRAGMA table_info(patient)")})
+            con.close()
         finally:
             server.DB_PATH = real
             shutil.rmtree(tmp, ignore_errors=True)

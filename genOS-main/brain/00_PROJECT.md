@@ -26,7 +26,7 @@ TheraQuest VR is a gamified virtual reality physical therapy and telerehabilitat
 2. **Immersive Rehabilitation Client:** Unity 6 Universal 3D VR environment accessible via Meta Quest (Quest Link / OpenXR) with automated fallback to desktop mode.
 3. **Kinematic Evaluation & Safety Engine:** Repetition counting state machine, target ROM accuracy scoring, compensatory posture rejection (trunk lean > 12°/35°, limb abduction > 30°), hold duration timing, and safety maximum angle alerts.
 4. **Gamification & Feedback Intervention:** Real-time audio-visual feedback (power meter gauge, star targets, audio chimes), combo multipliers, achievement badges, player XP leveling, and accessibility closed-caption subtitles.
-5. **Clinical Protocol Management & Adherence Dashboard:** Python REST API service (`server.py`) and browser monitor (`dashboard.html` on port 8000) providing prescription editing, adherence calendar logs, pain/soreness/swelling clinical notes, and automated phase progression evaluation (OHSU Knee and MGB Rotator Cuff protocols).
+5. **Clinical Protocol Management & Adherence Dashboard:** Python REST API service (`server.py`) and a therapist desktop app (`Start_Therapist_App.bat` → `app.py`, which runs the local server and shows `dashboard.html` in a native WebView2 window; an Edge app window is the fallback) providing prescription editing, adherence calendar logs, pain/soreness/swelling clinical notes, and automated phase progression evaluation (OHSU Knee and MGB Rotator Cuff protocols).
 6. **Academic Evaluation Pipeline:** Data export and statistical tools measuring confusion matrix classification metrics (Accuracy, Precision, Recall, F1), Mean Absolute Angle Error (MAE), Euclidean coordinate deviation, and System Usability Scale (SUS) scores.
 
 ### Out of Scope & Limitations
@@ -40,11 +40,11 @@ TheraQuest VR is a gamified virtual reality physical therapy and telerehabilitat
 - **VR & Desktop Client:** Unity 6 LTS (Universal Render Pipeline / Universal 3D), OpenXR plugin, Meta Quest Link runtime, Windows 10/11.
 - **Motion Tracking Service:** Python 3.11 / 3.12, MediaPipe Pose, OpenCV, NumPy, UDP Socket broadcasting (Port 5005).
 - **Clinical Backend Service:** Python standard HTTP REST service (`http.server`), SQLite 3 (`theraquest.db`, Port 8000).
-- **Therapist Dashboard:** Single-page responsive HTML5, CSS3, Vanilla JavaScript, Charting components.
+- **Therapist Dashboard:** Windows desktop app (pywebview / WebView2 window, minimum 980 × 640) showing a single-page HTML5, CSS3, Vanilla JavaScript UI with charting components, served by the local server on port 8000. Not a website: it is not meant to be opened in a browser or used on phones.
 
 ## Core User Workflow / Domain Loop
 
-1. **Prescription & Protocol Assignment:** Physical therapist selects an evidence-based clinical protocol (OHSU Total Knee or MGB Rotator Cuff) and customizes target ROM angles, tolerances, sets, reps, and safety maxes on the web dashboard (`http://localhost:8000`).
+1. **Prescription & Protocol Assignment:** Physical therapist selects an evidence-based clinical protocol (OHSU Total Knee or MGB Rotator Cuff) and customizes target ROM angles, tolerances, sets, reps, and safety maxes in the therapist desktop app (`Start_Therapist_App.bat`).
 2. **Session Initialization:** Patient launches the motion tracker (`tracker.py`) and Unity VR application. Unity fetches the patient's active prescription via HTTP REST.
 3. **Setup & Guided Positioning:** Unity presents camera setup instructions (frontal vs sagittal view) and displays the humanoid coach avatar demonstrating the target motion.
 4. **Active Exercise Execution:**

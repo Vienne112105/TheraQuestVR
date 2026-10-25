@@ -29,6 +29,8 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-010 | accepted | 2026-10-20 | Clinical Database Stored Outside the Synced Project Folder |
 | DEC-011 | accepted | 2026-10-20 | Evaluation Reports Must Declare Their Data Source |
 | DEC-012 | accepted | 2026-10-20 | Server Exercise Library Is the Single Source of Exercise Rules |
+| DEC-013 | accepted | 2026-10-26 | Therapist Dashboard Is a Desktop App, Not a Website |
+| DEC-014 | accepted | 2026-10-26 | Patients Are Archived, Never Deleted; Built-in Protocols Are Read-Only |
 
 ---
 
@@ -135,4 +137,18 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Date:** 2026-10-20
 - **Reason:** Exercise rules (posture checks, body position, coach pose, camera view) were duplicated in switch statements across `MotionInput`, `HumanoidCoach`, `FigureVisualizer` and the server, and had already started to disagree.
 - **Impact:** Each `LIBRARY` entry carries posture, posture checks, movement direction and figure pose, sent to Unity in the VR program. Unity reads these instead of switching on exercise codes; animation curves stay in the coach, keyed by pose.
+- **Supersedes:** none
+
+### DEC-013: Therapist Dashboard Is a Desktop App, Not a Website
+- **Status:** accepted
+- **Date:** 2026-10-26
+- **Reason:** The human confirmed (2026-10-26) that the therapist dashboard is delivered as an app. `Start_Therapist_App.bat` runs `app.py`, which starts the local server and shows `dashboard.html` in a native WebView2 window (minimum 980 × 640), with an Edge app window as the fallback. The local HTTP server is only how the app's window gets its page and how Unity reaches the API.
+- **Impact:** Instructions, human tests and design targets refer to the desktop app, never "open http://localhost:8000 in a browser". Layout work targets the app window from its minimum size up; phone layouts are not a goal. The page may still open in a browser for development and automated checks.
+- **Supersedes:** none
+
+### DEC-014: Patients Are Archived, Never Deleted; Built-in Protocols Are Read-Only
+- **Status:** accepted
+- **Date:** 2026-10-26
+- **Reason:** M5.2 lets therapists retire patients and refine protocols from the dashboard (archive-instead-of-delete was approved with the M5 plan). Clinical and research records must survive (Section 3.9 evaluation, RA 10173 accountability), and built-in protocols are reloaded from `PROTOCOLS` whenever `PROTOCOL_VERSION` changes, so edits to them would be lost.
+- **Impact:** Archiving sets `patient.archived_at`; nothing is deleted. Archived patients are hidden from the caseload unless the therapist asks for them, the VR app gets 403 for a new program (no new sessions), and uploads of sessions already recorded (offline queue) are still accepted. Only therapist-authored protocols (`builtin = 0`) can have phases edited or added; built-in ones answer 403. Editing a phase does not change the prescription of patients already on it: a phase's exercises are copied to the patient when it is assigned. The patient code can't be edited (the VR app is configured with it).
 - **Supersedes:** none

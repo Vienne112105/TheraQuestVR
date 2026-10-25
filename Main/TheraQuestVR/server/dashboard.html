@@ -4,43 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TheraQuest · Therapist Monitoring &amp; Prescription Portal</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<!-- Modern UI & Visualization Libraries (Local Vendor with CDN Fallback) -->
-<script src="/static/vendor/tailwind.min.js" onerror="this.onerror=null;this.src='https://cdn.tailwindcss.com';"></script>
-<script src="/static/vendor/chart.umd.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/chart.js';"></script>
-<script src="/static/vendor/lucide.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/lucide@latest';"></script>
-
-<script>
-if (window.tailwind) {
-  tailwind.config = {
-    theme: {
-      extend: {
-        fontFamily: {
-          sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
-        },
-        colors: {
-          medical: {
-            50: '#F0FDFA',
-            100: '#CCFBF1',
-            200: '#99F6E4',
-            500: '#14B8A6',
-            600: '#0D9488',
-            700: '#0F766E',
-            800: '#115E59',
-          }
-        }
-      }
-    }
-  };
-}
-</script>
+<!-- Vendored libraries; the CDN fallback is pinned to the same version -->
+<script src="/static/vendor/chart.umd.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js';"></script>
+<script src="/static/vendor/lucide.min.js" onerror="this.onerror=null;this.src='https://unpkg.com/lucide@1.59.0/dist/umd/lucide.min.js';"></script>
 
 <style>
 :root {
-  --font: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --bg: #F8FAFC;
   --surface: #FFFFFF;
   --border: #E2E8F0;
@@ -57,6 +27,15 @@ if (window.tailwind) {
   --amber-soft: #FFFBEB;
   --red: #DC2626;
   --red-soft: #FEF2F2;
+  --red-border: #FECACA;
+  --red-strong: #B91C1C;
+  --teal-dark: #0F766E;
+  --border-strong: #CBD5E1;
+  --text-2: #334155;
+  --blue: #1D4ED8;
+  --blue-soft: #EFF6FF;
+  --blue-border: #BFDBFE;
+  --focus: #0D9488;
 }
 
 body {
@@ -73,9 +52,12 @@ body {
 header {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 0 32px;
-  height: 64px;
+  padding: 8px 32px;
+  min-height: 64px;
+  box-sizing: border-box;
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
   align-items: center;
   justify-content: space-between;
   position: sticky;
@@ -107,9 +89,14 @@ header {
 .top-nav {
   display: flex;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px 16px;
 }
+.nav-link, .btn, .brand-title { white-space: nowrap; }
 .nav-link {
+  font-family: inherit;
+  background: transparent;
+  border: 1px solid transparent;
   color: var(--text-muted);
   text-decoration: none;
   font-size: 13.5px;
@@ -161,7 +148,7 @@ header {
   color: #FFFFFF;
 }
 .btn-primary:hover {
-  background: #0F766E;
+  background: var(--teal-dark);
   color: #FFFFFF;
 }
 .btn-secondary {
@@ -397,6 +384,7 @@ header {
 .tag-status.complete { background: var(--green-soft); color: var(--green); }
 .tag-status.incomplete { background: var(--amber-soft); color: var(--amber); }
 .tag-status.missed { background: var(--red-soft); color: var(--red); }
+.tag-status.archived { background: var(--border-subtle); color: var(--text-muted); border: 1px solid var(--border); }
 
 /* Prescription Item */
 .rx-item {
@@ -447,12 +435,15 @@ header {
   justify-content: center;
   padding: 20px;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
 }
 .modal-overlay.active {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
+  transition: opacity 0.15s ease, visibility 0s;   /* visible at once, so focus can move in */
 }
 .modal-content {
   background: var(--surface);
@@ -460,7 +451,10 @@ header {
   border-radius: 10px;
   width: 100%;
   max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
   padding: 24px;
+  box-sizing: border-box;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
@@ -511,6 +505,136 @@ header {
   color: var(--text);
   background: var(--bg);
 }
+
+/* Keyboard focus (buttons above remove the default outline) */
+.btn:focus-visible, .nav-link:focus-visible, .subtab-btn:focus-visible, .back-btn:focus-visible,
+.modal-close-btn:focus-visible, .protocol-row:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* Inline messages: errors, empty and loading states */
+.alert-info {
+  background: var(--amber-soft);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.alert-error {
+  background: var(--red-soft);
+  border: 1px solid var(--red-border);
+  color: var(--red-strong);
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.state-msg {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+.state-msg .btn { margin-top: 12px; }
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 14px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* Danger variant for remove actions */
+.btn-danger-soft {
+  color: var(--red);
+  border-color: var(--red-border);
+  background: var(--red-soft);
+}
+.btn-danger-soft:hover {
+  background: var(--red-soft);
+  border-color: var(--red);
+}
+.chip {
+  display: inline-block;
+  padding: 3px 8px;
+  background: var(--border-subtle);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+.protocol-row {
+  width: 100%;
+  font-family: inherit;
+  text-align: left;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.15s ease;
+}
+.protocol-row:hover {
+  border-color: var(--teal);
+  background: var(--bg);
+}
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.radio-row { display: flex; gap: 16px; flex-wrap: wrap; border: 0; padding: 0; margin: 0; }
+.clinician-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+}
+
+/* Narrow screens (tablets in portrait, phones) */
+@media (max-width: 760px) {
+  header { padding: 10px 16px; position: static; }   /* too tall to keep pinned on a phone */
+  .brand-title { display: none; }
+  .top-nav { flex-wrap: wrap; gap: 8px; width: 100%; }
+  .clinician-block { border-left: none; padding-left: 0; flex-wrap: wrap; }
+  .container { margin: 16px auto; padding: 0 16px; }
+  .card { padding: 16px; }
+  .card-header { flex-wrap: wrap; gap: 12px; }
+  .summary-grid { grid-template-columns: 1fr; }
+  .patient-row { flex-wrap: wrap; gap: 12px; padding: 14px 12px; }
+  .patient-header { flex-direction: column; gap: 12px; }
+  .subtabs { overflow-x: auto; }
+  .subtab-btn { white-space: nowrap; }
+  .rx-item { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rx-item > :first-child { grid-column: 1 / -1; }
+  .form-grid-2 { grid-template-columns: 1fr; }
+  .modal-overlay { padding: 8px; }
+  .modal-content { padding: 16px; }
+  #toastContainer { left: 16px; right: 16px; bottom: 16px; }
+}
 </style>
 </head>
 <body>
@@ -519,7 +643,7 @@ header {
 <header>
   <div class="brand-wrap">
     <div class="brand-badge">
-      <i data-lucide="shield-plus" style="width:16px;height:16px"></i>
+      <i aria-hidden="true" data-lucide="shield-plus" style="width:16px;height:16px"></i>
       TheraQuest
     </div>
     <div class="brand-title">Therapist Monitoring &amp; Prescription Portal</div>
@@ -527,35 +651,33 @@ header {
 
   <!-- Authenticated Controls -->
   <div class="top-nav" id="topNavAuth" style="display:none">
-    <span class="nav-link active" id="navCaseload" onclick="showCaseload()">
-      <i data-lucide="users" style="width:16px;height:16px"></i>
-      Caseload Directory
-    </span>
-    <span class="nav-link" id="navChart" style="display:none" onclick="showChart()">
-      <i data-lucide="activity" style="width:16px;height:16px"></i>
-      Patient Chart
-    </span>
+    <nav aria-label="Main" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="nav-link active" id="navCaseload" aria-current="page" onclick="showCaseload()">
+        <i aria-hidden="true" data-lucide="users" style="width:16px;height:16px" aria-hidden="true"></i>
+        Caseload Directory
+      </button>
+      <button type="button" class="nav-link" id="navChart" style="display:none" onclick="showChart()">
+        <i aria-hidden="true" data-lucide="activity" style="width:16px;height:16px" aria-hidden="true"></i>
+        Patient Chart
+      </button>
+    </nav>
     <button class="btn btn-secondary btn-sm" onclick="openProtocolManagerModal()" title="View and manage clinical protocols">
-      <i data-lucide="book-marked" style="width:14px;height:14px"></i>
+      <i aria-hidden="true" data-lucide="book-marked" style="width:14px;height:14px"></i>
       Protocol Library
     </button>
-    <a id="btnExportCsv" href="#" download class="btn btn-secondary btn-sm" style="display:none">
-      <i data-lucide="download" style="width:14px;height:14px"></i>
-      Export CSV
-    </a>
 
     <!-- Clinician Identity & Sign Out -->
-    <div style="display:flex;align-items:center;gap:12px;padding-left:14px;border-left:1px solid var(--border)">
+    <div class="clinician-block">
       <div style="text-align:right">
-        <div id="clinicianName" style="font-size:13px;font-weight:700;color:var(--text)">Dr. Sarah Chen</div>
-        <div id="clinicianRole" style="font-size:11px;color:var(--text-muted)">PT-94821 · Lead PT</div>
+        <div id="clinicianName" style="font-size:13px;font-weight:700;color:var(--text)"></div>
+        <div id="clinicianRole" style="font-size:11px;color:var(--text-muted)"></div>
       </div>
       <button class="btn btn-secondary btn-sm" onclick="openPasswordModal(false)" title="Change your password">
-        <i data-lucide="key-round" style="width:14px;height:14px"></i>
+        <i aria-hidden="true" data-lucide="key-round" style="width:14px;height:14px"></i>
         Password
       </button>
       <button class="btn btn-secondary btn-sm" onclick="logout()" title="Sign out of portal">
-        <i data-lucide="log-out" style="width:14px;height:14px"></i>
+        <i aria-hidden="true" data-lucide="log-out" style="width:14px;height:14px"></i>
         Sign Out
       </button>
     </div>
@@ -571,33 +693,33 @@ header {
     <div class="card" style="padding:32px">
       <div style="text-align:center;margin-bottom:24px">
         <div style="width:48px;height:48px;border-radius:12px;background:var(--teal-soft);border:1px solid var(--teal-border);color:var(--teal);display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
-          <i data-lucide="stethoscope" style="width:26px;height:26px"></i>
+          <i aria-hidden="true" data-lucide="stethoscope" style="width:26px;height:26px"></i>
         </div>
         <h2 id="loginTitle" style="font-size:20px;font-weight:700;color:var(--text);margin:0 0 4px">Clinician Sign In</h2>
         <p style="font-size:13px;color:var(--text-muted);margin:0">Access patient monitoring, telemetry, and VR prescriptions.</p>
       </div>
 
-      <div id="loginErr" style="display:none;background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:16px"></div>
+      <div id="loginErr" class="alert-error" role="alert" style="display:none"></div>
 
       <form id="loginForm" onsubmit="handleLoginSubmit(event)" style="display:flex;flex-direction:column;gap:14px">
         <div>
-          <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Practitioner Username</label>
+          <label for="loginUsername" class="form-label">Practitioner Username</label>
           <div style="position:relative">
-            <i data-lucide="user" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-light)"></i>
-            <input type="text" id="loginUsername" required placeholder="e.g. therapist" style="width:100%;padding:9px 12px 9px 34px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;outline:none">
+            <i aria-hidden="true" data-lucide="user" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-light)"></i>
+            <input type="text" id="loginUsername" required autocomplete="username" placeholder="e.g. therapist" style="width:100%;padding:9px 12px 9px 34px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
           </div>
         </div>
 
         <div>
-          <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Password</label>
+          <label for="loginPassword" class="form-label">Password</label>
           <div style="position:relative">
-            <i data-lucide="lock" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-light)"></i>
-            <input type="password" id="loginPassword" required placeholder="••••••••" style="width:100%;padding:9px 12px 9px 34px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;outline:none">
+            <i aria-hidden="true" data-lucide="lock" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-light)"></i>
+            <input type="password" id="loginPassword" required autocomplete="current-password" style="width:100%;padding:9px 12px 9px 34px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
           </div>
         </div>
 
         <button type="submit" id="loginBtn" class="btn btn-primary" style="padding:10px;font-size:14px;margin-top:6px">
-          <i data-lucide="log-in" style="width:16px;height:16px"></i>
+          <i aria-hidden="true" data-lucide="log-in" style="width:16px;height:16px"></i>
           Sign In to Portal
         </button>
       </form>
@@ -624,7 +746,7 @@ header {
           <input type="password" id="setupPassword2" required minlength="8" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px">
         </div>
         <button type="submit" id="setupBtn" class="btn btn-primary" style="padding:10px;font-size:14px;margin-top:6px">
-          <i data-lucide="user-plus" style="width:16px;height:16px"></i>
+          <i aria-hidden="true" data-lucide="user-plus" style="width:16px;height:16px"></i>
           Create Login
         </button>
       </form>
@@ -636,28 +758,33 @@ header {
     <!-- ============================================================== -->
     <!-- VIEW 1: CASELOAD DIRECTORY                                     -->
     <!-- ============================================================== -->
+    <div id="refErr" class="alert-error" role="alert" style="display:none"></div>
     <div id="viewCaseload">
       <div class="card">
         <div class="card-header">
           <div>
             <div class="card-title">
-              <i data-lucide="folder-kanban" style="width:18px;height:18px;color:var(--teal)"></i>
+              <i aria-hidden="true" data-lucide="folder-kanban" style="width:18px;height:18px;color:var(--teal)"></i>
               Patient Caseload
             </div>
             <div class="card-desc">Select a patient to review adherence trends or adjust their VR movement prescription.</div>
           </div>
           <button class="btn btn-primary btn-sm" onclick="openNewPatientModal()">
-            <i data-lucide="user-plus" style="width:14px;height:14px"></i>
+            <i aria-hidden="true" data-lucide="user-plus" style="width:14px;height:14px"></i>
             Register Patient
           </button>
         </div>
 
         <div style="margin-bottom:16px;position:relative;max-width:380px">
-          <i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-light)"></i>
-          <input type="text" id="patientFilter" placeholder="Search by name, code, or diagnosis..." style="width:100%;padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;outline:none">
+          <i aria-hidden="true" data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-light)"></i>
+          <label for="patientFilter" class="sr-only">Search patients</label>
+          <input type="search" id="patientFilter" placeholder="Search by name, code, or diagnosis..." style="width:100%;padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
         </div>
+        <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted);margin-bottom:12px;cursor:pointer">
+          <input type="checkbox" id="showArchived" onchange="loadCaseload()"> Show archived patients
+        </label>
 
-        <div id="caseloadList"></div>
+        <div id="caseloadList" aria-live="polite"></div>
       </div>
     </div>
 
@@ -665,29 +792,36 @@ header {
     <!-- VIEW 2: FOCUSED PATIENT CHART                                  -->
     <!-- ============================================================== -->
     <div id="viewChart" style="display:none">
+      <div id="chartErr" class="alert-error" role="alert" style="display:none"></div>
       <div class="patient-header">
         <div>
           <!-- BACK BUTTON: Highlighted in solid black outline -->
           <button class="back-btn" onclick="showCaseload()">
-            <i data-lucide="arrow-left" style="width:16px;height:16px"></i>
+            <i aria-hidden="true" data-lucide="arrow-left" style="width:16px;height:16px"></i>
             Back to Patient Caseload
           </button>
           <h1 class="patient-title-h1" id="chartName">Patient Name</h1>
           <div class="patient-subtitle" id="chartCondition">Diagnosis · Protocol Phase</div>
         </div>
-        <div>
-          <button class="btn btn-secondary btn-sm" onclick="exportCurrentTelemetry()">
-            <i data-lucide="file-spreadsheet" style="width:14px;height:14px"></i>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openPatientEditModal()">
+            <i aria-hidden="true" data-lucide="user-cog" style="width:14px;height:14px"></i>
+            Edit Details
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btnArchivePatient" onclick="toggleArchivePatient()"></button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="exportCurrentTelemetry()">
+            <i aria-hidden="true" data-lucide="file-spreadsheet" style="width:14px;height:14px"></i>
             Download Telemetry (CSV)
           </button>
         </div>
       </div>
+      <div id="chartArchived" class="alert-info" style="display:none"></div>
 
       <!-- 3 Calm Metrics -->
       <div class="summary-grid">
         <div class="summary-box">
           <div class="summary-label">
-            <i data-lucide="calendar-check" style="width:14px;height:14px"></i>
+            <i aria-hidden="true" data-lucide="calendar-check" style="width:14px;height:14px"></i>
             Session Adherence
           </div>
           <div class="summary-value" id="kAdhRate">0%</div>
@@ -695,7 +829,7 @@ header {
         </div>
         <div class="summary-box">
           <div class="summary-label">
-            <i data-lucide="crosshair" style="width:14px;height:14px"></i>
+            <i aria-hidden="true" data-lucide="crosshair" style="width:14px;height:14px"></i>
             ROM Accuracy
           </div>
           <div class="summary-value" id="kAccRate">0%</div>
@@ -703,7 +837,7 @@ header {
         </div>
         <div class="summary-box">
           <div class="summary-label">
-            <i data-lucide="alert-circle" style="width:14px;height:14px"></i>
+            <i aria-hidden="true" data-lucide="alert-circle" style="width:14px;height:14px"></i>
             Clinical Status
           </div>
           <div class="summary-value" id="kAlertStatus" style="font-size:20px;margin-top:8px">Normal</div>
@@ -712,36 +846,37 @@ header {
       </div>
 
       <!-- Subtabs -->
-      <div class="subtabs">
-        <button class="subtab-btn active" id="tabBtnActivity" onclick="switchSubtab('activity')">
-          <i data-lucide="line-chart" style="width:15px;height:15px"></i>
+      <div class="subtabs" role="tablist" aria-label="Patient chart sections">
+        <button type="button" class="subtab-btn active" id="tabBtnActivity" role="tab" aria-selected="true" aria-controls="subtabActivity" onclick="switchSubtab('activity')">
+          <i aria-hidden="true" data-lucide="line-chart" style="width:15px;height:15px"></i>
           Recent Activity &amp; Analytics
         </button>
-        <button class="subtab-btn" id="tabBtnPrescription" onclick="switchSubtab('prescription')">
-          <i data-lucide="clipboard-list" style="width:15px;height:15px"></i>
+        <button type="button" class="subtab-btn" id="tabBtnPrescription" role="tab" aria-selected="false" aria-controls="subtabPrescription" tabindex="-1" onclick="switchSubtab('prescription')">
+          <i aria-hidden="true" data-lucide="clipboard-list" style="width:15px;height:15px"></i>
           Current Prescription (Rx)
         </button>
-        <button class="subtab-btn" id="tabBtnProtocol" onclick="switchSubtab('protocol')">
-          <i data-lucide="shield-check" style="width:15px;height:15px"></i>
+        <button type="button" class="subtab-btn" id="tabBtnProtocol" role="tab" aria-selected="false" aria-controls="subtabProtocol" tabindex="-1" onclick="switchSubtab('protocol')">
+          <i aria-hidden="true" data-lucide="shield-check" style="width:15px;height:15px"></i>
           Protocol &amp; Advancement
         </button>
       </div>
 
       <!-- Subtab 1: Activity & Clinical Analytics (Chart.js integrated) -->
-      <div id="subtabActivity">
+      <div id="subtabActivity" role="tabpanel" aria-labelledby="tabBtnActivity">
         <div class="card">
           <div class="card-header">
             <div>
               <div class="card-title">
-                <i data-lucide="trending-up" style="width:18px;height:18px;color:var(--teal)"></i>
+                <i aria-hidden="true" data-lucide="trending-up" style="width:18px;height:18px;color:var(--teal)"></i>
                 ROM Accuracy &amp; Session Progression Trend
               </div>
               <div class="card-desc">Visual trajectory of biomechanical execution and range of motion over time.</div>
             </div>
           </div>
-          <div style="height: 240px; position: relative">
-            <canvas id="chartRomProgress"></canvas>
+          <div id="chartWrap" style="height: 240px; position: relative">
+            <canvas id="chartRomProgress" role="img" aria-label="ROM accuracy and valid repetitions per session"></canvas>
           </div>
+          <div id="chartEmpty" class="state-msg" style="display:none"></div>
         </div>
 
         <!-- Session History Table -->
@@ -749,7 +884,7 @@ header {
           <div class="card-header">
             <div>
               <div class="card-title">
-                <i data-lucide="history" style="width:18px;height:18px;color:var(--teal)"></i>
+                <i aria-hidden="true" data-lucide="history" style="width:18px;height:18px;color:var(--teal)"></i>
                 Session History
               </div>
               <div class="card-desc">Review recent exercise sessions and add subjective pain or joint assessments.</div>
@@ -760,34 +895,35 @@ header {
             <table class="clean-table">
               <thead>
                 <tr>
-                  <th>Date</th>
-                  <th>Status</th>
-                  <th>Valid / Attempted</th>
-                  <th>Accuracy</th>
-                  <th>Clinical Notes (Pain · Swelling)</th>
-                  <th>Action</th>
+                  <th scope="col">Date &amp; Time</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Valid / Attempted</th>
+                  <th scope="col">Accuracy</th>
+                  <th scope="col">Clinical Notes (Pain · Swelling)</th>
+                  <th scope="col">Action</th>
                 </tr>
               </thead>
               <tbody id="sessionHistoryBody"></tbody>
             </table>
           </div>
+          <div class="table-footer" id="sessionFooter"></div>
         </div>
       </div>
 
       <!-- Subtab 2: Prescription Management -->
-      <div id="subtabPrescription" style="display:none">
+      <div id="subtabPrescription" role="tabpanel" aria-labelledby="tabBtnPrescription" style="display:none">
         <div class="card">
           <div class="card-header">
             <div>
               <div class="card-title">
-                <i data-lucide="sliders" style="width:18px;height:18px;color:var(--teal)"></i>
+                <i aria-hidden="true" data-lucide="sliders" style="width:18px;height:18px;color:var(--teal)"></i>
                 Prescribed Exercises
               </div>
               <div class="card-desc">Customize movement targets, tolerances, and sets before transmitting to patient's VR session.</div>
             </div>
             <div>
               <button class="btn btn-primary btn-sm" onclick="openAddExerciseModal()">
-                <i data-lucide="plus-circle" style="width:15px;height:15px"></i>
+                <i aria-hidden="true" data-lucide="plus-circle" style="width:15px;height:15px"></i>
                 Add Movement to Prescription
               </button>
             </div>
@@ -798,15 +934,15 @@ header {
 
             <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
               <label style="font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px">
-                <i data-lucide="calendar" style="width:15px;height:15px;color:var(--teal)"></i>
+                <i aria-hidden="true" data-lucide="calendar" style="width:15px;height:15px;color:var(--teal)"></i>
                 Weekly Scheduled Days
               </label>
-              <div style="display:flex;gap:8px;margin-top:10px" id="scheduleDaysRow"></div>
+              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap" id="scheduleDaysRow" role="group" aria-label="Weekly scheduled days"></div>
             </div>
 
             <div style="margin-top:20px">
               <label for="rxMaxReps" style="font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px">
-                <i data-lucide="trending-up" style="width:15px;height:15px;color:var(--teal)"></i>
+                <i aria-hidden="true" data-lucide="trending-up" style="width:15px;height:15px;color:var(--teal)"></i>
                 Rep cap for automatic progression
               </label>
               <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
@@ -817,33 +953,33 @@ header {
 
             <div style="margin-top:24px;display:flex;align-items:center;gap:12px">
               <button class="btn btn-primary" type="submit">
-                <i data-lucide="send" style="width:15px;height:15px"></i>
+                <i aria-hidden="true" data-lucide="send" style="width:15px;height:15px"></i>
                 Save &amp; Transmit to VR
               </button>
-              <span id="rxSaveMsg" style="font-size:13px;font-weight:600;color:var(--green)"></span>
+              
             </div>
           </form>
         </div>
       </div>
 
       <!-- Subtab 3: Protocol & Advancement -->
-      <div id="subtabProtocol" style="display:none">
+      <div id="subtabProtocol" role="tabpanel" aria-labelledby="tabBtnProtocol" style="display:none">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:12px">
             <div>
               <div class="card-title">
-                <i data-lucide="award" style="width:18px;height:18px;color:var(--teal)"></i>
+                <i aria-hidden="true" data-lucide="award" style="width:18px;height:18px;color:var(--teal)"></i>
                 Rehabilitation Protocol
               </div>
               <div class="card-desc">Evidence-based criteria for advancing the patient to the next recovery phase.</div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <button class="btn btn-secondary btn-sm" onclick="openProtocolManagerModal()" title="View and customize clinical protocols">
-                <i data-lucide="book-open" style="width:14px;height:14px"></i>
+                <i aria-hidden="true" data-lucide="book-open" style="width:14px;height:14px"></i>
                 Protocol Library
               </button>
-              <button id="btnRemovePatientProtocol" class="btn btn-secondary btn-sm" onclick="removePatientProtocol()" style="display:none;color:#dc2626;border-color:#fca5a5;background:#fef2f2" title="Detach protocol and convert to custom prescription">
-                <i data-lucide="unlink" style="width:14px;height:14px"></i>
+              <button id="btnRemovePatientProtocol" class="btn btn-secondary btn-sm btn-danger-soft" onclick="removePatientProtocol()" style="display:none" title="Detach protocol and convert to custom prescription">
+                <i aria-hidden="true" data-lucide="unlink" style="width:14px;height:14px"></i>
                 Remove Protocol
               </button>
             </div>
@@ -853,13 +989,13 @@ header {
 
           <div id="advancementBox" style="padding:16px;border-radius:8px;background:var(--bg);border:1px solid var(--border);margin-bottom:20px"></div>
 
-          <div style="padding:16px;background:#f8fafc;border:1px solid var(--border);border-radius:8px">
-            <div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:8px">Assign or Change Standardized Protocol</div>
+          <div style="padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
+            <div id="assignProtocolLabel" style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:8px">Assign or Change Standardized Protocol</div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-              <select id="protocolSelect" style="flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;background:#fff"></select>
-              <select id="phaseSelect" style="flex:1;min-width:180px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;background:#fff"></select>
+              <select id="protocolSelect" aria-label="Protocol" style="flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;background:var(--surface)"></select>
+              <select id="phaseSelect" aria-label="Protocol phase" style="flex:1;min-width:180px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px;background:var(--surface)"></select>
               <button class="btn btn-primary btn-sm" onclick="assignSelectedPhase()">
-                <i data-lucide="check" style="width:14px;height:14px"></i>
+                <i aria-hidden="true" data-lucide="check" style="width:14px;height:14px"></i>
                 Assign Phase
               </button>
             </div>
@@ -873,28 +1009,26 @@ header {
 <!-- ============================================================== -->
 <!-- IN-APP MODAL: CONFIGURE & PRESCRIBE NEW MOVEMENT               -->
 <!-- ============================================================== -->
-<!-- ============================================================== -->
-<!-- IN-APP MODAL: CONFIGURE & PRESCRIBE NEW MOVEMENT               -->
-<!-- ============================================================== -->
 <div id="addExerciseModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="addExerciseModalTitle">
-  <div class="modal-content" style="max-width: 560px; max-height: 90vh; overflow-y: auto;">
+  <div class="modal-content" style="max-width: 560px">
     <div class="modal-header-clean">
       <div>
         <div class="card-title" id="addExerciseModalTitle">
-          <i data-lucide="dumbbell" style="width:18px;height:18px;color:var(--teal)"></i>
+          <i aria-hidden="true" data-lucide="dumbbell" style="width:18px;height:18px;color:var(--teal)"></i>
           Prescribe New Movement
         </div>
         <div class="card-desc">Review movement details and adjust targets before adding to active prescription.</div>
       </div>
       <button onclick="closeAddExerciseModal()" class="modal-close-btn" title="Close dialog" aria-label="Close dialog">
-        <i data-lucide="x" style="width:18px;height:18px"></i>
+        <i aria-hidden="true" data-lucide="x" style="width:18px;height:18px"></i>
       </button>
     </div>
 
     <!-- Movement Selector -->
     <div style="margin-bottom:14px">
-      <label class="form-label">Select Exercise Movement</label>
+      <label for="modalExerciseSelect" class="form-label">Select Exercise Movement</label>
       <select id="modalExerciseSelect" onchange="onModalExerciseSelected()" class="form-select"></select>
+      <div id="modalLibraryErr" class="alert-error" role="alert" style="display:none;margin:8px 0 0"></div>
     </div>
 
     <!-- Movement Clinical Preview Card -->
@@ -911,44 +1045,44 @@ header {
     <!-- Prescription Parameters Grid -->
     <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">Custom Targets &amp; Boundaries</div>
     
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="form-grid-2">
       <div>
-        <label class="form-label">Target Joint Angle (°)</label>
+        <label for="inModTargetAngle" class="form-label">Target Joint Angle (°)</label>
         <input type="number" id="inModTargetAngle" min="5" max="180" class="form-input">
         <span style="font-size:11px;color:var(--text-light)">Prescribed peak ROM target</span>
       </div>
       <div>
-        <label class="form-label">Allowable Tolerance (±°)</label>
+        <label for="inModTolerance" class="form-label">Allowable Tolerance (±°)</label>
         <input type="number" id="inModTolerance" min="1" max="30" class="form-input">
         <span style="font-size:11px;color:var(--text-light)">Acceptable angular tolerance</span>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="form-grid-2">
       <div>
-        <label class="form-label">Sets</label>
+        <label for="inModSets" class="form-label">Sets</label>
         <input type="number" id="inModSets" min="1" max="10" class="form-input">
       </div>
       <div>
-        <label class="form-label">Reps per Set</label>
+        <label for="inModReps" class="form-label">Reps per Set</label>
         <input type="number" id="inModReps" min="1" max="50" class="form-input">
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="form-grid-2">
       <div>
-        <label class="form-label">Hold Duration at Peak (s)</label>
+        <label for="inModHold" class="form-label">Hold Duration at Peak (s)</label>
         <input type="number" id="inModHold" min="0" max="30" class="form-input">
       </div>
       <div>
-        <label class="form-label">Rest Interval (s)</label>
+        <label for="inModRest" class="form-label">Rest Interval (s)</label>
         <input type="number" id="inModRest" min="0" max="300" class="form-input">
       </div>
     </div>
 
     <div style="margin-bottom:20px">
-      <label class="form-label" style="margin-bottom:6px">Prescribed Limb / Side</label>
-      <div style="display:flex;gap:16px">
+      <div class="form-label" id="modalSideLabel" style="margin-bottom:6px">Prescribed Limb / Side</div>
+      <div class="radio-row" role="radiogroup" aria-labelledby="modalSideLabel">
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
           <input type="radio" name="modalSide" value="" checked> Bilateral / Not Specified
         </label>
@@ -963,8 +1097,8 @@ header {
 
     <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:14px;border-top:1px solid var(--border)">
       <button class="btn btn-secondary btn-sm" onclick="closeAddExerciseModal()">Cancel</button>
-      <button class="btn btn-primary btn-sm" onclick="confirmAddExercise()">
-        <i data-lucide="plus" style="width:14px;height:14px"></i>
+      <button class="btn btn-primary btn-sm" id="btnConfirmAddExercise" onclick="confirmAddExercise()">
+        <i aria-hidden="true" data-lucide="plus" style="width:14px;height:14px"></i>
         Add to Active Prescription
       </button>
     </div>
@@ -974,15 +1108,14 @@ header {
 <!-- ============================================================== -->
 <!-- IN-APP MODAL: CONFIRMATION                                     -->
 <!-- ============================================================== -->
-<div id="confirmModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+<div id="confirmModal" class="modal-overlay" role="alertdialog" aria-modal="true" aria-labelledby="confirmModalTitle" aria-describedby="confirmModalMsg">
   <div class="modal-content" style="max-width: 420px">
     <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">
-      <div style="width:38px;height:38px;border-radius:8px;background:#FEF2F2;display:flex;align-items:center;justify-content:center;color:#DC2626;flex-shrink:0">
-        <i data-lucide="alert-triangle" style="width:20px;height:20px"></i>
+      <div style="width:38px;height:38px;border-radius:8px;background:var(--red-soft);display:flex;align-items:center;justify-content:center;color:var(--red);flex-shrink:0" aria-hidden="true">
+        <i aria-hidden="true" data-lucide="alert-triangle" style="width:20px;height:20px"></i>
       </div>
       <div>
         <div class="card-title" id="confirmModalTitle">Confirm Action</div>
-        <div class="card-desc" id="confirmModalSubtitle">Clinical Protocol Confirmation</div>
       </div>
     </div>
     <div id="confirmModalMsg" style="font-size:13.5px;color:var(--text);margin-bottom:20px;line-height:1.5"></div>
@@ -1000,7 +1133,7 @@ header {
   <div class="modal-content" style="max-width: 420px">
     <div class="card-title" id="passwordModalTitle">Change Password</div>
     <div class="card-desc" id="passwordModalDesc" style="margin-bottom:14px">At least 8 characters.</div>
-    <div id="passwordErr" style="display:none;background:#FEF2F2;border:1px solid #FECACA;color:#B91C1C;padding:10px 14px;border-radius:6px;font-size:13px;margin-bottom:12px"></div>
+    <div id="passwordErr" class="alert-error" role="alert" style="display:none"></div>
     <form id="passwordForm" onsubmit="handlePasswordSubmit(event)" style="display:flex;flex-direction:column;gap:12px">
       <div>
         <label for="pwCurrent" style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Current password</label>
@@ -1029,19 +1162,19 @@ header {
     <div class="card-desc" style="margin-bottom:16px">Session #<span id="modalSessionNum"></span></div>
 
     <div style="display:flex;flex-direction:column;gap:12px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-grid-2" style="margin-bottom:0">
         <div>
-          <label class="form-label">Pain Before (0–10)</label>
+          <label for="inPainBefore" class="form-label">Pain Before (0–10)</label>
           <input type="number" id="inPainBefore" min="0" max="10" class="form-input">
         </div>
         <div>
-          <label class="form-label">Pain After (0–10)</label>
+          <label for="inPainAfter" class="form-label">Pain After (0–10)</label>
           <input type="number" id="inPainAfter" min="0" max="10" class="form-input">
         </div>
       </div>
 
       <div>
-        <label class="form-label">Soreness Duration</label>
+        <label for="inSoreness" class="form-label">Soreness Duration</label>
         <select id="inSoreness" class="form-select">
           <option value="">– Not evaluated –</option>
           <option value="0">Normal: Resolved within 2 hours</option>
@@ -1050,7 +1183,7 @@ header {
       </div>
 
       <div>
-        <label class="form-label">Swelling Increase (cm)</label>
+        <label for="inSwelling" class="form-label">Swelling Increase (cm)</label>
         <input type="number" id="inSwelling" min="0" max="20" step="0.5" placeholder="0.0" class="form-input">
       </div>
     </div>
@@ -1070,15 +1203,15 @@ header {
 
     <div style="display:flex;flex-direction:column;gap:12px">
       <div>
-        <label class="form-label">Patient Code (Synthetic ID) *</label>
+        <label for="newCode" class="form-label">Patient Code (Synthetic ID) *</label>
         <input type="text" id="newCode" placeholder="e.g. P-003" class="form-input" style="text-transform:uppercase">
       </div>
       <div>
-        <label class="form-label">Patient Full Name</label>
+        <label for="newName" class="form-label">Patient Full Name</label>
         <input type="text" id="newName" placeholder="e.g. Elena Reyes" class="form-input">
       </div>
       <div>
-        <label class="form-label">Medical Diagnosis / Condition</label>
+        <label for="newCond" class="form-label">Medical Diagnosis / Condition</label>
         <input type="text" id="newCond" placeholder="e.g. Total Knee Arthroplasty (TKA)" class="form-input">
       </div>
     </div>
@@ -1092,97 +1225,97 @@ header {
 
 <!-- Protocol Library Modal (Browse, Add, Remove Protocols) -->
 <div id="protocolModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="protocolModalTitle">
-  <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto; padding: 24px;">
+  <div class="modal-content" style="max-width: 800px">
     <!-- Modal Header -->
     <div class="modal-header-clean">
       <div>
         <div class="card-title" id="protocolModalTitle" style="display:flex;align-items:center;gap:8px">
-          <i data-lucide="book-marked" style="width:20px;height:20px;color:var(--teal)"></i>
+          <i aria-hidden="true" data-lucide="book-marked" style="width:20px;height:20px;color:var(--teal)"></i>
           Rehabilitation Protocol Library
         </div>
         <div class="card-desc">Evidence-based clinical recovery pathways, progression criteria, and VR exercise routines.</div>
       </div>
       <button onclick="closeProtocolModal()" class="modal-close-btn" title="Close dialog" aria-label="Close dialog">
-        <i data-lucide="x" style="width:20px;height:20px"></i>
+        <i aria-hidden="true" data-lucide="x" style="width:20px;height:20px"></i>
       </button>
     </div>
 
     <!-- Sub-tab switchers within modal -->
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <button id="modalTabProtocolsList" class="subtab-btn active" onclick="switchModalProtocolView('list')">
-        <i data-lucide="list" style="width:14px;height:14px"></i>
+    <div class="subtabs" role="tablist" aria-label="Protocol library views" style="margin-bottom:16px">
+      <button type="button" id="modalTabProtocolsList" class="subtab-btn active" role="tab" aria-selected="true" aria-controls="modalProtocolsListSection" onclick="switchModalProtocolView('list')">
+        <i aria-hidden="true" data-lucide="list" style="width:14px;height:14px"></i>
         Protocols Catalog (<span id="modalProtocolsCount">0</span>)
       </button>
-      <button id="modalTabProtocolsCreate" class="subtab-btn" onclick="switchModalProtocolView('create')">
-        <i data-lucide="plus" style="width:14px;height:14px"></i>
-        + Create New Protocol
+      <button type="button" id="modalTabProtocolsCreate" class="subtab-btn" role="tab" aria-selected="false" aria-controls="modalProtocolsCreateSection" tabindex="-1" onclick="switchModalProtocolView('create')">
+        <i aria-hidden="true" data-lucide="plus" style="width:14px;height:14px"></i>
+        Create New Protocol
       </button>
     </div>
 
     <!-- VIEW 1: Protocols Catalog List -->
-    <div id="modalProtocolsListSection">
+    <div id="modalProtocolsListSection" role="tabpanel" aria-labelledby="modalTabProtocolsList">
       <div id="modalProtocolsContainer" style="display:flex;flex-direction:column;gap:14px">
         <!-- Rendered dynamically -->
       </div>
     </div>
 
     <!-- VIEW 2: Create Protocol Form -->
-    <div id="modalProtocolsCreateSection" style="display:none">
+    <div id="modalProtocolsCreateSection" role="tabpanel" aria-labelledby="modalTabProtocolsCreate" style="display:none">
       <form id="createProtocolForm" onsubmit="handleCreateProtocolSubmit(event)" style="display:flex;flex-direction:column;gap:14px">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-grid-2" style="margin-bottom:0">
           <div>
-            <label class="form-label">Protocol Name *</label>
+            <label for="newProtName" class="form-label">Protocol Name *</label>
             <input type="text" id="newProtName" required placeholder="e.g. ACL Reconstruction (Patellar Tendon)" class="form-input">
           </div>
           <div>
-            <label class="form-label">Target Condition / Diagnosis *</label>
+            <label for="newProtCondition" class="form-label">Target Condition / Diagnosis *</label>
             <input type="text" id="newProtCondition" required placeholder="e.g. Post-Op ACL Reconstruction" class="form-input">
           </div>
         </div>
 
         <div>
-          <label class="form-label">Clinical Evidence Source / Guideline Citation</label>
+          <label for="newProtSource" class="form-label">Clinical Evidence Source / Guideline Citation</label>
           <input type="text" id="newProtSource" placeholder="e.g. APTA Clinical Practice Guideline / MOON Knee Group (2023)" class="form-input">
         </div>
 
         <!-- Initial Phase Configuration -->
-        <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:14px">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px">
           <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px">
-            <i data-lucide="layers" style="width:16px;height:16px;color:var(--teal)"></i>
+            <i aria-hidden="true" data-lucide="layers" style="width:16px;height:16px;color:var(--teal)"></i>
             Initial Phase Specification
           </div>
 
-          <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px">
+          <div class="form-grid-2" style="grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px">
             <div>
-              <label class="form-label" style="font-size:11.5px">Phase Name *</label>
-              <input type="text" id="newProtPhaseName" required value="Phase I - Immediate Post-Op" class="form-input" style="padding:7px 10px;font-size:12.5px;background:#fff">
+              <label for="newProtPhaseName" class="form-label" style="font-size:11.5px">Phase Name *</label>
+              <input type="text" id="newProtPhaseName" required value="Phase I - Immediate Post-Op" class="form-input" style="padding:7px 10px;font-size:12.5px">
             </div>
             <div>
-              <label class="form-label" style="font-size:11.5px">Timeline / Duration</label>
-              <input type="text" id="newProtPhaseWeeks" value="Weeks 1-4" class="form-input" style="padding:7px 10px;font-size:12.5px;background:#fff">
+              <label for="newProtPhaseWeeks" class="form-label" style="font-size:11.5px">Timeline / Duration</label>
+              <input type="text" id="newProtPhaseWeeks" value="Weeks 1-4" class="form-input" style="padding:7px 10px;font-size:12.5px">
             </div>
           </div>
 
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div class="form-grid-2" style="gap:10px;margin-bottom:10px">
             <div>
-              <label class="form-label" style="font-size:11.5px">Clinical Goals</label>
-              <textarea id="newProtPhaseGoals" rows="2" placeholder="e.g. Active quad contraction, early full extension, edema control" class="form-textarea" style="padding:7px 10px;font-size:12px;background:#fff"></textarea>
+              <label for="newProtPhaseGoals" class="form-label" style="font-size:11.5px">Clinical Goals</label>
+              <textarea id="newProtPhaseGoals" rows="2" placeholder="e.g. Active quad contraction, early full extension, edema control" class="form-textarea" style="padding:7px 10px;font-size:12px"></textarea>
             </div>
             <div>
-              <label class="form-label" style="font-size:11.5px">Precautions & Safety Limits</label>
-              <textarea id="newProtPhasePrecautions" rows="2" placeholder="e.g. Brace locked in extension for ambulation; no open-chain resisted extension" class="form-textarea" style="padding:7px 10px;font-size:12px;background:#fff"></textarea>
+              <label for="newProtPhasePrecautions" class="form-label" style="font-size:11.5px">Precautions & Safety Limits</label>
+              <textarea id="newProtPhasePrecautions" rows="2" placeholder="e.g. Brace locked in extension for ambulation; no open-chain resisted extension" class="form-textarea" style="padding:7px 10px;font-size:12px"></textarea>
             </div>
           </div>
 
           <div style="margin-bottom:10px">
-            <label class="form-label" style="font-size:11.5px">Milestone ROM Goal</label>
-            <input type="text" id="newProtPhaseRomGoal" placeholder="e.g. Knee extension 0°, flexion 90°" class="form-input" style="padding:7px 10px;font-size:12.5px;background:#fff">
+            <label for="newProtPhaseRomGoal" class="form-label" style="font-size:11.5px">Milestone ROM Goal</label>
+            <input type="text" id="newProtPhaseRomGoal" placeholder="e.g. Knee extension 0°, flexion 90°" class="form-input" style="padding:7px 10px;font-size:12.5px">
           </div>
 
           <!-- Phase Exercise Selection -->
           <div>
-            <label class="form-label" style="font-size:11.5px;margin-bottom:6px">Select Prescribed Exercises from Catalog</label>
-            <div id="newProtExercisesContainer" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:160px;overflow-y:auto;padding:8px;background:#fff;border:1px solid var(--border);border-radius:6px">
+            <div class="form-label" style="font-size:11.5px;margin-bottom:6px">Select Prescribed Exercises from Catalog</div>
+            <div id="newProtExercisesContainer" class="form-grid-2" role="group" aria-label="Prescribed exercises" style="gap:8px;margin-bottom:0;max-height:160px;overflow-y:auto;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px">
               <!-- Rendered dynamically from library -->
             </div>
           </div>
@@ -1191,7 +1324,7 @@ header {
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
           <button type="button" class="btn btn-secondary btn-sm" onclick="switchModalProtocolView('list')">Cancel</button>
           <button type="submit" id="btnSaveNewProtocol" class="btn btn-primary btn-sm">
-            <i data-lucide="check" style="width:14px;height:14px"></i>
+            <i aria-hidden="true" data-lucide="check" style="width:14px;height:14px"></i>
             Save &amp; Register Protocol
           </button>
         </div>
@@ -1202,25 +1335,25 @@ header {
 
 <!-- Dedicated Protocol Phase Viewer Widget -->
 <div id="protocolPhasesWidget" class="modal-overlay" style="z-index: 60;" onclick="if(event.target === this) closeProtocolPhasesWidget()" role="dialog" aria-modal="true" aria-labelledby="widgetProtocolTitle">
-  <div class="modal-content" style="max-width: 720px; max-height: 85vh; overflow-y: auto; padding: 24px;">
+  <div class="modal-content" style="max-width: 720px">
     <!-- Widget Header -->
     <div class="modal-header-clean">
       <div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
           <span id="widgetProtocolTitle" style="font-weight:700;font-size:16px;color:var(--text)">Protocol Name</span>
-          <span id="widgetProtocolCondition" style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe">Condition</span>
+          <span id="widgetProtocolCondition" style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--blue-soft);color:var(--blue);border:1px solid var(--blue-border)">Condition</span>
         </div>
         <div id="widgetProtocolSource" style="font-size:11.5px;color:var(--text-muted)">Clinical Guideline Source</div>
       </div>
       <button onclick="closeProtocolPhasesWidget()" class="modal-close-btn" title="Close widget" aria-label="Close widget">
-        <i data-lucide="x" style="width:20px;height:20px"></i>
+        <i aria-hidden="true" data-lucide="x" style="width:20px;height:20px"></i>
       </button>
     </div>
 
     <!-- Actions & Subtitle Bar -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
       <div style="font-size:12.5px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px">
-        <i data-lucide="layers" style="width:15px;height:15px;color:var(--teal)"></i>
+        <i aria-hidden="true" data-lucide="layers" style="width:15px;height:15px;color:var(--teal)"></i>
         Recovery Phases &amp; Milestones (<span id="widgetPhasesCount">0</span>)
       </div>
       <div style="display:flex;gap:8px" id="widgetActionButtons">
@@ -1241,6 +1374,119 @@ header {
   </div>
 </div>
 
+<!-- Edit Patient Details Modal -->
+<div id="patientEditModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="patientEditTitle">
+  <div class="modal-content">
+    <div class="card-title" id="patientEditTitle" style="margin-bottom:4px">Edit Patient Details</div>
+    <div class="card-desc" style="margin-bottom:16px">The patient code can't be changed: the VR app on the patient's computer is set up with it.</div>
+    <div id="patientEditErr" class="alert-error" role="alert" style="display:none"></div>
+    <form onsubmit="savePatientEdit(event)">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <label for="editCode" class="form-label">Patient Code (Synthetic ID)</label>
+          <input type="text" id="editCode" class="form-input" readonly aria-readonly="true" style="background:var(--bg)">
+        </div>
+        <div>
+          <label for="editName" class="form-label">Patient Full Name</label>
+          <input type="text" id="editName" maxlength="200" class="form-input">
+        </div>
+        <div>
+          <label for="editCond" class="form-label">Medical Diagnosis / Condition</label>
+          <input type="text" id="editCond" maxlength="200" class="form-input">
+        </div>
+      </div>
+      <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closePatientEditModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Protocol Phase Editor (therapist-authored protocols only) -->
+<div id="phaseEditModal" class="modal-overlay" style="z-index: 70;" role="dialog" aria-modal="true" aria-labelledby="phaseEditTitle">
+  <div class="modal-content" style="max-width: 640px">
+    <div class="modal-header-clean">
+      <div>
+        <div class="card-title" id="phaseEditTitle">Edit Phase</div>
+        <div class="card-desc" id="phaseEditNote" style="display:none">Patients already on this phase keep their current prescription; changes apply the next time the phase is assigned.</div>
+      </div>
+      <button type="button" onclick="closePhaseEditor()" class="modal-close-btn" title="Close dialog" aria-label="Close dialog">
+        <i aria-hidden="true" data-lucide="x" style="width:18px;height:18px"></i>
+      </button>
+    </div>
+    <div id="phaseEditErr" class="alert-error" role="alert" style="display:none"></div>
+    <form onsubmit="savePhaseEditor(event)">
+      <div class="form-grid-2" style="grid-template-columns:2fr 1fr">
+        <div>
+          <label for="phName" class="form-label">Phase Name *</label>
+          <input type="text" id="phName" required maxlength="500" class="form-input">
+        </div>
+        <div>
+          <label for="phWeeks" class="form-label">Timeline / Duration</label>
+          <input type="text" id="phWeeks" maxlength="500" class="form-input" placeholder="e.g. Weeks 5-8">
+        </div>
+      </div>
+      <div class="form-grid-2">
+        <div>
+          <label for="phGoals" class="form-label">Clinical Goals</label>
+          <textarea id="phGoals" rows="2" maxlength="500" class="form-textarea"></textarea>
+        </div>
+        <div>
+          <label for="phPrecautions" class="form-label">Precautions &amp; Safety Limits</label>
+          <textarea id="phPrecautions" rows="2" maxlength="500" class="form-textarea"></textarea>
+        </div>
+      </div>
+      <div class="form-grid-2">
+        <div>
+          <label for="phRomGoal" class="form-label">Milestone ROM Goal</label>
+          <input type="text" id="phRomGoal" maxlength="500" class="form-input">
+        </div>
+        <div>
+          <label for="phOther" class="form-label">Exercises Done Without the Camera</label>
+          <input type="text" id="phOther" maxlength="500" class="form-input" placeholder="e.g. Quad sets, ankle pumps">
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:14px;cursor:pointer">
+        <input type="checkbox" id="phVrAllowed"> VR sessions allowed in this phase
+      </label>
+
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">Advancement Criteria</div>
+      <div class="form-grid-2">
+        <div>
+          <label for="phMinSessions" class="form-label">Qualifying Sessions in a Row (1–50)</label>
+          <input type="number" id="phMinSessions" min="1" max="50" class="form-input">
+        </div>
+        <div>
+          <label for="phMinAccuracy" class="form-label">Minimum ROM Accuracy (%)</label>
+          <input type="number" id="phMinAccuracy" min="0" max="100" class="form-input">
+        </div>
+      </div>
+      <div class="form-grid-2">
+        <div>
+          <label for="phMaxPain" class="form-label">Maximum Pain Increase (0–10)</label>
+          <input type="number" id="phMaxPain" min="0" max="10" class="form-input">
+        </div>
+        <div>
+          <label for="phMaxSwelling" class="form-label">Maximum Swelling Increase (cm, blank = not used)</label>
+          <input type="number" id="phMaxSwelling" min="0" max="20" step="0.5" class="form-input">
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:14px;cursor:pointer">
+        <input type="checkbox" id="phCheckSoreness"> Soreness must resolve within 2 hours
+      </label>
+
+      <div class="form-label" style="margin-bottom:6px">VR Exercises in This Phase</div>
+      <div id="phExercises" class="form-grid-2" role="group" aria-label="VR exercises in this phase" style="gap:8px;margin-bottom:0;max-height:180px;overflow-y:auto;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px"></div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closePhaseEditor()">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">Save Phase</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- In-App Floating Toast Container -->
 <div id="toastContainer" role="status" aria-live="polite" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none"></div>
 
@@ -1253,6 +1499,93 @@ let patients = [], activePid = null, activeData = null, library = [], protocols 
 let editingSessionId = null;
 let progressChartInstance = null;
 let confirmResolve = null;
+let sessionLimit = 50;          // grows by 50 with "Show older sessions"
+let libraryError = "", protocolsError = "";
+
+// CSS colour tokens, for Chart.js and other script-drawn colours
+const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+// ------------------------------------------
+// Dialogs: Escape closes the top dialog, Tab stays inside it, focus returns to the opener
+// ------------------------------------------
+const dialogStack = [];
+const DIALOG_CLOSERS = {
+  confirmModal: () => closeConfirmModal(false),
+  passwordModal: () => closePasswordModal(),
+  noteModal: () => closeNoteModal(),
+  newPatModal: () => closeNewPatientModal(),
+  addExerciseModal: () => closeAddExerciseModal(),
+  protocolModal: () => closeProtocolModal(),
+  protocolPhasesWidget: () => closeProtocolPhasesWidget(),
+  patientEditModal: () => closePatientEditModal(),
+  phaseEditModal: () => closePhaseEditor(),
+};
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function visibleFocusables(el) {
+  return [...el.querySelectorAll(FOCUSABLE)].filter(x => x.offsetParent !== null);
+}
+function openDialog(id, focusId) {
+  const el = $(id);
+  if (!dialogStack.some(d => d.id === id)) {
+    dialogStack.push({ id, opener: document.activeElement });
+  }
+  el.classList.add("active");
+  refreshIcons();
+  setTimeout(() => {
+    const target = (focusId && $(focusId)) || visibleFocusables(el).find(x => !x.classList.contains("modal-close-btn")) || visibleFocusables(el)[0];
+    if (target) target.focus();
+  }, 0);
+}
+function closeDialog(id) {
+  $(id).classList.remove("active");
+  const i = dialogStack.findIndex(d => d.id === id);
+  if (i < 0) return;
+  const { opener } = dialogStack.splice(i, 1)[0];
+  if (opener && document.contains(opener) && opener.offsetParent !== null) opener.focus();
+}
+document.addEventListener("keydown", ev => {
+  const top = dialogStack[dialogStack.length - 1];
+  if (!top) return;
+  if (ev.key === "Escape") {
+    ev.preventDefault();
+    DIALOG_CLOSERS[top.id]();
+  } else if (ev.key === "Tab") {
+    const items = visibleFocusables($(top.id));
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (!$(top.id).contains(document.activeElement)) {
+      ev.preventDefault(); first.focus();
+    } else if (ev.shiftKey && document.activeElement === first) {
+      ev.preventDefault(); last.focus();
+    } else if (!ev.shiftKey && document.activeElement === last) {
+      ev.preventDefault(); first.focus();
+    }
+  }
+});
+
+// Inline error banner with an optional retry button
+function showBanner(id, message, retry) {
+  const el = $(id);
+  if (!message) { el.style.display = "none"; el.innerHTML = ""; return; }
+  el.innerHTML = `<span><i aria-hidden="true" data-lucide="alert-circle" style="width:15px;height:15px;vertical-align:-3px"></i> ${esc(message)}</span>`;
+  if (retry) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn btn-secondary btn-sm";
+    b.textContent = "Retry";
+    b.onclick = retry;
+    el.appendChild(b);
+  }
+  el.style.display = "flex";
+  refreshIcons();
+}
+
+// "2026-10-20T09:05:00" -> "2026-10-20 09:05"
+function formatDateTime(v) {
+  const t = String(v || "");
+  return t.length >= 16 ? `${t.slice(0, 10)} ${t.slice(11, 16)}` : t.slice(0, 10);
+}
 
 let _refreshIconsPending = false;
 function refreshIcons() {
@@ -1270,9 +1603,10 @@ function refreshIcons() {
 function showToast(msg, type = "success") {
   const container = $("toastContainer");
   const el = document.createElement("div");
-  const bg = type === "success" ? "#0D9488" : (type === "error" ? "#DC2626" : "#0F172A");
+  const bg = cssVar(type === "success" ? "--teal" : (type === "error" ? "--red" : "--text"));
+  el.setAttribute("role", type === "error" ? "alert" : "status");
   el.style.cssText = `background:${bg};color:#FFFFFF;padding:12px 18px;border-radius:8px;font-size:13.5px;font-weight:600;box-shadow:0 10px 25px rgba(0,0,0,0.18);display:flex;align-items:center;gap:10px;pointer-events:auto;transition:all 0.22s ease;opacity:0;transform:translateY(12px);`;
-  el.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle-2' : 'alert-circle'}" style="width:16px;height:16px;flex-shrink:0"></i> <span>${esc(msg)}</span>`;
+  el.innerHTML = `<i aria-hidden="true" data-lucide="${type === 'success' ? 'check-circle-2' : 'alert-circle'}" style="width:16px;height:16px;flex-shrink:0"></i> <span>${esc(msg)}</span>`;
   container.appendChild(el);
   refreshIcons();
   requestAnimationFrame(() => {
@@ -1294,13 +1628,12 @@ function showConfirm(title, message, okText = "Confirm", isDanger = false) {
     $("confirmModalMsg").textContent = message;
     const okBtn = $("confirmModalOkBtn");
     okBtn.textContent = okText;
-    okBtn.style.background = isDanger ? "#DC2626" : "var(--teal)";
-    $("confirmModal").classList.add("active");
-    refreshIcons();
+    okBtn.style.background = isDanger ? "var(--red)" : "var(--teal)";
+    openDialog("confirmModal", "confirmModalOkBtn");
   });
 }
 function closeConfirmModal(result) {
-  $("confirmModal").classList.remove("active");
+  closeDialog("confirmModal");
   if (confirmResolve) {
     confirmResolve(result);
     confirmResolve = null;
@@ -1339,7 +1672,8 @@ function handleUnauthorized() {
   $("topNavAuth").style.display = "none";
   $("viewLogin").style.display = "block";
   passwordChangeForced = false;
-  $("passwordModal").classList.remove("active");
+  dialogStack.slice().forEach(d => closeDialog(d.id));
+  if (confirmResolve) { confirmResolve(false); confirmResolve = null; }
   showSetupIfNeeded();
   refreshIcons();
 }
@@ -1376,7 +1710,7 @@ async function handleSetupSubmit(ev) {
     currentTherapist = res.therapist;
     localStorage.setItem("tq_auth_token", authToken);
     showAuthenticatedState();
-    showToast("✓ Clinician login created");
+    showToast("Clinician login created");
   } catch(e) {
     $("loginErr").style.display = "block";
     $("loginErr").textContent = e.message;
@@ -1395,11 +1729,11 @@ function openPasswordModal(forced) {
   $("passwordModalDesc").textContent = forced
     ? "You signed in with the old demo password. Choose a new password (at least 8 characters) to continue."
     : "At least 8 characters.";
-  $("passwordModal").classList.add("active");
+  openDialog("passwordModal", "pwCurrent");
 }
 function closePasswordModal() {
   if (passwordChangeForced) return;
-  $("passwordModal").classList.remove("active");
+  closeDialog("passwordModal");
 }
 async function handlePasswordSubmit(ev) {
   ev.preventDefault();
@@ -1417,7 +1751,7 @@ async function handlePasswordSubmit(ev) {
     });
     passwordChangeForced = false;
     closePasswordModal();
-    showToast("✓ Password changed");
+    showToast("Password changed");
   } catch(e) {
     $("passwordErr").style.display = "block";
     $("passwordErr").textContent = e.message;
@@ -1480,9 +1814,18 @@ function showAuthenticatedState() {
   }
 
   showCaseload();
-  // Fetch reference libraries
-  api("/api/library").then(l => library = l).catch(() => {});
-  api("/api/protocols").then(p => protocols = p).catch(() => {});
+  loadReferenceData();
+}
+
+// Exercise library and protocol catalogue, used by the prescription and protocol tools
+async function loadReferenceData() {
+  const [lib, prot] = await Promise.allSettled([api("/api/library"), api("/api/protocols")]);
+  if (lib.status === "fulfilled") { library = lib.value; libraryError = ""; } else { libraryError = lib.reason.message; }
+  if (prot.status === "fulfilled") { protocols = prot.value; protocolsError = ""; } else { protocolsError = prot.reason.message; }
+  const failed = [libraryError && "exercise library", protocolsError && "protocol library"].filter(Boolean);
+  showBanner("refErr", failed.length ? `Could not load the ${failed.join(" and ")}. Adding movements and assigning protocols won't work until it loads.` : "",
+             failed.length ? loadReferenceData : null);
+  if (activeData && $("viewChart").style.display !== "none") renderProtocol();
 }
 
 async function logout() {
@@ -1499,7 +1842,9 @@ function showCaseload() {
   $("viewChart").style.display = "none";
   $("navCaseload").classList.add("active");
   $("navChart").classList.remove("active");
-  $("btnExportCsv").style.display = "none";
+  $("navCaseload").setAttribute("aria-current", "page");
+  $("navChart").removeAttribute("aria-current");
+  showBanner("chartErr", "");
   loadCaseload();
   refreshIcons();
 }
@@ -1511,14 +1856,21 @@ function showChart() {
   $("navCaseload").classList.remove("active");
   $("navChart").classList.add("active");
   $("navChart").style.display = "inline-flex";
-  $("btnExportCsv").style.display = "inline-flex";
+  $("navChart").setAttribute("aria-current", "page");
+  $("navCaseload").removeAttribute("aria-current");
   refreshIcons();
 }
 
-function switchSubtab(name) {
-  ["activity","prescription","protocol"].forEach(t => {
-    $("subtab" + t.charAt(0).toUpperCase() + t.slice(1)).style.display = (t === name) ? "block" : "none";
-    $("tabBtn" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", t === name);
+const SUBTABS = ["activity","prescription","protocol"];
+function switchSubtab(name, focus) {
+  SUBTABS.forEach(t => {
+    const cap = t.charAt(0).toUpperCase() + t.slice(1);
+    const btn = $("tabBtn" + cap);
+    $("subtab" + cap).style.display = (t === name) ? "block" : "none";
+    btn.classList.toggle("active", t === name);
+    btn.setAttribute("aria-selected", t === name ? "true" : "false");
+    btn.tabIndex = t === name ? 0 : -1;
+    if (t === name && focus) btn.focus();
   });
   if (name === 'activity' && activeData) {
     renderProgressChart();
@@ -1526,15 +1878,32 @@ function switchSubtab(name) {
   refreshIcons();
 }
 
+// Arrow keys move between tabs in a tablist (WAI-ARIA tabs pattern)
+document.addEventListener("keydown", ev => {
+  const tab = ev.target.closest && ev.target.closest('[role="tab"]');
+  if (!tab || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(ev.key)) return;
+  const tabs = [...tab.parentElement.querySelectorAll('[role="tab"]')];
+  let i = tabs.indexOf(tab);
+  i = ev.key === "Home" ? 0 : ev.key === "End" ? tabs.length - 1 : (i + (ev.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+  ev.preventDefault();
+  tabs[i].click();
+  tabs[i].focus();
+});
+
 // ------------------------------------------
 // 1. Caseload Directory
 // ------------------------------------------
+let caseloadLoaded = false;
 async function loadCaseload() {
+  if (!caseloadLoaded) $("caseloadList").innerHTML = `<div class="state-msg">Loading patients…</div>`;
   try {
-    patients = await api("/api/patients");
+    patients = await api($("showArchived").checked ? "/api/patients?include_archived=1" : "/api/patients");
+    caseloadLoaded = true;
     renderCaseloadList();
   } catch(e) {
-    showToast("Error loading patients: " + e.message, "error");
+    caseloadLoaded = false;
+    $("caseloadList").innerHTML = `<div class="state-msg" role="alert">Could not load patients: ${esc(e.message)}<br>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="loadCaseload()">Retry</button></div>`;
   }
 }
 
@@ -1551,28 +1920,28 @@ function renderCaseloadList() {
       <div class="patient-info">
         <div class="patient-code">${esc(p.code)}</div>
         <div>
-          <div class="patient-name">${esc(p.name || "Patient")}</div>
+          <div class="patient-name">${esc(p.name || "Patient")}${p.archived_at ? ' <span class="tag-status archived">Archived</span>' : ''}</div>
           <div class="patient-condition">${esc(p.condition || "Rehabilitation")} · ${esc(p.protocol_name || "Custom")}</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:16px">
         <span style="font-size:13px;color:var(--text-muted)">${p.total_sessions || 0} sessions</span>
-        <button class="btn btn-secondary btn-sm" onclick="openPatientChart(${p.id})">
+        <button class="btn btn-secondary btn-sm" onclick="openPatientChart(${+p.id})" aria-label="Open chart for ${esc(p.code)}">
           Open Chart
-          <i data-lucide="chevron-right" style="width:14px;height:14px"></i>
+          <i aria-hidden="true" data-lucide="chevron-right" style="width:14px;height:14px"></i>
         </button>
       </div>
     </div>
-  `).join("") : `<div style="text-align:center;padding:32px;color:var(--text-muted)">No matching patients found.</div>`;
+  `).join("") : `<div class="state-msg">${patients.length ? "No patients match your search." : "No patients registered yet. Use <b>Register Patient</b> to add the first one."}</div>`;
   refreshIcons();
 }
 
 $("patientFilter").addEventListener("input", renderCaseloadList);
 
 async function openPatientChart(pid) {
+  if (pid !== activePid) sessionLimit = 50;
   activePid = pid;
-  await loadPatientData();
-  showChart();
+  if (await loadPatientData()) showChart();
 }
 
 function exportCurrentTelemetry() {
@@ -1585,8 +1954,8 @@ function exportCurrentTelemetry() {
 // ------------------------------------------
 async function loadPatientData() {
   try {
-    activeData = await api(`/api/patients/${activePid}/dashboard`);
-    $("btnExportCsv").href = `/api/patients/${activePid}/export?format=csv&token=${authToken || ''}`;
+    activeData = await api(`/api/patients/${activePid}/dashboard?sessions=${sessionLimit}`);
+    showBanner("chartErr", "");
     renderChartHeader();
     renderSummaryBoxes();
     renderProgressChart();
@@ -1594,8 +1963,14 @@ async function loadPatientData() {
     renderPrescription();
     renderProtocol();
     refreshIcons();
+    return true;
   } catch(e) {
-    showToast("Error loading patient chart: " + e.message, "error");
+    if ($("viewChart").style.display !== "none") {
+      showBanner("chartErr", "Could not refresh the patient chart: " + e.message + ". The figures below may be out of date.", loadPatientData);
+    } else {
+      showToast("Error loading patient chart: " + e.message, "error");
+    }
+    return false;
   }
 }
 
@@ -1603,6 +1978,62 @@ function renderChartHeader() {
   const p = activeData.patient;
   $("chartName").textContent = p.name ? `${p.name} (${p.code})` : `Patient ${p.code}`;
   $("chartCondition").textContent = `${p.condition || "Orthopedic Physical Therapy"} · ${activeData.program.name}`;
+  const archived = activeData.archivedAt;
+  $("chartArchived").style.display = archived ? "flex" : "none";
+  $("chartArchived").innerHTML = archived ? `<i aria-hidden="true" data-lucide="archive" style="width:15px;height:15px;flex-shrink:0"></i>
+    <span><b>Archived on ${esc(formatDateTime(archived))}.</b> All records are kept. The VR app can't start new sessions for this patient until you reactivate them.</span>` : "";
+  $("btnArchivePatient").innerHTML = archived
+    ? `<i aria-hidden="true" data-lucide="archive-restore" style="width:14px;height:14px"></i> Reactivate`
+    : `<i aria-hidden="true" data-lucide="archive" style="width:14px;height:14px"></i> Archive`;
+}
+
+// ------------------------------------------
+// Patient details and archiving (DEC-014: archive, never delete)
+// ------------------------------------------
+function openPatientEditModal() {
+  const p = activeData.patient;
+  showBanner("patientEditErr", "");
+  $("editCode").value = p.code;
+  $("editName").value = p.name || "";
+  $("editCond").value = p.condition || "";
+  openDialog("patientEditModal", "editName");
+}
+function closePatientEditModal() {
+  closeDialog("patientEditModal");
+}
+async function savePatientEdit(ev) {
+  ev.preventDefault();
+  try {
+    await api(`/api/patients/${activePid}`, {
+      method: "PUT",
+      body: { name: $("editName").value.trim(), condition: $("editCond").value.trim() }
+    });
+    closePatientEditModal();
+    await loadPatientData();
+    showToast("Patient details saved");
+  } catch(e) {
+    showBanner("patientEditErr", e.message);
+  }
+}
+async function toggleArchivePatient() {
+  const archive = !activeData.archivedAt;
+  const code = activeData.patient.code;
+  const confirmed = await showConfirm(
+    archive ? `Archive ${code}` : `Reactivate ${code}`,
+    archive
+      ? "Archive this patient? Nothing is deleted: sessions, notes and history are kept, and you can reactivate them at any time. They are hidden from the caseload, and the VR app can't start new sessions for them."
+      : "Reactivate this patient? They appear in the caseload again and the VR app can start sessions for them.",
+    archive ? "Archive Patient" : "Reactivate",
+    archive
+  );
+  if (!confirmed) return;
+  try {
+    await api(`/api/patients/${activePid}/archive`, { method: "POST", body: { archived: archive } });
+    await loadPatientData();
+    showToast(archive ? `${code} archived` : `${code} reactivated`);
+  } catch(e) {
+    showToast("Could not change archive status: " + e.message, "error");
+  }
 }
 
 function renderSummaryBoxes() {
@@ -1619,7 +2050,7 @@ function renderSummaryBoxes() {
     if(lastSession.pain_after - lastSession.pain_before > 2) painAlert = true;
   }
   if(painAlert) {
-    $("kAlertStatus").textContent = "Pain Flag";
+    $("kAlertStatus").textContent = "Pain flag";
     $("kAlertStatus").style.color = "var(--red)";
     $("kAlertDetail").textContent = "Pain increase > 2 on last session";
   } else {
@@ -1631,18 +2062,21 @@ function renderSummaryBoxes() {
 
 // Chart.js Visualization Integration
 function renderProgressChart() {
-  if (!window.Chart) return;
   const canvas = $("chartRomProgress");
   if (!canvas) return;
-
   const sessions = (activeData.sessions || []).slice().reverse();
-  const labels = sessions.map((s, i) => s.started_at ? s.started_at.slice(5, 10) : `S#${i+1}`);
-  const accuracies = sessions.map(s => Number(s.accuracy || 0));
-  const validReps = sessions.map(s => Number(s.valid || 0));
+  const emptyMsg = !window.Chart ? "The chart library could not be loaded. Session figures are still listed below."
+                 : !sessions.length ? "No sessions recorded yet. The trend appears after the patient's first VR session."
+                 : "";
+  $("chartWrap").style.display = emptyMsg ? "none" : "block";
+  $("chartEmpty").style.display = emptyMsg ? "block" : "none";
+  $("chartEmpty").textContent = emptyMsg;
+  if (emptyMsg) return;
 
-  const chartLabels = labels.length ? labels : ['No Data'];
-  const chartAccuracies = accuracies.length ? accuracies : [0];
-  const chartValidReps = validReps.length ? validReps : [0];
+  const chartLabels = sessions.map(s => formatDateTime(s.started_at).slice(5));
+  const chartAccuracies = sessions.map(s => Number(s.accuracy || 0));
+  const chartValidReps = sessions.map(s => Number(s.valid || 0));
+  const teal = cssVar("--teal"), muted = cssVar("--text-muted"), font = cssVar("--font");
 
   if (progressChartInstance) {
     progressChartInstance.data.labels = chartLabels;
@@ -1661,20 +2095,20 @@ function renderProgressChart() {
         {
           label: 'ROM Accuracy (%)',
           data: chartAccuracies,
-          borderColor: '#0D9488',
-          backgroundColor: 'rgba(13, 148, 136, 0.1)',
+          borderColor: teal,
+          backgroundColor: teal + '1A',
           fill: true,
           tension: 0.3,
           borderWidth: 2,
-          pointBackgroundColor: '#0D9488',
+          pointBackgroundColor: teal,
           pointRadius: 4,
           yAxisID: 'y'
         },
         {
           label: 'Valid Repetitions',
-          data: validReps.length ? validReps : [0],
-          borderColor: '#64748B',
-          backgroundColor: 'rgba(100, 116, 139, 0.2)',
+          data: chartValidReps,
+          borderColor: muted,
+          backgroundColor: muted + '33',
           type: 'bar',
           borderRadius: 4,
           barThickness: 16,
@@ -1694,11 +2128,11 @@ function renderProgressChart() {
           position: 'top',
           labels: {
             boxWidth: 12,
-            font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 }
+            font: { family: font, size: 12 }
           }
         },
         tooltip: {
-          backgroundColor: '#0F172A',
+          backgroundColor: cssVar("--text"),
           padding: 10,
           titleFont: { size: 13, weight: 'bold' }
         }
@@ -1706,7 +2140,7 @@ function renderProgressChart() {
       scales: {
         x: {
           grid: { display: false },
-          ticks: { font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } }
+          ticks: { font: { size: 11, family: font } }
         },
         y: {
           type: 'linear',
@@ -1718,7 +2152,7 @@ function renderProgressChart() {
             callback: v => v + '%',
             font: { size: 11 }
           },
-          grid: { color: '#F1F5F9' }
+          grid: { color: cssVar("--border-subtle") }
         },
         y1: {
           type: 'linear',
@@ -1736,35 +2170,46 @@ function renderProgressChart() {
 function renderSessionHistory() {
   $("sessionHistoryBody").innerHTML = activeData.sessions.length ? activeData.sessions.map(s => `
     <tr>
-      <td style="font-weight:600">${esc(String(s.started_at).slice(0, 10))}</td>
+      <td style="font-weight:600;white-space:nowrap">${esc(formatDateTime(s.started_at))}</td>
       <td><span class="tag-status ${s.status === 'complete' ? 'complete' : 'incomplete'}">
-        <i data-lucide="${s.status === 'complete' ? 'check' : 'clock'}" style="width:12px;height:12px"></i>
+        <i aria-hidden="true" data-lucide="${s.status === 'complete' ? 'check' : 'clock'}" style="width:12px;height:12px"></i>
         ${esc(s.status)}
       </span></td>
       <td>${s.valid} / ${s.attempts} reps</td>
       <td style="font-weight:600;color:var(--teal)">${s.accuracy}%</td>
       <td>${formatPainNotes(s)}</td>
       <td>
-        <button class="btn btn-secondary btn-sm" onclick="openNoteModal(${s.session_id})">
-          <i data-lucide="edit-3" style="width:13px;height:13px"></i>
+        <button class="btn btn-secondary btn-sm" onclick="openNoteModal(${+s.session_id})" aria-label="Clinical notes for session ${+s.session_id}">
+          <i aria-hidden="true" data-lucide="edit-3" style="width:13px;height:13px"></i>
           ${(s.pain_before != null || s.soreness_over_2h != null) ? "Edit Notes" : "Note"}
         </button>
       </td>
     </tr>
-  `).join("") : `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">No sessions completed yet.</td></tr>`;
+  `).join("") : `<tr><td colspan="6" class="state-msg">No sessions recorded yet.</td></tr>`;
+
+  const shown = activeData.sessions.length, total = activeData.sessionsTotal ?? shown;
+  $("sessionFooter").innerHTML = total ? `
+    <span>Showing ${shown} of ${total} session${total === 1 ? "" : "s"}, newest first</span>
+    ${shown < total ? `<button type="button" class="btn btn-secondary btn-sm" onclick="showOlderSessions()">Show older sessions</button>` : ""}
+  ` : "";
+}
+
+async function showOlderSessions() {
+  sessionLimit += 50;
+  await loadPatientData();
 }
 
 function formatPainNotes(s) {
   const parts = [];
   if(s.pain_before != null && s.pain_after != null) {
     const diff = s.pain_after - s.pain_before;
-    parts.push(`Pain ${s.pain_before} → ${s.pain_after}${diff > 2 ? ' (⚠️ Spiked)' : ''}`);
+    parts.push(`Pain ${+s.pain_before} → ${+s.pain_after}${diff > 2 ? ' <b style="color:var(--red)">(spike: +' + diff + ')</b>' : ''}`);
   }
   if(s.soreness_over_2h != null) {
     parts.push(s.soreness_over_2h ? 'Soreness > 2h' : 'Soreness normal');
   }
   if(s.swelling_cm != null) {
-    parts.push(`+${s.swelling_cm}cm swelling`);
+    parts.push(`+${+s.swelling_cm}cm swelling`);
   }
   return parts.length ? parts.join(" · ") : `<span style="color:var(--text-light)">None</span>`;
 }
@@ -1773,36 +2218,36 @@ function formatPainNotes(s) {
 // 3. Prescription Form & Add Movement Menu
 // ------------------------------------------
 function renderPrescription() {
-  $("rxList").innerHTML = activeData.exercises.map(e => `
+  $("rxList").innerHTML = activeData.exercises.length ? activeData.exercises.map(e => `
     <div class="rx-item">
       <div>
         <div class="rx-name">${esc(e.name)}</div>
         <div class="rx-meta">${esc(e.joint)} · ${esc(e.position)}${e.side ? ' (' + esc(e.side) + ')' : ''} · today: ${+e.reps} reps per set</div>
       </div>
       <div class="rx-input-group">
-        <label>Target Angle (°)</label>
+        <label for="targetAngle${e.id}">Target Angle (°)</label>
         <input type="number" id="targetAngle${e.id}" min="5" max="180" value="${e.targetAngle}">
       </div>
       <div class="rx-input-group">
-        <label>Tolerance (±°)</label>
+        <label for="tolerance${e.id}">Tolerance (±°)</label>
         <input type="number" id="tolerance${e.id}" min="1" max="30" value="${e.tolerance}">
       </div>
       <div class="rx-input-group">
-        <label>Sets</label>
+        <label for="sets${e.id}">Sets</label>
         <input type="number" id="sets${e.id}" min="1" max="10" value="${e.sets}">
       </div>
       <div class="rx-input-group">
-        <label>Reps</label>
+        <label for="reps${e.id}">Reps</label>
         <input type="number" id="reps${e.id}" min="1" max="50" value="${e.baseReps}">
       </div>
       <div>
-        <button class="btn btn-secondary btn-sm" type="button" style="color:var(--red)" onclick="removeExercise(${e.id})">
-          <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+        <button class="btn btn-secondary btn-sm btn-danger-soft" type="button" onclick="removeExercise(${+e.id})" aria-label="Remove ${esc(e.name)}">
+          <i aria-hidden="true" data-lucide="trash-2" style="width:14px;height:14px"></i>
           Remove
         </button>
       </div>
     </div>
-  `).join("");
+  `).join("") : `<div class="state-msg">No movements prescribed yet. Use <b>Add Movement to Prescription</b> to start.</div>`;
 
   $("rxMaxReps").value = activeData.program.maxReps || 14;
   $("scheduleDaysRow").innerHTML = DOW.map((d, i) => `
@@ -1815,6 +2260,9 @@ function renderPrescription() {
 
 function openAddExerciseModal() {
   const sel = $("modalExerciseSelect");
+  const noLibrary = !library.length;
+  showBanner("modalLibraryErr", noLibrary ? "The exercise library is not loaded. " + (libraryError || "") : "", noLibrary ? async () => { await loadReferenceData(); closeAddExerciseModal(); openAddExerciseModal(); } : null);
+  $("btnConfirmAddExercise").disabled = noLibrary;
   const joints = {};
   library.forEach(item => {
     if(!joints[item.joint]) joints[item.joint] = [];
@@ -1828,12 +2276,11 @@ function openAddExerciseModal() {
   `).join("");
 
   onModalExerciseSelected();
-  $("addExerciseModal").classList.add("active");
-  refreshIcons();
+  openDialog("addExerciseModal", "modalExerciseSelect");
 }
 
 function closeAddExerciseModal() {
-  $("addExerciseModal").classList.remove("active");
+  closeDialog("addExerciseModal");
 }
 
 function onModalExerciseSelected() {
@@ -1879,7 +2326,7 @@ async function confirmAddExercise() {
     });
     closeAddExerciseModal();
     await loadPatientData();
-    showToast("✓ Movement added to patient's active prescription");
+    showToast("Movement added to patient's active prescription");
   } catch(e) {
     showToast("Error adding movement: " + e.message, "error");
   }
@@ -1910,7 +2357,7 @@ $("rxForm").addEventListener("submit", async ev => {
       body: JSON.stringify(body)
     });
     await loadPatientData();
-    showToast("✓ Prescription transmitted to VR successfully");
+    showToast("Prescription transmitted to VR successfully");
   } catch(e) {
     showToast("Could not save prescription: " + e.message, "error");
   }
@@ -1928,7 +2375,7 @@ async function removeExercise(id) {
   try {
     await api(`/api/patients/${activePid}/exercises/${id}`, { method: "DELETE" });
     await loadPatientData();
-    showToast("✓ Exercise removed from active prescription");
+    showToast("Exercise removed from active prescription");
   } catch(e) {
     showToast("Error removing exercise: " + e.message, "error");
   }
@@ -1953,13 +2400,13 @@ function renderProtocol() {
     $("advancementBox").innerHTML = '<span style="color:var(--text-muted)">Assign a protocol phase to evaluate advancement readiness.</span>';
   } else if(r.ready) {
     $("advancementBox").innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
         <div>
-          <div style="font-weight:700;color:var(--green)">✓ Ready for Advancement to ${esc(r.next.name)}</div>
+          <div style="font-weight:700;color:var(--green)"><i aria-hidden="true" data-lucide="check-circle-2" style="width:15px;height:15px;vertical-align:-2px"></i> Ready for advancement to ${esc(r.next.name)}</div>
           <div style="font-size:12.5px;color:var(--text-muted)">All clinical criteria met (sessions completed, ROM accuracy, acceptable pain response).</div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="approveAdvancement(${r.next.id})">
-          <i data-lucide="check-check" style="width:14px;height:14px"></i>
+        <button class="btn btn-primary btn-sm" onclick="approveAdvancement(${+r.next.id})">
+          <i aria-hidden="true" data-lucide="check-check" style="width:14px;height:14px"></i>
           Approve Advancement
         </button>
       </div>
@@ -1972,7 +2419,7 @@ function renderProtocol() {
   }
 
   $("protocolSelect").innerHTML = `<option value="">Custom (No Protocol)</option>` + protocols.map(p => 
-    `<option value="${p.id}" ${ph.protocol === p.name ? "selected" : ""}>${esc(p.condition || "Protocol")}: ${esc(p.name)}</option>`
+    `<option value="${+p.id}" ${ph.protocol === p.name ? "selected" : ""}>${esc(p.condition || "Protocol")}: ${esc(p.name)}</option>`
   ).join("");
 
   updatePhaseOptions();
@@ -1989,7 +2436,7 @@ function updatePhaseOptions() {
   const p = protocols.find(x => x.id === +selProtId);
   if(!p) return;
   $("phaseSelect").innerHTML = p.phases.map(ph => 
-    `<option value="${ph.id}" ${activeData.phase.id === ph.id ? "selected" : ""}>Phase ${ph.phaseNo}: ${esc(ph.name)}</option>`
+    `<option value="${+ph.id}" ${activeData.phase.id === ph.id ? "selected" : ""}>Phase ${+ph.phaseNo}: ${esc(ph.name)}</option>`
   ).join("");
 }
 
@@ -2009,7 +2456,7 @@ async function assignSelectedPhase() {
       body: JSON.stringify({ phase_id: phaseId, note: "Assigned by therapist" })
     });
     await loadPatientData();
-    showToast("✓ Protocol phase assigned successfully");
+    showToast("Protocol phase assigned successfully");
   } catch(e) {
     showToast("Error updating phase: " + e.message, "error");
   }
@@ -2028,7 +2475,7 @@ async function removePatientProtocol() {
   try {
     await api(`/api/patients/${activePid}/protocol`, { method: "DELETE" });
     await loadPatientData();
-    showToast("✓ Protocol removed; active prescription retained as custom");
+    showToast("Protocol removed; active prescription retained as custom");
   } catch(e) {
     showToast("Error removing protocol: " + e.message, "error");
   }
@@ -2049,7 +2496,7 @@ async function approveAdvancement(phaseId) {
       body: JSON.stringify({ phase_id: phaseId, note: "Approved advancement criteria" })
     });
     await loadPatientData();
-    showToast("✓ Patient advancement authorized");
+    showToast("Patient advancement authorized");
   } catch(e) {
     showToast("Error advancing phase: " + e.message, "error");
   }
@@ -2061,21 +2508,25 @@ async function approveAdvancement(phaseId) {
 async function openProtocolManagerModal() {
   try {
     protocols = await api("/api/protocols");
+    protocolsError = "";
   } catch(e) {
-    console.error("Could not refresh protocols:", e);
+    protocolsError = e.message;
   }
   switchModalProtocolView('list');
   renderProtocolManagerList();
   renderNewProtExerciseOptions();
-  $("protocolModal").classList.add("active");
-  refreshIcons();
+  openDialog("protocolModal");
 }
 
 function closeProtocolModal() {
-  $("protocolModal").classList.remove("active");
+  closeDialog("protocolModal");
 }
 
 function switchModalProtocolView(view) {
+  $("modalTabProtocolsList").setAttribute("aria-selected", view !== 'create');
+  $("modalTabProtocolsCreate").setAttribute("aria-selected", view === 'create');
+  $("modalTabProtocolsList").tabIndex = view !== 'create' ? 0 : -1;
+  $("modalTabProtocolsCreate").tabIndex = view === 'create' ? 0 : -1;
   if(view === 'create') {
     $("modalTabProtocolsList").classList.remove("active");
     $("modalTabProtocolsCreate").classList.add("active");
@@ -2095,19 +2546,24 @@ let viewingProtocolId = null;
 function renderProtocolManagerList() {
   $("modalProtocolsCount").textContent = protocols.length;
   const container = $("modalProtocolsContainer");
+  if(protocolsError && !protocols.length) {
+    container.innerHTML = `<div class="state-msg" role="alert">Could not load the protocol library: ${esc(protocolsError)}<br>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="openProtocolManagerModal()">Retry</button></div>`;
+    return;
+  }
   if(!protocols.length) {
-    container.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text-muted)">No protocols currently registered in the clinic library.</div>`;
+    container.innerHTML = `<div class="state-msg">No protocols registered in the clinic library yet. Use <b>Create New Protocol</b> to add one.</div>`;
     return;
   }
 
   container.innerHTML = protocols.map(p => `
-    <div onclick="openProtocolPhasesWidget(${p.id})" style="padding:14px 18px;background:#fff;border:1px solid var(--border);border-radius:8px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:all 0.15s ease;" onmouseover="this.style.borderColor='var(--teal)';this.style.background='#f8fafc'" onmouseout="this.style.borderColor='var(--border)';this.style.background='#fff'">
+    <button type="button" class="protocol-row" onclick="openProtocolPhasesWidget(${+p.id})">
       <div style="display:flex;align-items:center;gap:12px">
-        <i data-lucide="book-open" style="width:16px;height:16px;color:var(--teal)"></i>
+        <i aria-hidden="true" data-lucide="book-open" style="width:16px;height:16px;color:var(--teal)"></i>
         <span style="font-weight:600;font-size:14px;color:var(--text)">${esc(p.name)}</span>
       </div>
-      <i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text-light)"></i>
-    </div>
+      <i aria-hidden="true" data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text-light)"></i>
+    </button>
   `).join("");
   refreshIcons();
 }
@@ -2123,34 +2579,47 @@ function openProtocolPhasesWidget(protId) {
   $("widgetPhasesCount").textContent = p.phases.length;
 
   const assignBtn = activePid ? `
-    <button class="btn btn-primary btn-sm" onclick="quickAssignProtocol(${p.id})">
-      <i data-lucide="user-check" style="width:13px;height:13px"></i>
+    <button class="btn btn-primary btn-sm" onclick="quickAssignProtocol(${+p.id})">
+      <i aria-hidden="true" data-lucide="user-check" style="width:13px;height:13px"></i>
       Apply to Patient
     </button>
   ` : '';
 
+  const addPhaseBtn = p.builtin ? '' : `
+    <button type="button" class="btn btn-secondary btn-sm" onclick="openPhaseEditor(${+p.id}, null)">
+      <i aria-hidden="true" data-lucide="plus" style="width:13px;height:13px"></i>
+      Add Phase
+    </button>
+  `;
   $("widgetActionButtons").innerHTML = `
     ${assignBtn}
-    <button class="btn btn-secondary btn-sm" onclick="confirmDeleteProtocol(${+p.id})" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2" title="Remove protocol from library">
-      <i data-lucide="trash-2" style="width:13px;height:13px"></i>
+    ${addPhaseBtn}
+    <button class="btn btn-secondary btn-sm btn-danger-soft" onclick="confirmDeleteProtocol(${+p.id})" title="Remove protocol from library">
+      <i aria-hidden="true" data-lucide="trash-2" style="width:13px;height:13px"></i>
       Remove Protocol
     </button>
   `;
 
   const container = $("widgetPhasesContainer");
+  const readOnlyNote = p.builtin ? `<div class="alert-info" style="margin-bottom:0"><i aria-hidden="true" data-lucide="lock" style="width:14px;height:14px;flex-shrink:0"></i>
+    <span>Built-in protocol: read-only. To change phases, create your own protocol in the library.</span></div>` : '';
   if(!p.phases || !p.phases.length) {
-    container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-muted)">No phases defined for this protocol.</div>`;
+    container.innerHTML = readOnlyNote + `<div class="state-msg">No phases defined for this protocol.</div>`;
   } else {
-    container.innerHTML = p.phases.map(ph => {
+    container.innerHTML = readOnlyNote + p.phases.map(ph => {
       const exsChips = (ph.exerciseDetails || []).map(e => 
-        `<span style="display:inline-block;padding:3px 8px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:4px;font-size:11.5px;color:#334155">${esc(e.name)} (${e.sets}×${e.reps} @ ${e.targetAngle}°)</span>`
-      ).join(" ") || (ph.exercises || []).map(en => `<span style="display:inline-block;padding:3px 8px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:4px;font-size:11.5px;color:#334155">${esc(en)}</span>`).join(" ");
+        `<span class="chip">${esc(e.name)} (${+e.sets}×${+e.reps} @ ${+e.targetAngle}°)</span>`
+      ).join(" ") || (ph.exercises || []).map(en => `<span class="chip">${esc(en)}</span>`).join(" ");
 
       return `
-        <div style="background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <div style="font-weight:700;font-size:13.5px;color:var(--text)">Phase ${ph.phaseNo}: ${esc(ph.name)}</div>
-            <span style="font-size:11.5px;color:var(--teal);background:var(--teal-soft);padding:3px 8px;border-radius:4px;font-weight:600">${esc(ph.weeks || "General")}</span>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px">
+            <div style="font-weight:700;font-size:13.5px;color:var(--text)">Phase ${+ph.phaseNo}: ${esc(ph.name)}</div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11.5px;color:var(--teal);background:var(--teal-soft);padding:3px 8px;border-radius:4px;font-weight:600">${esc(ph.weeks || "General")}</span>
+              ${p.builtin ? '' : `<button type="button" class="btn btn-secondary btn-sm" onclick="openPhaseEditor(${+p.id}, ${+ph.id})" aria-label="Edit phase ${+ph.phaseNo}">
+                <i aria-hidden="true" data-lucide="pencil" style="width:13px;height:13px"></i> Edit</button>`}
+            </div>
           </div>
           ${ph.goals ? `<div style="font-size:12px;color:var(--text);margin-bottom:4px"><span style="color:var(--text-muted);font-weight:600">Recovery Goals:</span> ${esc(ph.goals)}</div>` : ''}
           ${ph.precautions ? `<div style="font-size:12px;color:var(--text);margin-bottom:4px"><span style="color:var(--text-muted);font-weight:600">Precautions:</span> ${esc(ph.precautions)}</div>` : ''}
@@ -2161,21 +2630,95 @@ function openProtocolPhasesWidget(protId) {
     }).join("");
   }
 
-  $("protocolPhasesWidget").classList.add("active");
-  refreshIcons();
+  openDialog("protocolPhasesWidget");
 }
 
 function closeProtocolPhasesWidget() {
-  $("protocolPhasesWidget").classList.remove("active");
+  closeDialog("protocolPhasesWidget");
   viewingProtocolId = null;
+}
+
+// Phase editor for therapist-authored protocols (built-in ones are read-only on the server too)
+let editingPhase = null;
+function openPhaseEditor(protId, phaseId) {
+  const p = protocols.find(x => x.id === +protId);
+  if (!p || p.builtin) return;
+  const ph = phaseId ? p.phases.find(x => x.id === +phaseId) : null;
+  editingPhase = { protocolId: p.id, phaseId: ph ? ph.id : null, details: ph ? (ph.exerciseDetails || []) : [] };
+  showBanner("phaseEditErr", "");
+  $("phaseEditTitle").textContent = ph ? `Edit Phase ${ph.phaseNo}: ${ph.name}` : `Add Phase to ${p.name}`;
+  $("phaseEditNote").style.display = ph ? "block" : "none";
+  $("phName").value = ph ? ph.name : `Phase ${p.phases.length + 1}`;
+  $("phWeeks").value = ph ? (ph.weeks || "") : "";
+  $("phGoals").value = ph ? (ph.goals || "") : "";
+  $("phPrecautions").value = ph ? (ph.precautions || "") : "";
+  $("phRomGoal").value = ph ? ph.romGoal : "";
+  $("phOther").value = ph ? ph.other : "";
+  $("phVrAllowed").checked = ph ? ph.vrAllowed : true;
+  $("phMinSessions").value = ph ? ph.minSessions : 3;
+  $("phMinAccuracy").value = ph ? ph.minAccuracy : 85;
+  $("phMaxPain").value = ph ? ph.maxPainIncrease : 2;
+  $("phCheckSoreness").checked = ph ? ph.checkSoreness : false;
+  $("phMaxSwelling").value = ph && ph.maxSwellingCm != null ? ph.maxSwellingCm : "";
+  const chosen = new Set(editingPhase.details.map(e => e.code));
+  $("phExercises").innerHTML = library.length ? library.map(ex => `
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg)">
+      <input type="checkbox" name="phaseExercises" value="${esc(ex.code)}" ${chosen.has(ex.code) ? "checked" : ""}>
+      <span><b>${esc(ex.name)}</b> <span style="font-size:10.5px;color:var(--text-muted)">(${esc(ex.joint)})</span></span>
+    </label>
+  `).join("") : `<div class="state-msg" style="grid-column:1/-1;padding:12px">The exercise library is not loaded${libraryError ? ": " + esc(libraryError) : ""}.</div>`;
+  openDialog("phaseEditModal", "phName");
+}
+function closePhaseEditor() {
+  closeDialog("phaseEditModal");
+  editingPhase = null;
+}
+async function savePhaseEditor(ev) {
+  ev.preventDefault();
+  if (!editingPhase) return;
+  const { protocolId, phaseId, details } = editingPhase;
+  const kept = Object.fromEntries(details.map(e => [e.code, e]));
+  const body = {
+    name: $("phName").value.trim(),
+    weeks: $("phWeeks").value.trim(),
+    goals: $("phGoals").value.trim(),
+    precautions: $("phPrecautions").value.trim(),
+    romGoal: $("phRomGoal").value.trim(),
+    other: $("phOther").value.trim(),
+    vrAllowed: $("phVrAllowed").checked,
+    minSessions: $("phMinSessions").value,
+    minAccuracy: $("phMinAccuracy").value,
+    maxPainIncrease: $("phMaxPain").value,
+    checkSoreness: $("phCheckSoreness").checked,
+    maxSwellingCm: $("phMaxSwelling").value,
+    // Exercises already in the phase keep their targets; new ones start from the library values
+    exercises: library.length ? [...document.querySelectorAll('input[name="phaseExercises"]:checked')].map(cb => kept[cb.value] || { code: cb.value })
+                              : details,
+  };
+  if (!body.name) { showBanner("phaseEditErr", "Phase name is required."); return; }
+  try {
+    const updated = await api(phaseId ? `/api/protocols/${protocolId}/phases/${phaseId}` : `/api/protocols/${protocolId}/phases`,
+                              { method: phaseId ? "PUT" : "POST", body });
+    protocols = protocols.map(x => x.id === updated.id ? updated : x);
+    closePhaseEditor();
+    openProtocolPhasesWidget(updated.id);
+    if (activePid && activeData) renderProtocol();
+    showToast(phaseId ? "Phase saved" : "Phase added");
+  } catch(e) {
+    showBanner("phaseEditErr", e.message);
+  }
 }
 
 
 function renderNewProtExerciseOptions() {
   const container = $("newProtExercisesContainer");
   if(!container) return;
+  if (!library.length) {
+    container.innerHTML = `<div class="state-msg" style="grid-column:1/-1;padding:12px">The exercise library is not loaded${libraryError ? ": " + esc(libraryError) : ""}.</div>`;
+    return;
+  }
   container.innerHTML = library.map(ex => `
-    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;padding:4px 6px;border-radius:4px;border:1px solid #e2e8f0;background:#f8fafc">
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg)">
       <input type="checkbox" name="protExercises" value="${esc(ex.code)}" style="cursor:pointer">
       <span><b>${esc(ex.name)}</b> <span style="font-size:10.5px;color:var(--text-muted)">(${esc(ex.joint)})</span></span>
     </label>
@@ -2222,7 +2765,7 @@ async function handleCreateProtocolSubmit(e) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    showToast(`✓ Protocol "${created.name}" created successfully`);
+    showToast(`Protocol "${created.name}" created successfully`);
     protocols = await api("/api/protocols");
     renderProtocolManagerList();
     if(activePid && activeData) {
@@ -2255,7 +2798,7 @@ async function confirmDeleteProtocol(id) {
   try {
     await api(`/api/protocols/${id}`, { method: "DELETE" });
     closeProtocolPhasesWidget();
-    showToast(`✓ Protocol "${name}" removed from library`);
+    showToast(`Protocol "${name}" removed from library`);
     protocols = await api("/api/protocols");
     renderProtocolManagerList();
     if(activePid && activeData) {
@@ -2293,7 +2836,7 @@ async function quickAssignProtocol(protId) {
     closeProtocolPhasesWidget();
     closeProtocolModal();
     await loadPatientData();
-    showToast(`✓ Applied "${p.name}" to patient`);
+    showToast(`Applied "${p.name}" to patient`);
   } catch(err) {
     showToast("Error applying protocol: " + err.message, "error");
   }
@@ -2311,10 +2854,10 @@ function openNoteModal(sessionId) {
   $("inPainAfter").value = s.pain_after ?? "";
   $("inSoreness").value = s.soreness_over_2h ?? "";
   $("inSwelling").value = s.swelling_cm ?? "";
-  $("noteModal").classList.add("active");
+  openDialog("noteModal", "inPainBefore");
 }
 function closeNoteModal() {
-  $("noteModal").classList.remove("active");
+  closeDialog("noteModal");
   editingSessionId = null;
 }
 async function saveNoteModal() {
@@ -2333,7 +2876,7 @@ async function saveNoteModal() {
     });
     closeNoteModal();
     await loadPatientData();
-    showToast("✓ Clinical assessment note recorded");
+    showToast("Clinical assessment note recorded");
   } catch(e) {
     showToast("Error saving note: " + e.message, "error");
   }
@@ -2343,10 +2886,10 @@ function openNewPatientModal() {
   $("newCode").value = "";
   $("newName").value = "";
   $("newCond").value = "";
-  $("newPatModal").classList.add("active");
+  openDialog("newPatModal", "newCode");
 }
 function closeNewPatientModal() {
-  $("newPatModal").classList.remove("active");
+  closeDialog("newPatModal");
 }
 async function saveNewPatient() {
   const code = $("newCode").value.trim();
@@ -2365,7 +2908,7 @@ async function saveNewPatient() {
     closeNewPatientModal();
     await loadCaseload();
     openPatientChart(res.id);
-    showToast(`✓ Registered patient ${code} successfully`);
+    showToast(`Registered patient ${code} successfully`);
   } catch(e) {
     showToast("Error registering patient: " + e.message, "error");
   }

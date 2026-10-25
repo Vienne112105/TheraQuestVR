@@ -34,7 +34,10 @@ Provides a lightweight, local-first Python REST API and SQLite persistence layer
 ## Invariants
 - Session completion and progression are judged against the server's prescription (effective reps × sets of every active exercise), never the client's own targets; an empty program is never complete.
 - A session upload with a `session_uuid` already stored is answered with the stored session (idempotent retry), never saved twice.
-- Re-seeding built-in protocols (`protocol.builtin = 1`) must never delete therapist-authored protocols.
+- Re-seeding built-in protocols (`protocol.builtin = 1`) must never delete therapist-authored protocols, and keeps built-in protocols whose content is unchanged (patients on them keep their phase); only changed or withdrawn ones are replaced.
+- Built-in protocols are read-only through the API; only therapist-authored protocols can have phases edited or added (DEC-014).
+- Patients are archived (`archived_at`), never deleted. An archived patient gets no new VR program, but sessions already recorded still upload (DEC-014).
+- A patient code never changes after registration (the VR app is configured with it).
 - Every prescription write path applies the same bounds (`RX_FIELDS`).
 - The server sends no CORS headers; static files are served only from inside `static/`; the server listens on 127.0.0.1 unless started with `--host`.
 - Patient identities must be stored as pseudonymous codes (e.g., `P-001`) to comply with healthcare privacy regulations.

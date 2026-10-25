@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS patient (
   xp             INTEGER NOT NULL DEFAULT 0,
   phase_id       INTEGER REFERENCES protocol_phase(phase_id),   -- NULL = custom program, no protocol
   phase_started_at TEXT,                           -- YYYY-MM-DDTHH:MM:SS
+  archived_at    TEXT,                             -- NULL = active; set = archived, records kept (DEC-014)
   created_at     TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 

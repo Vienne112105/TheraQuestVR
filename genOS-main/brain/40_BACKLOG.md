@@ -21,11 +21,13 @@ Durable ad-hoc queue for non-milestone work (bugs, ideas). AI-owned. See `AGENTS
 - [TASK-004] (high) Patient records have a free-text name field (P-002 is stored as "Maria Santos"), which conflicts with code-only pseudonymization. Remove the field or label it as an alias with no real names. (ref: DEC-003)
 - [TASK-005] (high) No off-machine backup: the git repo has no remote (OneDrive syncing `.git` is not a backup) and the clinical database in `%LOCALAPPDATA%\TheraQuest` is not backed up. Add a backup routine (encrypted copy to a drive the clinic controls) before real study data; consider a private git remote. (ref: DEC-010)
 - [TASK-006] (high) Unity `companyName` is still `DefaultCompany`; the player's data folder (config.json, PIN, cached program, offline queue) is named after it, so changing it after deployment orphans those files. Set the final company name before any clinic install.
-- [TASK-007] (research) The exercise `LIBRARY` targets, tolerances, safety limits, holds and sets are placeholders; review them with a licensed physical therapist and record the final values.
+- [TASK-007] (research) The exercise `LIBRARY` targets, tolerances, safety limits, holds and sets are placeholders; review them with a licensed physical therapist and record the final values. This includes the per-phase angles and reps of all nine built-in protocols (the source documents mostly give no angles; M5.7 added seven).
 - [TASK-008] (research) Collect the real evaluation inputs for the Section 3.9 metrics: goniometer readings, therapist rep labels, SUS and PT survey (templates in `Main/TheraQuestVR/evaluation/templates/`). Likely its own milestone when scheduled. (ref: DEC-011)
 - [TASK-009] (low) `AGENTS.md` does not list the TBF status or unscheduled milestone IDs (`HW`); only [[50_ROADMAP]] explains them. `60_AGENTS.md` still lists milestone agents for M1 and M4.
 - [TASK-010] (low) Check whether Unity `6000.6.5f1` is an LTS release ([[00_PROJECT]] says Unity 6 LTS); move to an LTS version if not.
 - [TASK-011] (low) One script that runs all test suites (server, tracker, evaluation, Unity EditMode in batch mode) and reports the results.
+- [TASK-012] Add ankle exercises to the webcam tracker and the exercise `LIBRARY` (e.g. seated ankle dorsiflexion/plantarflexion, standing heel raise), so the ankle protocols (ankle ORIF, lateral ankle sprain) can measure ankle work in VR instead of listing it as done without the camera. Requested by the human 2026-10-26.
+- [TASK-013] (research) The MGB and BWH protocol documents are copyrighted ("all rights reserved"); the built-in protocols are short paraphrases with citations. Before publishing the thesis or distributing the app, confirm this use is acceptable or ask the institutions for permission.
 
 ## Done
 

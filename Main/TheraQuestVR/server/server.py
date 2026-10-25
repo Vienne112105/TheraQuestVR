@@ -74,6 +74,10 @@ class Conflict(ApiError):
     status = 409
 
 
+class Forbidden(ApiError):
+    status = 403
+
+
 def default_db_path():
     """DEC-010: keep patient data out of the synced project folder. THERAQUEST_DB overrides."""
     if os.environ.get("THERAQUEST_DB"):
@@ -273,7 +277,7 @@ NORMAL_ROM = {
 #   phase:    (name, weeks, vr, goals, precautions, ROM goal, other exercises, max pain increase,
 #              check soreness < 2 h, max swelling cm or None,
 #              [(code, target, tol, safety max, hold s, sets, reps, rest s)])
-PROTOCOL_VERSION = "2"
+PROTOCOL_VERSION = "3"   # 3: seven protocols added (M5.7); unchanged built-ins are kept on reload
 OHSU_RULES = "Progress when 2x8 reps are done with pain up by no more than 2 points, swelling up by under 2 cm and soreness gone within 2 hours"
 PROTOCOLS = [
     ("Total knee replacement (OHSU)", "Post-op total knee arthroplasty",
@@ -372,11 +376,317 @@ PROTOCOLS = [
          "Full ROM and strength", "Daily home stretching; strengthening 3 days a week; activity-specific progression",
          0, False, None, []),
     ]),
+    # ------------------------------------------------------------------ added in protocol version 3 (M5.7)
+    ("ACL reconstruction (MGB)", "Post-op anterior cruciate ligament reconstruction",
+     "Mass General Brigham Sports Medicine - Rehabilitation Protocol for ACL Reconstruction (revised 8/2024)", [
+        ("Phase I - Immediate post-op", "Weeks 0-2", True,
+         "Protect the graft; reduce swelling and pain; restore patellar mobility; restore full extension and gradually "
+         "improve flexion; re-establish quad control and full active extension",
+         "Keep the knee straight and elevated when resting (no towel under the knee); do not actively kick the knee straight; "
+         "do not pivot on the surgical leg; WBAT with brace locked and crutches per surgeon (allograft or hamstring autograft: "
+         "partial weight bearing with crutches for 6 weeks); no straight leg raise while there is an extension lag; "
+         "with a meniscus repair or other injury follow the more conservative protocol",
+         "Knee extension 0°; straight leg raise without lag",
+         "Ice, compression, elevation, retrograde massage, ankle pumps, patellar mobilizations, prone hang and heel prop, "
+         "gastroc, soleus and hamstring stretches, quad sets with NMES, calf raises, multi-angle isometrics at 90° and 60°",
+         0, False, None,
+         [("heelSlide", 90, 10, 100, 0, 2, 8, 30), ("slr", 45, 5, 60, 0, 2, 8, 30), ("sidelyingHipAbd", 25, 5, 40, 0, 2, 8, 30)]),
+        ("Phase II - Intermediate post-op", "Weeks 3-5", True,
+         "Continue to protect the graft; maintain full extension and restore full flexion (equal to the other side); normalize gait",
+         "Hamstring autograft: no resisted hamstring strengthening until week 12. Progress when swelling is 1+ or less and stable, "
+         "flexion is within 10° of the other side and extension is equal",
+         "Flexion within 10° of the other knee; extension equal to the other knee",
+         "Stationary bike, quad, hamstring and hip flexor stretches, step ups, leg press and hamstring curl machines, bridges, "
+         "clamshells, hip hikes, single-leg balance (static to dynamic, firm to unsteady), lateral step-overs, joint position training",
+         0, False, None,
+         [("heelSlide", 120, 10, 135, 0, 2, 8, 30), ("hamstringCurl", 90, 10, 110, 0, 2, 8, 30),
+          ("miniSquat", 45, 10, 60, 0, 2, 8, 30), ("march", 70, 10, 100, 0, 2, 8, 30), ("hipAbd", 25, 5, 40, 0, 2, 8, 30)]),
+        ("Phase III - Late post-op", "Weeks 6-8", True,
+         "Maintain full ROM; progress strengthening safely; promote proper movement patterns; avoid post-exercise pain and "
+         "swelling and pain at the graft donor site",
+         "Seated knee extension only between 90° and 45° of knee bend (avoid anterior knee pain). Progress with no swelling or "
+         "pain after exercise, normal gait, ROM equal to the other side and joint position sense within 5°",
+         "ROM equal to the other knee",
+         "Rotational tibial mobilizations if ROM is limited; from week 8 elliptical, stair climber, pool jogging; hip machines, "
+         "lateral lunges, lateral band walks, Romanian and single-leg deadlifts, ball bridges, single-leg press, step downs, "
+         "single-leg squats, perturbation balance training",
+         0, False, None,
+         [("kneeExt", 45, 5, 50, 0, 2, 8, 30), ("sitToStand", 85, 10, 0, 0, 2, 8, 45), ("miniLunge", 60, 10, 80, 0, 2, 8, 30),
+          ("kneeWallSlide", 90, 10, 100, 0, 2, 8, 30), ("hipExt", 20, 5, 30, 0, 2, 8, 30), ("hipAbd", 30, 5, 45, 0, 2, 8, 30)]),
+        ("Phase IV - Transitional", "Weeks 9-12", True,
+         "Maintain full ROM; progress strengthening; promote proper movement patterns; begin sub-maximal sport-specific "
+         "training in the sagittal plane",
+         "Avoid post-exercise pain or swelling and pain at the graft donor site. Progress with no instability, 10 single-leg "
+         "squats to at least 60° with good form, a controlled drop vertical jump, KOOS-sports over 70% and quad, hamstring "
+         "and glute strength over 80% of the other side",
+         "Full ROM; single-leg squat to at least 60° of knee bend",
+         "Double-leg plyometrics progressing to full weight bearing (med ball slams, shuttle jumps, hops in place, box jumps, "
+         "small drop jumps), sport-specific drills",
+         0, False, None,
+         [("wallSquatHold", 60, 10, 85, 5, 2, 8, 30), ("miniLunge", 60, 10, 80, 0, 2, 8, 30), ("kneeExt", 45, 5, 50, 0, 2, 8, 30),
+          ("hipExt", 25, 5, 30, 0, 2, 8, 30), ("hipAbd", 30, 5, 45, 0, 2, 8, 30)]),
+        ("Phase V - Early return to sport", "Months 3-5", False,
+         "Progress strengthening; begin single-leg plyometrics and a sport-specific training program",
+         "Surgeon clearance and all milestone criteria met before progressing",
+         "Full ROM; strength and hop tests 90% of the other side",
+         "Return to Running program, agility and plyometric program (with functional brace if prescribed)",
+         0, False, None, []),
+        ("Phase VI - Return to sport", "6+ months", False,
+         "Symmetrical performance in sport-specific drills; safe progression to full sport (cutting and pivoting about 7-9 months, "
+         "full play about 9-12 months)",
+         "Strength and hop tests 95% of the other side, KOOS-sports over 90%, IKDC over 93, ACL-RSI 90%",
+         "Full ROM and strength", "Multi-plane plyometrics and agility, non-contact then full practice", 0, False, None, []),
+    ]),
+    ("Total knee replacement (MGB)", "Post-op total knee arthroplasty",
+     "Mass General Brigham Orthopedics - Rehabilitation Protocol for Total Knee Arthroplasty (06/2025)", [
+        ("Phase I - Immediate post-op", "Days 0-7", True,
+         "Quiet knee (minimal pain and swelling); protect the incision and watch wound healing; screen for DVT; activate the "
+         "quadriceps; begin gentle assisted mobility",
+         "Follow the surgeon's weight-bearing orders; do not force painful ROM; no pillow or towel roll under the knee; no "
+         "twisting or pivoting; limit prolonged sitting and standing; limit walking to about 700 steps a day",
+         "Near full extension and more than 70° of knee flexion; straight leg raise without lag",
+         "Heel prop, patellar mobilizations, cryotherapy and elevation, NMES with quad activation, gluteal sets, bed mobility, "
+         "transfer, gait and stair training",
+         0, False, None,
+         [("heelSlide", 70, 10, 90, 0, 2, 8, 30), ("slr", 40, 5, 60, 0, 2, 8, 30)]),
+        ("Phase II - Early post-op", "Weeks 1-4", True,
+         "Restore full extension early; knee flexion over 90°; begin quadriceps strengthening; reduce reliance on the "
+         "walking aid; minimize gait compensations",
+         "Avoid deep squats, pivoting and impact activity; watch for increased pain or swelling. Progress with pain 0-3/10 in "
+         "daily activities and ten straight leg raises without lag",
+         "Near full extension and more than 90° of knee flexion",
+         "Tibiofemoral and patellar mobilizations, wall slides, heel prop with weight, stationary bike for ROM, calf and "
+         "hamstring stretches, short arc quad, bridging, side-lying adduction, prone hip extension, clamshells, weight shifting, "
+         "side stepping at the counter",
+         0, False, None,
+         [("heelSlide", 95, 10, 110, 0, 2, 8, 30), ("sitToStand", 85, 10, 0, 0, 2, 8, 45), ("miniSquat", 30, 10, 45, 0, 2, 8, 30),
+          ("sidelyingHipAbd", 25, 5, 40, 0, 2, 8, 30), ("hamstringCurl", 80, 10, 100, 0, 2, 8, 30)]),
+        ("Phase III - Intermediate post-op", "Weeks 4-8", True,
+         "Knee flexion over 110° with full extension; improve quadriceps, hip and core strength; normal gait without a walking "
+         "aid; begin balance and advanced functional tasks",
+         "Avoid high-impact activity; progress load gradually; keep the knee aligned in closed-chain exercises; keep a quiet knee. "
+         "Progress with controlled 6-inch step ups and downs and no increase in pain or swelling",
+         "About 110° of knee flexion and full extension",
+         "Prone knee hangs, retro-walking, calf, hip flexor and hamstring stretches, banded hip flexion, step ups and downs, "
+         "lateral step downs, bridges, leg press, single-leg stance, rocker board, lateral step-overs, treadmill or elliptical",
+         0, False, None,
+         [("kneeExt", 85, 10, 0, 0, 2, 8, 30), ("heelSlide", 110, 10, 125, 0, 2, 8, 30), ("hipAbd", 25, 5, 40, 0, 2, 8, 30),
+          ("hipExt", 20, 5, 30, 0, 2, 8, 30), ("wallSquatHold", 45, 10, 60, 5, 2, 8, 30), ("miniLunge", 45, 10, 60, 0, 2, 8, 30)]),
+        ("Phase IV - Advanced post-op", "Weeks 8-12", True,
+         "Near-normal strength (80% of the other leg); ROM over 120° for daily tasks; proper movement patterns",
+         "No uncontrolled pivoting or cutting; no high-impact activity; progress load only without pain or swelling. Progress "
+         "with controlled 8-inch step ups and downs and surgeon clearance for low-impact recreation",
+         "Full or near-full ROM (more than 120° of knee flexion)",
+         "Gait on uneven ground and slopes, prone quad and kneeling hip flexor stretches, banded side steps, monster walks, "
+         "hamstring curl and leg extension machines, single-leg stance with perturbation, tandem walking, bike, aquatic program",
+         0, False, None,
+         [("kneeExt", 90, 5, 0, 0, 2, 8, 30), ("miniSquat", 60, 10, 75, 0, 2, 8, 30), ("miniLunge", 60, 10, 80, 0, 2, 8, 30),
+          ("hipAbd", 30, 5, 45, 0, 2, 8, 30), ("hipExt", 25, 5, 30, 0, 2, 8, 30), ("heelSlide", 120, 10, 135, 0, 2, 8, 30)]),
+        ("Phase V - Late post-op", "Months 3-6", False,
+         "Restore full strength and function; return to low-impact recreation (golf, tennis, hiking) with physician clearance",
+         "High-impact sport, plyometrics and running generally discouraged after joint replacement; consult the surgeon first",
+         "Strength 95% of the other leg", "Multi-joint, multi-plane strengthening, bike at high resistance, swimming",
+         0, False, None, []),
+    ]),
+    ("Hip fracture fixation (Ferrel)", "Post-op hip fracture fixation",
+     "Jason R. Ferrel, MD - Hip Fracture Fixation Rehabilitation Protocol (last updated July 10, 2024)", [
+        ("Phase I - Early post-op", "Weeks 0-2", True,
+         "Bed to standing and bed to chair transfers; standing practice with a walker in 30-second intervals; walking with "
+         "physical therapy 3 times a day; knee and ankle motion",
+         "Weight bearing as tolerated; no brace; hip flexion no more than 90°, progressed slowly as pain allows; knee and ankle "
+         "ROM unlimited",
+         "Hip flexion up to 90° as pain allows",
+         "Ice, ankle pumps, thigh and gluteal squeezes, walker gait training",
+         2, False, None,
+         [("heelSlide", 90, 10, 110, 0, 2, 8, 30), ("kneeExt", 85, 10, 0, 0, 2, 8, 30), ("sitToStand", 85, 10, 0, 0, 2, 5, 60)]),
+        ("Phase II - Progressive mobility", "Weeks 2-6", True,
+         "Progress transfers, standing time and walking distance with physical therapy 3 times a day",
+         "Weight bearing as tolerated; hip flexion no more than 90°, progressed slowly as pain allows",
+         "Hip flexion up to 90° as pain allows",
+         "Ankle pumps, thigh and gluteal squeezes, longer standing intervals and walks",
+         2, False, None,
+         [("heelSlide", 100, 10, 120, 0, 2, 8, 30), ("kneeExt", 85, 10, 0, 0, 2, 8, 30), ("sitToStand", 85, 10, 0, 0, 2, 8, 45)]),
+        ("Phase III - Gentle strengthening", "Weeks 6-12", True,
+         "Continue progressing weight bearing and ROM; gentle strengthening",
+         "Progress gently; stop exercises that cause pain",
+         "Progressing hip ROM",
+         "Calf raises; hip adduction (4-way hip kicks)",
+         2, False, None,
+         [("hipAbd", 20, 5, 35, 0, 2, 8, 30), ("hipExt", 15, 5, 25, 0, 2, 8, 30), ("march", 60, 10, 90, 0, 2, 8, 30),
+          ("hamstringCurl", 80, 10, 100, 0, 2, 8, 30), ("miniSquat", 30, 10, 45, 0, 2, 8, 30)]),
+        ("Phase IV - Continued strengthening", "After week 12", True,
+         "Continue progressing weight bearing, ROM and gentle strengthening",
+         "Progress gently; stop exercises that cause pain",
+         "Progressing hip ROM",
+         "Calf raises; hip adduction (4-way hip kicks)",
+         2, False, None,
+         [("hipAbd", 25, 5, 40, 0, 2, 8, 30), ("hipExt", 20, 5, 30, 0, 2, 8, 30), ("march", 70, 10, 100, 0, 2, 8, 30),
+          ("hamstringCurl", 90, 10, 110, 0, 2, 8, 30), ("miniSquat", 40, 10, 55, 0, 2, 8, 30)]),
+    ]),
+    ("Ankle fracture ORIF (MGB)", "Post-op ankle fracture with open reduction and internal fixation",
+     "Mass General Brigham Sports Medicine - Rehabilitation Protocol for Ankle Fracture with ORIF (revised 10/2021)", [
+        ("Phase I - Immediate post-op", "Weeks 0-6", True,
+         "Safe walking within the weight-bearing orders, including transfers and stairs; manage swelling; ankle ROM; keep "
+         "core, hip, knee and arm strength",
+         "Weight bearing and boot or cast per surgeon; VR exercises lying down only while non-weight bearing; no joint "
+         "mobilizations near the fracture; no instrument-assisted soft tissue work over the fracture until week 6. Progress "
+         "with pain under 3/10, minimal swelling, more ankle ROM and surgeon clearance for WBAT or full weight bearing",
+         "Increasing ankle ROM (measured by the therapist, not the webcam)",
+         "Ankle pumps, circles, inversion and eversion, seated heel slides for dorsiflexion, toe stretching, scar mobilization, "
+         "arm bike, quad sets, abdominal bracing, clamshells, prone hip extension and hamstring curls, seated heel and toe raises, "
+         "arch doming, joint position training",
+         0, False, None,
+         [("slr", 45, 5, 60, 0, 2, 8, 30), ("sidelyingHipAbd", 25, 5, 40, 0, 2, 8, 30)]),
+        ("Phase II - Intermediate post-op", "Weeks 7-12", True,
+         "Full ankle and foot ROM; progress strengthening; normal gait on all surfaces, weaning from the boot; return to "
+         "regular activities except sport",
+         "Full weight bearing and boot weaning per surgeon; standing VR exercises only once full weight bearing is allowed; "
+         "no joint mobilizations near the fracture until it is radiographically healed. Progress with no swelling or pain after "
+         "exercise, normal gait in a sneaker and ankle AROM equal to the other side",
+         "Ankle AROM equal to the other side (measured by the therapist)",
+         "Standing dorsiflexion stretch on a step, calf stretches, banded ankle exercises in 4 directions, heel raise progression, "
+         "stationary bike, treadmill, hip and leg machines, ball bridges, wobble board and single-leg balance",
+         0, False, None,
+         [("hipAbd", 25, 5, 40, 0, 2, 8, 30), ("hipExt", 20, 5, 30, 0, 2, 8, 30), ("hamstringCurl", 90, 10, 110, 0, 2, 8, 30),
+          ("miniSquat", 30, 10, 45, 0, 2, 8, 30)]),
+        ("Phase III - Late post-op", "Weeks 13-16", True,
+         "Good balance and control on the injured leg in all planes; progress strengthening; proper movement patterns",
+         "Avoid post-exercise pain and swelling",
+         "Full ankle ROM",
+         "Joint mobilizations as needed, calf machine, single-leg heel raises, hip hikes, single-leg press, slide-board lunges, "
+         "lateral step ups, step downs, single-leg squats, single-leg balance on unstable surfaces",
+         0, False, None,
+         [("miniLunge", 45, 10, 60, 0, 2, 8, 30), ("miniSquat", 45, 10, 60, 0, 2, 8, 30), ("sitToStand", 85, 10, 0, 0, 2, 8, 45),
+          ("kneeWallSlide", 60, 10, 75, 0, 2, 8, 30), ("march", 70, 10, 100, 0, 2, 8, 30), ("hipAbd", 30, 5, 45, 0, 2, 8, 30)]),
+        ("Phase IV - Transitional", "Weeks 17-20", False,
+         "Progress to plyometrics, sport-specific movement and low-impact fitness",
+         "Progress with no swelling or pain after exercise, heel rise test over 90% of the other side and 30 minutes of fast "
+         "walking without swelling or pain",
+         "Full ROM", "Elliptical, stair climber, rebounding heel raises, hopping in place", 0, False, None, []),
+        ("Phase V - Return to sport", "5+ months", False,
+         "Gradual return to running, jumping, hiking and sport",
+         "Surgeon clearance; functional tests 90% of the other side", "Full ROM and strength",
+         "Return to Running program, agility and plyometric program", 0, False, None, []),
+    ]),
+    ("Distal radius fracture ORIF (BWH)", "Post-op distal radius (wrist) fracture with ORIF",
+     "Brigham and Women's Hospital Rehabilitation Services - Distal Radius Fracture Post-Operative Hand Therapy Guideline (February 2021)", [
+        ("Phase I - Immediate post-op", "Days 1-10", True,
+         "Early ROM of the fingers, elbow and shoulder; minimize swelling (arm above the heart when resting; no sling, to "
+         "prevent shoulder stiffness)",
+         "No weight bearing on the injured arm; no lifting, pushing, pulling or forceful gripping; wrist orthosis as the surgeon "
+         "directs",
+         "Full elbow and shoulder motion; finger motion as tolerated",
+         "Finger and thumb AROM throughout the day, edema management, custom or prefabricated wrist orthosis from day 3-4",
+         2, False, None,
+         [("elbowFlex", 130, 10, 150, 0, 2, 8, 30), ("forwardReach", 90, 10, 110, 0, 2, 8, 30),
+          ("shoulderAbd", 90, 10, 120, 0, 2, 8, 30)]),
+        ("Phase II - Protection", "Day 11 to week 5", True,
+         "Increase wrist and forearm ROM; light functional use with the orthosis on; start grip strengthening; wean the "
+         "orthosis from week 4-5",
+         "No weight bearing on the injured arm; orthosis on at all times except hygiene and exercise until weaning starts; "
+         "mild discomfort is expected. Progress when wrist and forearm ROM improve with little or no pain",
+         "Improving wrist and forearm ROM (measured by the therapist)",
+         "Wrist and forearm active and active-assisted ROM, edema control (ice, Coban, compression, Kinesiotape), scar "
+         "management, grip and pinch strengthening, light daily tasks",
+         2, False, None,
+         [("elbowFlex", 140, 10, 150, 0, 2, 8, 30), ("shoulderFlex", 140, 10, 160, 0, 2, 8, 30),
+          ("shoulderAbd", 120, 10, 140, 0, 2, 8, 30)]),
+        ("Phase III - Intermediate", "Weeks 6-12", True,
+         "Regain wrist and forearm ROM and functional strength; return to previous daily activities",
+         "Gentle weight bearing only: table or counter first, then wall, then hands and knees; orthosis at night and in crowds "
+         "until week 8. Do wall push-ups only once counter-top weight bearing is comfortable",
+         "Wrist and forearm ROM regained (measured by the therapist)",
+         "Wrist and forearm joint mobilizations, static progressive orthosis if ordered, progressive wrist resistance from "
+         "week 6-8, quadruped and modified push-ups",
+         2, False, None,
+         [("wallPushUp", 90, 10, 0, 0, 2, 8, 30), ("elbowFlex", 140, 10, 150, 0, 2, 8, 30),
+          ("shoulderFlex", 150, 10, 170, 0, 2, 8, 30)]),
+        ("Phase IV - Advanced strengthening", "Weeks 12-20", False,
+         "Return to heavy work or sport; strengthening continues on the patient's own, with a trainer or in work conditioning",
+         "Formal therapy usually ends by week 8-12", "Functional strength for work or sport",
+         "Progressive strengthening and weight bearing for work or sport", 2, False, None, []),
+    ]),
+    ("Tibial plateau fracture ORIF (TCO)", "Post-op tibial plateau fracture with ORIF",
+     "Twin Cities Orthopedics, Matthew S. Butterfield, MD - Tibial Plateau Fracture ORIF PT Protocol (04/2024)", [
+        ("Phase I - Early post-op", "Weeks 0-2", True,
+         "Begin passive, assisted and active knee ROM 0-30° when seated; patellar mobilization; pain and swelling control; "
+         "quad activation",
+         "Hinged knee brace for 8 weeks, locked at 0° for walking and sleeping; unlock only when seated for 0-30°; touch-down "
+         "weight bearing with crutches or walker",
+         "Knee 0-30°",
+         "Patellar mobilization, ankle pumps, quad sets, NMES as needed",
+         2, False, None,
+         [("heelSlide", 30, 5, 35, 0, 2, 8, 30), ("slr", 45, 5, 60, 0, 2, 8, 30)]),
+        ("Phase II - Protected motion", "Weeks 2-6", True,
+         "Progress knee ROM to 0-90° (60° by week 4, 90° by week 6); quad isometrics; hip and core strength",
+         "Touch-down weight bearing in the brace; brace may be unlocked for walking from week 2; knee no further than 90°",
+         "60° knee flexion by week 4; 90° by week 6",
+         "Quad isometrics, knee extension stretches, heel raises, NMES or blood flow restriction as needed",
+         2, False, None,
+         [("heelSlide", 60, 10, 90, 0, 2, 8, 30), ("slr", 45, 5, 60, 0, 2, 8, 30), ("sidelyingHipAbd", 25, 5, 40, 0, 2, 8, 30)]),
+        ("Phase III - Loading", "Weeks 6-10", True,
+         "Reach full knee ROM; closed-chain exercise; hamstring strength; proprioception and balance",
+         "Touch-down weight bearing until week 8, then full weight bearing as tolerated; stop walker, cane or crutches at about "
+         "week 9 and the brace at week 10; lunges and other closed-chain work only once full weight bearing is allowed",
+         "Full knee ROM",
+         "Seated leg press 0-90°, proprioception, core and glute work, daily quad, hamstring and calf stretches, stationary bike "
+         "from week 8",
+         2, False, None,
+         [("heelSlide", 110, 10, 130, 0, 2, 8, 30), ("hamstringCurl", 90, 10, 110, 0, 2, 8, 30), ("hipAbd", 25, 5, 40, 0, 2, 8, 30),
+          ("miniLunge", 45, 10, 60, 0, 2, 8, 30)]),
+        ("Phase IV - Strengthening", "Weeks 10-16", True,
+         "Full ROM; functional strengthening; proprioception; low-intensity plyometrics from week 12",
+         "Start gym equipment light with high reps, then progress the load",
+         "Full knee ROM",
+         "Seated leg press, step up and step down, single-leg squat to chair, low-intensity double then single-leg hopping from "
+         "week 12, bike with resistance",
+         2, False, None,
+         [("sitToStand", 85, 10, 0, 0, 2, 8, 45), ("kneeWallSlide", 90, 10, 100, 0, 2, 8, 30), ("miniSquat", 45, 10, 60, 0, 2, 8, 30),
+          ("miniLunge", 60, 10, 80, 0, 2, 8, 30), ("hipAbd", 30, 5, 45, 0, 2, 8, 30)]),
+        ("Phase V - Return to activity", "Week 16+", False,
+         "Advanced function: running, sprinting, jumping and sport-specific activity; return to sport at 5-6 months",
+         "Per surgeon", "Full ROM and strength", "Agility, plyometrics and running progression", 2, False, None, []),
+    ]),
+    ("Lateral ankle sprain (MGB)", "Lateral ankle sprain, non-operative",
+     "Mass General Brigham Sports Medicine - Rehabilitation Protocol for Lateral Ankle Sprain: Non-operative Management (revised 9/2021)", [
+        ("Phase I - Protection and optimal loading", "Weeks 1-2", False,
+         "Reduce pain and swelling; improve weight bearing; protect healing structures",
+         "Brace or tape for weight-bearing activity; immobilization for 10 days for a severe sprain",
+         "Pain-free ankle motion as tolerated",
+         "Foot and ankle PROM, ankle pumps, circles and alphabet, seated heel and toe raises, towel curls, BAPS board, joint "
+         "mobilization for pain, gait training, balance on a firm surface if pain-free; ice, compression, elevation",
+         0, False, None, []),
+        ("Phase II - Sub-acute", "Weeks 3-6", True,
+         "Reduce pain; normalize gait; improve ankle ROM and single-leg stance; keep or improve hip and knee strength",
+         "Brace for weight-bearing activity. Progress with a non-antalgic gait, equal single-leg stance, full ankle ROM and 5/5 "
+         "ankle strength",
+         "Full ankle PROM and AROM (measured by the therapist)",
+         "Knee-to-wall dorsiflexion, calf stretches, joint mobilization, banded ankle exercises in 4 directions, double and "
+         "single-leg heel raises, toe raises, tandem stance and walking, single-leg stance, wobble board",
+         0, False, None,
+         [("hipAbd", 25, 5, 40, 0, 2, 8, 30), ("hipExt", 20, 5, 30, 0, 2, 8, 30), ("kneeExt", 85, 10, 0, 0, 2, 8, 30),
+          ("hamstringCurl", 90, 10, 110, 0, 2, 8, 30), ("miniSquat", 45, 10, 60, 0, 2, 8, 30)]),
+        ("Phase III - Late", "Weeks 7-10", True,
+         "Optimize strength and balance; begin plyometrics and return to running",
+         "Lace-up brace for functional activity as needed. Progress with 25 single-leg heel raises (or equal to the other side) "
+         "and Y-balance at least 80% of the other side",
+         "Full ankle ROM",
+         "Single-leg reach on firm and unstable surfaces, ball toss balance, double-leg hopping, lateral bounding, agility ladder",
+         0, False, None,
+         [("miniLunge", 60, 10, 80, 0, 2, 8, 30), ("wallSquatHold", 60, 10, 85, 5, 2, 8, 30), ("sitToStand", 85, 10, 0, 0, 2, 8, 45),
+          ("kneeWallSlide", 90, 10, 100, 0, 2, 8, 30), ("hipAbd", 30, 5, 45, 0, 2, 8, 30)]),
+        ("Phase IV - Return to sport", "Weeks 11-16", False,
+         "Full foot and ankle strength; motor control in higher-level activity; return to normal activities",
+         "Y-balance and hop tests at least 90% of the other side; no pain or swelling with plyometrics",
+         "Full ROM and strength", "Single-leg agility and hopping, change of direction drills, interval sport training, running",
+         0, False, None, []),
+    ]),
 ]
 
 # Columns added after the first version; added to existing databases on startup.
 MIGRATIONS = {
-    "patient": [("phase_id", "INTEGER"), ("phase_started_at", "TEXT")],
+    "patient": [("phase_id", "INTEGER"), ("phase_started_at", "TEXT"),
+                ("archived_at", "TEXT")],                                   # NULL = active (DEC-014)
     "session": [("pain_before", "INTEGER"), ("pain_after", "INTEGER"),
                 ("soreness_over_2h", "INTEGER"), ("swelling_cm", "REAL"),
                 ("session_uuid", "TEXT")],                                  # idempotency key from Unity
@@ -590,13 +900,43 @@ POST_MIGRATION_INDEXES = [
 ]
 
 
+def _builtin_matches(con, protocol_id, entry):
+    """True when a built-in protocol in the database still has exactly the content of its PROTOCOLS entry."""
+    name, condition, source, phases = entry
+    pr = con.execute("SELECT * FROM protocol WHERE protocol_id=?", (protocol_id,)).fetchone()
+    if (pr["condition"], pr["source"]) != (condition, source):
+        return False
+    rows = con.execute("SELECT * FROM protocol_phase WHERE protocol_id=? ORDER BY phase_no", (protocol_id,)).fetchall()
+    if len(rows) != len(phases):
+        return False
+    for ph, (pname, weeks, vr, goals, precautions, rom_goal, other, pain, soreness, swelling, exs) in zip(rows, phases):
+        if (ph["name"], ph["weeks"], bool(ph["vr_allowed"]), ph["goals"], ph["precautions"], ph["rom_goal"],
+                ph["other_exercises"], ph["max_pain_increase"], bool(ph["check_soreness"]), ph["max_swelling_cm"]) != \
+                (pname, weeks, bool(vr), goals, precautions, rom_goal, other, pain, bool(soreness), swelling):
+            return False
+        have = [(e["code"], e["target_angle"], e["tolerance"], e["safety_max"], e["hold_seconds"], e["sets"], e["reps"],
+                 e["rest_seconds"]) for e in con.execute("SELECT * FROM phase_exercise WHERE phase_id=? ORDER BY sort_order",
+                                                         (ph["phase_id"],))]
+        if have != [tuple(x) for x in exs]:
+            return False
+    return True
+
+
 def replace_protocols(con):
     """
-    Loads PROTOCOLS, replacing older built-in protocol data. Protocols therapists authored are kept.
-    Patients on an old built-in phase keep their exercises as a custom program; their phase history
-    stays, marked as the old version.
+    Brings the built-in protocols in line with PROTOCOLS. Protocols therapists authored are kept.
+    A built-in protocol whose content is unchanged is kept as it is, so patients on it keep their phase.
+    A changed or withdrawn one is removed: patients on its phases keep their exercises as a custom program,
+    and their phase history stays, marked as the old version. New ones are added.
     """
-    old = [r[0] for r in con.execute("SELECT protocol_id FROM protocol WHERE builtin=1")]
+    wanted = {entry[0]: entry for entry in PROTOCOLS}
+    old, kept = [], set()
+    for r in con.execute("SELECT protocol_id, name FROM protocol WHERE builtin=1 ORDER BY protocol_id").fetchall():
+        entry = wanted.get(r[1])
+        if entry and r[1] not in kept and _builtin_matches(con, r[0], entry):
+            kept.add(r[1])
+        else:
+            old.append(r[0])
     if old:
         marks = ",".join("?" for _ in old)
         phases = [r[0] for r in con.execute(f"SELECT phase_id FROM protocol_phase WHERE protocol_id IN ({marks})", old)]
@@ -608,7 +948,7 @@ def replace_protocols(con):
             con.execute(f"DELETE FROM phase_exercise WHERE phase_id IN ({pm})", phases)
             con.execute(f"DELETE FROM protocol_phase WHERE phase_id IN ({pm})", phases)
         con.execute(f"DELETE FROM protocol WHERE protocol_id IN ({marks})", old)
-    seed_protocols(con)
+    seed_protocols(con, [e for e in PROTOCOLS if e[0] not in kept])
     con.execute("INSERT OR REPLACE INTO app_meta(key, value) VALUES ('protocol_version', ?)", (PROTOCOL_VERSION,))
 
 
@@ -644,8 +984,8 @@ def add_exercise(con, program_id, code, rx=None):
                  v["safety_max"], v["hold_seconds"], v["sets"], v["reps"], v["rest_seconds"], cue, order))
 
 
-def seed_protocols(con):
-    for name, condition, source, phases in PROTOCOLS:
+def seed_protocols(con, entries=PROTOCOLS):
+    for name, condition, source, phases in entries:
         prid = con.execute("INSERT INTO protocol(name, condition, source, builtin) VALUES (?,?,?,1)",
                            (name, condition, source)).lastrowid
         for no, (pname, weeks, vr, goals, precautions, rom_goal, other, pain, soreness, swelling, exs) in enumerate(phases, 1):
@@ -845,93 +1185,199 @@ def readiness(con, p):
     return out
 
 
-def list_protocols(con):
-    protocols = con.execute("SELECT * FROM protocol ORDER BY protocol_id").fetchall()
-    if not protocols:
+def _phase_exercise_json(e):
+    code = e["code"]
+    return {
+        "code": code,
+        "name": LIBRARY[code][0] if code in LIBRARY else code,
+        "targetAngle": e["target_angle"],
+        "tolerance": e["tolerance"],
+        "safetyMax": e["safety_max"],
+        "holdSeconds": e["hold_seconds"],
+        "sets": e["sets"],
+        "reps": e["reps"],
+        "restSeconds": e["rest_seconds"]
+    }
+
+
+def _phase_json(ph, ex_list):
+    return {
+        "id": ph["phase_id"], "phaseNo": ph["phase_no"], "name": ph["name"], "weeks": ph["weeks"],
+        "vrAllowed": bool(ph["vr_allowed"]), "goals": ph["goals"], "precautions": ph["precautions"],
+        "romGoal": ph["rom_goal"] or "", "other": ph["other_exercises"] or "",
+        "minSessions": ph["min_sessions"], "minAccuracy": ph["min_accuracy"],
+        "maxPainIncrease": ph["max_pain_increase"], "checkSoreness": bool(ph["check_soreness"]),
+        "maxSwellingCm": ph["max_swelling_cm"],
+        "exercises": [e["name"] for e in ex_list if e["code"] in LIBRARY], "exerciseDetails": ex_list
+    }
+
+
+def _protocols_json(con, protocols):
+    ids = [pr["protocol_id"] for pr in protocols]
+    if not ids:
         return []
-
-    phases = con.execute("SELECT * FROM protocol_phase ORDER BY protocol_id, phase_no").fetchall()
-    exercises = con.execute("SELECT * FROM phase_exercise ORDER BY phase_id, sort_order").fetchall()
-
+    marks = ",".join("?" for _ in ids)
+    phases = con.execute(f"SELECT * FROM protocol_phase WHERE protocol_id IN ({marks}) ORDER BY protocol_id, phase_no", ids).fetchall()
     ex_by_phase = defaultdict(list)
-    for e in exercises:
-        code = e["code"]
-        name = LIBRARY[code][0] if code in LIBRARY else code
-        ex_by_phase[e["phase_id"]].append({
-            "code": code,
-            "name": name,
-            "targetAngle": e["target_angle"],
-            "tolerance": e["tolerance"],
-            "safetyMax": e["safety_max"],
-            "holdSeconds": e["hold_seconds"],
-            "sets": e["sets"],
-            "reps": e["reps"],
-            "restSeconds": e["rest_seconds"]
-        })
-
+    phase_ids = [ph["phase_id"] for ph in phases]
+    if phase_ids:
+        pm = ",".join("?" for _ in phase_ids)
+        for e in con.execute(f"SELECT * FROM phase_exercise WHERE phase_id IN ({pm}) ORDER BY phase_id, sort_order", phase_ids):
+            ex_by_phase[e["phase_id"]].append(_phase_exercise_json(e))
     phases_by_protocol = defaultdict(list)
     for ph in phases:
-        ex_list = ex_by_phase.get(ph["phase_id"], [])
-        ex_names = [e["name"] for e in ex_list if e["code"] in LIBRARY]
-        phases_by_protocol[ph["protocol_id"]].append({
-            "id": ph["phase_id"], "phaseNo": ph["phase_no"], "name": ph["name"], "weeks": ph["weeks"],
-            "vrAllowed": bool(ph["vr_allowed"]), "goals": ph["goals"], "precautions": ph["precautions"],
-            "romGoal": ph["rom_goal"] or "", "other": ph["other_exercises"] or "",
-            "exercises": ex_names, "exerciseDetails": ex_list
-        })
-
+        phases_by_protocol[ph["protocol_id"]].append(_phase_json(ph, ex_by_phase.get(ph["phase_id"], [])))
     return [{
         "id": pr["protocol_id"], "name": pr["name"], "condition": pr["condition"], "source": pr["source"],
+        "builtin": bool(pr["builtin"]),          # shipped protocols are read-only (DEC-014)
         "phases": phases_by_protocol.get(pr["protocol_id"], [])
     } for pr in protocols]
 
 
+def list_protocols(con):
+    return _protocols_json(con, con.execute("SELECT * FROM protocol ORDER BY protocol_id").fetchall())
+
+
 def get_protocol(con, protocol_id):
+    pr = con.execute("SELECT * FROM protocol WHERE protocol_id=?", (protocol_id,)).fetchall()
+    return _protocols_json(con, pr)[0] if pr else None
+
+
+# Bounds for phase progression criteria (same idea as the prescription bounds): json key -> column, type, min, max, default
+PHASE_CRITERIA = {
+    "minSessions": ("min_sessions", int, 1, 50, 3),
+    "minAccuracy": ("min_accuracy", float, 0, 100, 85.0),
+    "maxPainIncrease": ("max_pain_increase", int, 0, 10, 2),
+}
+TEXT_MAX = 500
+
+
+def _text(d, key, default="", max_len=TEXT_MAX):
+    v = d.get(key)
+    v = default if v is None else str(v).strip()
+    if len(v) > max_len:
+        raise BadRequest(f"{key} is too long (at most {max_len} characters)")
+    return v
+
+
+def _phase_values(ph, idx, current=None):
+    """Column values for a protocol phase from the dashboard's JSON. `current` (a row) fills fields left out."""
+    cur = dict(current) if current else {}
+
+    def text(key, col):
+        return _text(ph, key, cur.get(col) or "")
+
+    v = {
+        "name": text("name", "name") or f"Phase {idx}",
+        "weeks": text("weeks", "weeks"),
+        "vr_allowed": (1 if ph["vrAllowed"] else 0) if "vrAllowed" in ph else cur.get("vr_allowed", 1),
+        "goals": text("goals", "goals"),
+        "precautions": text("precautions", "precautions"),
+        "rom_goal": text("romGoal", "rom_goal"),
+        "other_exercises": _text(ph, "other", _text(ph, "otherExercises", cur.get("other_exercises") or "")),
+        "check_soreness": (1 if ph["checkSoreness"] else 0) if "checkSoreness" in ph else cur.get("check_soreness", 0),
+    }
+    for key, (col, cast, lo, hi, default) in PHASE_CRITERIA.items():
+        raw = ph.get(key)
+        v[col] = max(lo, min(hi, cast(raw))) if raw not in (None, "") else cur.get(col, default)
+    if "maxSwellingCm" in ph:
+        raw = ph.get("maxSwellingCm")
+        v["max_swelling_cm"] = None if raw in (None, "") else max(0.0, min(20.0, float(raw)))
+    else:
+        v["max_swelling_cm"] = cur.get("max_swelling_cm")
+    return v
+
+
+def _write_phase_exercises(con, phase_id, ex_list):
+    """Replace a phase's exercises. Unknown codes are skipped; values get the prescription bounds."""
+    con.execute("DELETE FROM phase_exercise WHERE phase_id=?", (phase_id,))
+    for s_idx, ex in enumerate(ex_list or []):
+        if isinstance(ex, str):
+            code, rx = ex, {}
+        elif isinstance(ex, dict):
+            code, rx = ex.get("code"), ex
+        else:
+            continue
+        if not code or code not in LIBRARY:
+            continue
+        lib_def = LIBRARY[code]
+        v = clamp_rx_columns({
+            "target_angle": rx.get("target_angle", rx.get("targetAngle", lib_def[5])),
+            "tolerance": rx.get("tolerance", lib_def[6]),
+            "safety_max": rx.get("safety_max", rx.get("safetyMax", lib_def[7])),
+            "hold_seconds": rx.get("hold_seconds", rx.get("holdSeconds", lib_def[8])),
+            "sets": rx.get("sets", lib_def[9]),
+            "reps": rx.get("reps", lib_def[10]),
+            "rest_seconds": rx.get("rest_seconds", rx.get("restSeconds", lib_def[11])),
+        })
+        con.execute("""INSERT INTO phase_exercise(phase_id, code, target_angle, tolerance, safety_max,
+                                             hold_seconds, sets, reps, rest_seconds, sort_order)
+                       VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (phase_id, code, v["target_angle"], v["tolerance"], v["safety_max"], v["hold_seconds"],
+                     v["sets"], v["reps"], v["rest_seconds"], s_idx))
+
+
+def _insert_phase(con, protocol_id, phase_no, v):
+    return con.execute("""INSERT INTO protocol_phase(protocol_id, phase_no, name, weeks, vr_allowed, goals, precautions,
+                                                     rom_goal, other_exercises, min_sessions, min_accuracy,
+                                                     max_pain_increase, check_soreness, max_swelling_cm)
+                          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                       (protocol_id, phase_no, v["name"], v["weeks"], v["vr_allowed"], v["goals"], v["precautions"],
+                        v["rom_goal"], v["other_exercises"], v["min_sessions"], v["min_accuracy"],
+                        v["max_pain_increase"], v["check_soreness"], v["max_swelling_cm"])).lastrowid
+
+
+def _authored_protocol(con, protocol_id):
+    """A protocol the therapist may change. Built-in ones are reloaded from PROTOCOLS on upgrade, so they stay read-only."""
     pr = con.execute("SELECT * FROM protocol WHERE protocol_id=?", (protocol_id,)).fetchone()
     if not pr:
-        return None
-    phases = con.execute("SELECT * FROM protocol_phase WHERE protocol_id=? ORDER BY phase_no", (protocol_id,)).fetchall()
-    phase_ids = [ph["phase_id"] for ph in phases]
-    ex_by_phase = defaultdict(list)
-    if phase_ids:
-        placeholders = ",".join("?" for _ in phase_ids)
-        exercises = con.execute(f"SELECT * FROM phase_exercise WHERE phase_id IN ({placeholders}) ORDER BY phase_id, sort_order", phase_ids).fetchall()
-        for e in exercises:
-            code = e["code"]
-            name = LIBRARY[code][0] if code in LIBRARY else code
-            ex_by_phase[e["phase_id"]].append({
-                "code": code,
-                "name": name,
-                "targetAngle": e["target_angle"],
-                "tolerance": e["tolerance"],
-                "safetyMax": e["safety_max"],
-                "holdSeconds": e["hold_seconds"],
-                "sets": e["sets"],
-                "reps": e["reps"],
-                "restSeconds": e["rest_seconds"]
-            })
+        raise NotFound(f"Protocol with id {protocol_id} not found")
+    if pr["builtin"]:
+        raise Forbidden("Built-in protocols are read-only. Create your own protocol to change phases.")
+    return pr
 
-    phases_out = []
-    for ph in phases:
-        ex_list = ex_by_phase.get(ph["phase_id"], [])
-        ex_names = [e["name"] for e in ex_list if e["code"] in LIBRARY]
-        phases_out.append({
-            "id": ph["phase_id"], "phaseNo": ph["phase_no"], "name": ph["name"], "weeks": ph["weeks"],
-            "vrAllowed": bool(ph["vr_allowed"]), "goals": ph["goals"], "precautions": ph["precautions"],
-            "romGoal": ph["rom_goal"] or "", "other": ph["other_exercises"] or "",
-            "exercises": ex_names, "exerciseDetails": ex_list
-        })
 
-    return {
-        "id": pr["protocol_id"], "name": pr["name"], "condition": pr["condition"], "source": pr["source"],
-        "phases": phases_out
-    }
+def add_phase(con, protocol_id, body):
+    """Append a phase to a therapist-authored protocol."""
+    _authored_protocol(con, protocol_id)
+    if not _text(body, "name"):
+        raise BadRequest("Phase name is required")
+    nxt = con.execute("SELECT COALESCE(MAX(phase_no), 0) + 1 FROM protocol_phase WHERE protocol_id=?", (protocol_id,)).fetchone()[0]
+    phase_id = _insert_phase(con, protocol_id, nxt, _phase_values(body, nxt))
+    _write_phase_exercises(con, phase_id, body.get("exercises"))
+    con.commit()
+    return get_protocol(con, protocol_id)
+
+
+def update_phase(con, protocol_id, phase_id, body):
+    """
+    Edit a phase of a therapist-authored protocol. Fields left out keep their value; "exercises", when sent,
+    replaces the phase's exercise list. Patients already on the phase keep their current prescription
+    (a phase's exercises are copied to the patient when it is assigned).
+    """
+    _authored_protocol(con, protocol_id)
+    row = con.execute("SELECT * FROM protocol_phase WHERE phase_id=? AND protocol_id=?", (phase_id, protocol_id)).fetchone()
+    if not row:
+        raise NotFound("Unknown phase for this protocol")
+    if "name" in body and not _text(body, "name"):
+        raise BadRequest("Phase name is required")
+    v = _phase_values(body, row["phase_no"], current=row)
+    con.execute("""UPDATE protocol_phase SET name=?, weeks=?, vr_allowed=?, goals=?, precautions=?, rom_goal=?,
+                   other_exercises=?, min_sessions=?, min_accuracy=?, max_pain_increase=?, check_soreness=?,
+                   max_swelling_cm=? WHERE phase_id=?""",
+                (v["name"], v["weeks"], v["vr_allowed"], v["goals"], v["precautions"], v["rom_goal"],
+                 v["other_exercises"], v["min_sessions"], v["min_accuracy"], v["max_pain_increase"],
+                 v["check_soreness"], v["max_swelling_cm"], phase_id))
+    if "exercises" in body:
+        _write_phase_exercises(con, phase_id, body.get("exercises"))
+    con.commit()
+    return get_protocol(con, protocol_id)
 
 
 def add_protocol(con, body):
-    name = (body.get("name") or "").strip()
-    condition = (body.get("condition") or "").strip()
-    source = (body.get("source") or "").strip()
+    name = _text(body, "name", max_len=200)
+    condition = _text(body, "condition", max_len=200)
+    source = _text(body, "source")
     if not name:
         raise BadRequest("Protocol name is required")
 
@@ -957,61 +1403,9 @@ def add_protocol(con, body):
         }]
 
     for idx, ph in enumerate(phases, start=1):
-        pname = (ph.get("name") or f"Phase {idx}").strip()
         pno = int(ph.get("phaseNo") or idx)
-        weeks = (ph.get("weeks") or "").strip()
-        vr_allowed = 1 if ph.get("vrAllowed", True) else 0
-        goals = (ph.get("goals") or "").strip()
-        precautions = (ph.get("precautions") or "").strip()
-        rom_goal = (ph.get("romGoal") or "").strip()
-        other_ex = (ph.get("other") or ph.get("otherExercises") or "").strip()
-        min_sessions = int(ph.get("minSessions") or 3)
-        min_accuracy = float(ph.get("minAccuracy") or 85.0)
-        max_pain = int(ph.get("maxPainIncrease") or 2)
-        check_soreness = 1 if ph.get("checkSoreness") else 0
-        max_swelling = ph.get("maxSwellingCm")
-        if max_swelling is not None and max_swelling != "":
-            max_swelling = float(max_swelling)
-        else:
-            max_swelling = None
-
-        ph_cur = con.execute("""INSERT INTO protocol_phase(protocol_id, phase_no, name, weeks, vr_allowed,
-                                               goals, precautions, rom_goal, other_exercises,
-                                               min_sessions, min_accuracy, max_pain_increase,
-                                               check_soreness, max_swelling_cm)
-                                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                             (protocol_id, pno, pname, weeks, vr_allowed, goals, precautions,
-                              rom_goal, other_ex, min_sessions, min_accuracy, max_pain,
-                              check_soreness, max_swelling))
-        phase_id = ph_cur.lastrowid
-
-        ex_list = ph.get("exercises") or []
-        for s_idx, ex in enumerate(ex_list):
-            if isinstance(ex, str):
-                code = ex
-                rx = {}
-            elif isinstance(ex, dict):
-                code = ex.get("code")
-                rx = ex
-            else:
-                continue
-            if not code or code not in LIBRARY:
-                continue
-            lib_def = LIBRARY[code]
-            v = clamp_rx_columns({
-                "target_angle": rx.get("target_angle", rx.get("targetAngle", lib_def[5])),
-                "tolerance": rx.get("tolerance", lib_def[6]),
-                "safety_max": rx.get("safety_max", rx.get("safetyMax", lib_def[7])),
-                "hold_seconds": rx.get("hold_seconds", rx.get("holdSeconds", lib_def[8])),
-                "sets": rx.get("sets", lib_def[9]),
-                "reps": rx.get("reps", lib_def[10]),
-                "rest_seconds": rx.get("rest_seconds", rx.get("restSeconds", lib_def[11])),
-            })
-            con.execute("""INSERT INTO phase_exercise(phase_id, code, target_angle, tolerance, safety_max,
-                                                 hold_seconds, sets, reps, rest_seconds, sort_order)
-                                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                        (phase_id, code, v["target_angle"], v["tolerance"], v["safety_max"], v["hold_seconds"],
-                         v["sets"], v["reps"], v["rest_seconds"], s_idx))
+        phase_id = _insert_phase(con, protocol_id, pno, _phase_values(ph, idx))
+        _write_phase_exercises(con, phase_id, ph.get("exercises"))
 
     con.commit()
     prot = get_protocol(con, protocol_id)
@@ -1072,6 +1466,38 @@ def add_patient(con, body, therapist_id):
     return {"id": pid, "code": code, "name": name, "condition": condition}
 
 
+def update_patient(con, patient_id, body):
+    """Edit a patient's name or condition. The code can't change: the VR app on the patient's PC is set up with it."""
+    p = con.execute("SELECT * FROM patient WHERE patient_id=?", (patient_id,)).fetchone()
+    if not p:
+        raise NotFound("Unknown patient")
+    if "code" in body and str(body["code"]).strip().upper() != p["code"]:
+        raise BadRequest("The patient code can't be changed; the VR app is set up with it")
+    name = _text(body, "name", p["name"] or "", max_len=200) or f"Patient {p['code']}"
+    condition = _text(body, "condition", p["condition"] or "", max_len=200) or "Orthopedic Physical Therapy"
+    con.execute("UPDATE patient SET name=?, condition=? WHERE patient_id=?", (name, condition, patient_id))
+    con.commit()
+    return {"id": patient_id, "code": p["code"], "name": name, "condition": condition}
+
+
+def set_patient_archived(con, patient_id, body):
+    """
+    DEC-014: archive instead of delete. An archived patient keeps every record, is hidden from the caseload
+    by default, and the VR app can't start new sessions for them (uploads of sessions already recorded still work).
+    """
+    p = con.execute("SELECT * FROM patient WHERE patient_id=?", (patient_id,)).fetchone()
+    if not p:
+        raise NotFound("Unknown patient")
+    if not isinstance(body.get("archived"), bool):
+        raise BadRequest("archived must be true or false")
+    archived_at = None
+    if body["archived"]:
+        archived_at = p["archived_at"] or datetime.now().isoformat(timespec="seconds")   # archiving twice keeps the first date
+    con.execute("UPDATE patient SET archived_at=? WHERE patient_id=?", (archived_at, patient_id))
+    con.commit()
+    return {"id": patient_id, "code": p["code"], "archivedAt": archived_at}
+
+
 # ------------------------------------------------------------- API logic
 def get_program(con, patient_id, patient=None, program=None):
     p = patient or con.execute("SELECT * FROM patient WHERE patient_id=?", (patient_id,)).fetchone()
@@ -1082,7 +1508,7 @@ def get_program(con, patient_id, patient=None, program=None):
     badges = [r["badge_code"] for r in con.execute("SELECT badge_code FROM patient_badge WHERE patient_id=?", (patient_id,))]
     lvl = level_from_xp(p["xp"])
     return {
-        "patient": {"id": p["patient_id"], "code": p["code"], "name": p["name"], "xp": p["xp"],
+        "patient": {"id": p["patient_id"], "code": p["code"], "name": p["name"], "condition": p["condition"], "xp": p["xp"],
                     "level": lvl["level"], "xpIntoLevel": lvl["xp_into_level"], "xpForNext": lvl["xp_for_next"],
                     "badges": badges, "streak": streak(con, patient_id, prog, created_at=p["created_at"])},
         "program": {"id": prog["program_id"], "name": prog["name"], "days": schedule(prog), "maxReps": prog["max_reps"]},
@@ -1410,7 +1836,11 @@ def change_exercises(con, patient_id, method, body, exercise_id=None):
     return get_program(con, patient_id, patient=p)
 
 
-def dashboard(con, patient_id):
+SESSION_PAGE = 50          # dashboard session rows per page ("Show older sessions" asks for more)
+SESSION_LIMIT_MAX = 1000
+
+
+def dashboard(con, patient_id, session_limit=SESSION_PAGE):
     p = con.execute("SELECT * FROM patient WHERE patient_id=?", (patient_id,)).fetchone()
     if not p:
         return None
@@ -1427,7 +1857,7 @@ def dashboard(con, patient_id):
                CASE WHEN SUM(r.attempts)>0 THEN SUM(r.avg_accuracy*r.attempts)/SUM(r.attempts) ELSE 0 END AS accuracy,
                CASE WHEN SUM(r.attempts)>0 THEN SUM(r.mean_angle_error*r.attempts)/SUM(r.attempts) ELSE 0 END AS mean_err
         FROM session s LEFT JOIN performance_record r ON r.session_id = s.session_id
-        WHERE s.patient_id=? GROUP BY s.session_id ORDER BY s.started_at DESC, s.session_id DESC LIMIT 50""", (patient_id,)).fetchall()
+        WHERE s.patient_id=? GROUP BY s.session_id ORDER BY s.started_at DESC, s.session_id DESC LIMIT ?""", (patient_id, session_limit)).fetchall()
     sessions = [dict(r) for r in sessions]
     recent = [s for s in sessions if s["started_at"][:10] >= since]
     att = sum(s["attempts"] for s in recent)
@@ -1446,12 +1876,14 @@ def dashboard(con, patient_id):
             "validReps": sum(s["valid"] for s in recent),
             "streak": info["patient"]["streak"],
         },
+        "archivedAt": p["archived_at"],
         "calendar": statuses,
         "readiness": readiness(con, p),
         "phaseHistory": [dict(r) for r in con.execute("""
             SELECT h.changed_at, h.note, ph.name AS phase, pr.name AS protocol FROM phase_history h
             LEFT JOIN protocol_phase ph ON ph.phase_id = h.phase_id LEFT JOIN protocol pr ON pr.protocol_id = ph.protocol_id
             WHERE h.patient_id=? ORDER BY h.history_id DESC LIMIT 10""", (patient_id,))],
+        "sessionsTotal": con.execute("SELECT COUNT(*) FROM session WHERE patient_id=?", (patient_id,)).fetchone()[0],
         "sessions": [{**s, "accuracy": round(s["accuracy"], 1), "mean_err": round(s["mean_err"], 1)} for s in sessions],
         "byExercise": [{**dict(r), "accuracy": round(r["accuracy"], 1), "mean_err": round(r["mean_err"], 1)} for r in per_ex],
     }
@@ -1702,6 +2134,8 @@ class Handler(BaseHTTPRequestHandler):
             if err:
                 return self._send(err[0], {"error": err[1]})
             if method == "GET" and parts == ["api", "vr", "program"]:
+                if p["archived_at"]:
+                    return self._send(403, {"error": "This patient is archived. Ask the therapist to reactivate them."})
                 return self._send(200, get_program(con, p["patient_id"], patient=p))
             if method == "POST" and parts == ["api", "vr", "sessions"]:
                 body = self._body()
@@ -1743,14 +2177,16 @@ class Handler(BaseHTTPRequestHandler):
                     COALESCE(pr.name, 'Custom Prescription') AS protocol_name,
                     COALESCE(ph.name, 'Phase 1') AS phase_name,
                     COUNT(s.session_id) AS total_sessions,
-                    MAX(s.started_at) AS last_session_at
+                    MAX(s.started_at) AS last_session_at,
+                    p.archived_at
                 FROM patient p
                 LEFT JOIN protocol_phase ph ON ph.phase_id = p.phase_id
                 LEFT JOIN protocol pr ON pr.protocol_id = ph.protocol_id
                 LEFT JOIN session s ON s.patient_id = p.patient_id
+                WHERE p.archived_at IS NULL OR ?
                 GROUP BY p.patient_id
                 ORDER BY p.code
-            """).fetchall()
+            """, (parse_qs(urlparse(self.path).query).get("include_archived", ["0"])[0] == "1",)).fetchall()
             return self._send(200, [dict(r) for r in rows])
         if method == "POST" and parts == ["api", "patients"]:
             return self._send(201, add_patient(con, self._body(), therapist["therapist_id"]))
@@ -1760,6 +2196,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(201, add_protocol(con, self._body()))
         if method == "DELETE" and len(parts) == 3 and parts[:2] == ["api", "protocols"]:
             return self._send(200, delete_protocol(con, self._id(parts[2])))
+        if method == "POST" and len(parts) == 4 and parts[1] == "protocols" and parts[3] == "phases":
+            return self._send(201, add_phase(con, self._id(parts[2]), self._body()))
+        if method == "PUT" and len(parts) == 5 and parts[1] == "protocols" and parts[3] == "phases":
+            return self._send(200, update_phase(con, self._id(parts[2]), self._id(parts[4]), self._body()))
+        if method == "PUT" and len(parts) == 3 and parts[1] == "patients":
+            return self._send(200, update_patient(con, self._id(parts[2]), self._body()))
+        if method == "POST" and len(parts) == 4 and parts[1] == "patients" and parts[3] == "archive":
+            return self._send(200, set_patient_archived(con, self._id(parts[2]), self._body()))
         if len(parts) == 4 and parts[1] == "patients" and parts[3] == "protocol" and method == "DELETE":
             return self._send(200, remove_patient_protocol(con, self._id(parts[2])))
         if len(parts) == 4 and parts[1] == "patients" and parts[3] == "phase" and method == "POST":
@@ -1780,7 +2224,12 @@ class Handler(BaseHTTPRequestHandler):
         if len(parts) == 4 and parts[1] == "patients" and parts[3] in ("program", "dashboard"):
             pid = self._id(parts[2])
             if method == "GET":
-                data = get_program(con, pid) if parts[3] == "program" else dashboard(con, pid)
+                if parts[3] == "program":
+                    data = get_program(con, pid)
+                else:
+                    # Never fewer than one page: the 14-day KPIs are computed from these rows
+                    limit = int(parse_qs(urlparse(self.path).query).get("sessions", [SESSION_PAGE])[0])
+                    data = dashboard(con, pid, min(max(limit, SESSION_PAGE), SESSION_LIMIT_MAX))
                 return self._send(200, data) if data else self._send(404, {"error": "Patient not found"})
             if method == "PUT" and parts[3] == "program":
                 return self._send(200, update_program(con, pid, self._body()))
