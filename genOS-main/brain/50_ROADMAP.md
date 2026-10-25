@@ -44,6 +44,13 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M4.4 | M4 | done | Tracker Measurement Correctness |
 | M4.5 | M4 | done | Evaluation Pipeline Integrity |
 | M4.6 | M4 | done | Single Source of Exercise Definitions |
+| M5 | — | active | Dashboard & Game Experience |
+| M5.1 | M5 | active | Dashboard UX & Accessibility Polish |
+| M5.2 | M5 | planned | Patient & Protocol Management |
+| M5.3 | M5 | planned | Clinical Insights & Attention Flags |
+| M5.4 | M5 | planned | Session Flow Polish |
+| M5.5 | M5 | planned | Session Summary & Progress Screens |
+| M5.6 | M5 | planned | Audio & Visual Assets |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -54,9 +61,9 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 
 ## Suggested sequence
 
-`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ next program milestone not decided yet
+`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (active: dashboard & game experience)
 
-Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided.
+Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided (it takes the next free `M` number when scheduled).
 
 ---
 
@@ -249,6 +256,75 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Completion criteria:** a new exercise using an existing pose works after adding only a `LIBRARY` entry.
 - **Dependencies:** M4.3, M4.4
 - **Systems:** ExerciseEvaluation, AvatarCoach, ClinicalBackend
+
+
+## M5 — Dashboard & Game Experience
+
+- **Status:** active
+- **Objective:** Make the therapist dashboard easier and safer to use, give therapists patient/protocol management and early warnings, and make the patient game more rewarding and polished. Scope chosen by the human on 2026-10-26; showing the unused dashboard data (TASK-001) and the high-priority backlog (TASK-003..TASK-006) are deliberately outside M5.
+- **Success criteria:**
+  - The dashboard works fully by keyboard, is usable on a narrow screen, and shows honest empty, loading and error states.
+  - Therapists can edit and archive patients and edit protocol phases without losing clinical records.
+  - The caseload flags patients who need attention, with the reasons and the input sources counted.
+  - The game has clear pacing between exercises, a rewarding summary and a progress page (history, streak, level, badges).
+  - Placeholder sounds, music, badge art and text rendering are replaced with licensed assets, with credits recorded.
+- **Children:**
+  - `M5.1`: Dashboard UX & Accessibility Polish (active)
+  - `M5.2`: Patient & Protocol Management
+  - `M5.3`: Clinical Insights & Attention Flags
+  - `M5.4`: Session Flow Polish
+  - `M5.5`: Session Summary & Progress Screens
+  - `M5.6`: Audio & Visual Assets
+- **Done when:** all children are done; the server, tracker, evaluation and Unity EditMode test suites pass; the human has done a dashboard walkthrough and a Play-mode walkthrough of the game (listed in `pending_human_tests` while open; the milestone is TBF until then).
+- **Dependencies:** M4. The dashboard children (M5.1–M5.3) and the game children (M5.4–M5.6) don't depend on each other.
+
+### M5.1 — Dashboard UX & Accessibility Polish
+- **Status:** active
+- **Objective:** Make the existing dashboard robust, accessible and consistent before adding features to it.
+- **Deliverables:** empty, loading and inline error states (no fake "No Data" chart point; library/protocol load failures shown); keyboard-reachable navigation; dialogs that close on Escape, trap and restore focus, with labelled fields; tab roles on sub-tabs; status not shown by colour alone; responsive layout (`@media`, dialog grids); colours from CSS variables and no emoji in status text; unused Tailwind script removed; no `@latest` CDN fallback; session time shown, paging past 50 rows, duplicate CSV button removed.
+- **Completion criteria:** the dashboard is fully usable by keyboard and at ~400 px width; empty and error states are correct; the server test suites pass; human dashboard walkthrough.
+- **Dependencies:** M4.2
+- **Systems:** TherapistDashboard
+
+### M5.2 — Patient & Protocol Management
+- **Status:** planned
+- **Objective:** Let therapists correct and retire records and refine protocols without touching the database.
+- **Deliverables:** edit patient details; archive / unarchive patients (records kept, archived hidden from the caseload by default; decision recorded); edit and add phases on therapist-authored protocols (built-in protocols read-only); new endpoints with authorization, bounds checks and escaping as in M4.2; schema migration in the existing order; tests. The patient name field keeps its current behaviour (TASK-004 decides its future).
+- **Completion criteria:** backend and authorization tests cover each new endpoint, including unauthorized access and archived-patient behaviour, and pass.
+- **Dependencies:** M5.1
+- **Systems:** ClinicalBackend, TherapistDashboard
+
+### M5.3 — Clinical Insights & Attention Flags
+- **Status:** planned
+- **Objective:** Show the therapist which patients need attention first, and why.
+- **Deliverables:** server-computed per-patient flags (pain rising over recent sessions, accuracy dropping, missed scheduled days, unsafe reps); a "needs attention" column and sort on the caseload; reasons in the chart header; thresholds as named placeholder constants for PT review (see TASK-007); each flag states which input sources it counted (simulated sessions still count until TASK-003 is decided); tests.
+- **Completion criteria:** each flag has tests for firing and not firing; the caseload sorts by attention.
+- **Dependencies:** M5.1
+- **Systems:** ClinicalBackend, TherapistDashboard
+
+### M5.4 — Session Flow Polish
+- **Status:** planned
+- **Objective:** Give the patient clear pacing and control during a session.
+- **Deliverables:** 3-2-1 countdown and transition card between exercises; exercise-complete celebration; "Restart exercise" in the pause menu (rep log and session UUID stay consistent); queued offline uploads shown on the menu; control hints from the active input mode; EditMode tests for new pure logic.
+- **Completion criteria:** EditMode tests pass; restart keeps the uploaded session correct; human Play-mode check.
+- **Dependencies:** M4.3
+- **Systems:** SessionOrchestration, VRClinicExperience
+
+### M5.5 — Session Summary & Progress Screens
+- **Status:** planned
+- **Objective:** Make progress visible and rewarding to the patient.
+- **Deliverables:** summary with per-exercise breakdown, animated XP fill, badge reveal online and offline, and a clear level-up moment (not a string match); main-menu Progress page with recent sessions, streak, level/XP and a badge gallery (earned and locked); progress data from a loopback-only, patient-code-scoped VR route or the program payload (DEC-009), shown as cached when offline; server tests; EditMode tests for summary/progress shaping and `GamificationManager`.
+- **Completion criteria:** server and EditMode tests pass; human Play-mode check online and offline.
+- **Dependencies:** M5.4
+- **Systems:** Gamification, SessionOrchestration, ClinicalBackend, VRClinicExperience
+
+### M5.6 — Audio & Visual Assets
+- **Status:** planned
+- **Objective:** Replace placeholder sounds, art and text rendering.
+- **Deliverables:** real sound effects (level-up, badge, warning, click, hold complete); a music track; one icon per badge; a coach idle animation; TextMeshPro for HUD and menu text; assets only from CC0/licensed sources or supplied by the human, with a credits file recording source and licence; generated chimes kept as a fallback.
+- **Completion criteria:** every asset is credited; the game runs with assets present and with them missing; human Play-mode check (legibility, volume).
+- **Dependencies:** M5.5 (badge reveal and progress page use the badge icons)
+- **Systems:** VRClinicExperience, AvatarCoach, Gamification
 
 
 ## HW — Hardware Integration & Field Validation (unscheduled)

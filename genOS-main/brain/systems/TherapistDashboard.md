@@ -4,7 +4,7 @@
 Delivers a web browser interface for physical therapists to monitor patient adherence, customize exercise prescriptions, record clinical progress notes, and approve protocol stage advancements.
 
 ## Status
-`stable`
+`in-progress` (M5.1 Dashboard UX & Accessibility Polish; M5.2 and M5.3 follow)
 
 ## Responsibilities
 - Serve as a formal clinical Rehabilitation Monitoring & Prescription System (RMS) designed specifically for Physical Therapists.
