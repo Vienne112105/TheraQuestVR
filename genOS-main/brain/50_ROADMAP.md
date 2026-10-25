@@ -47,7 +47,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M5 | — | active | Dashboard & Game Experience |
 | M5.1 | M5 | TBF | Dashboard UX & Accessibility Polish |
 | M5.2 | M5 | TBF | Patient & Protocol Management |
-| M5.3 | M5 | planned | Clinical Insights & Attention Flags |
+| M5.3 | M5 | TBF | Clinical Insights & Attention Flags |
 | M5.4 | M5 | planned | Session Flow Polish |
 | M5.5 | M5 | planned | Session Summary & Progress Screens |
 | M5.6 | M5 | planned | Audio & Visual Assets |
@@ -272,7 +272,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Children:**
   - `M5.1`: Dashboard UX & Accessibility Polish (TBF)
   - `M5.2`: Patient & Protocol Management (TBF)
-  - `M5.3`: Clinical Insights & Attention Flags
+  - `M5.3`: Clinical Insights & Attention Flags (TBF)
   - `M5.4`: Session Flow Polish
   - `M5.5`: Session Summary & Progress Screens
   - `M5.6`: Audio & Visual Assets
@@ -299,7 +299,8 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** ClinicalBackend, TherapistDashboard
 
 ### M5.3 — Clinical Insights & Attention Flags
-- **Status:** planned
+- **Status:** TBF
+- **Verification so far (2026-10-26):** backend tests 51 pass (9 new: no flags for a quiet patient, pain spike, pain rising across sessions, accuracy drop and a small dip not flagged, unsafe reps with old sessions ignored, missed days, no missed days before enrolment, no flags when archived; sources counted per flag). Browser check at the app's minimum window on a throwaway database: flagged patient sorted first with chips, chart notice with reasons and counted sources (non-webcam sessions called out), Clinical Status box from the flags. Left: the human check (`pending_human_tests`) and PT review of the thresholds (TASK-007).
 - **Objective:** Show the therapist which patients need attention first, and why.
 - **Deliverables:** server-computed per-patient flags (pain rising over recent sessions, accuracy dropping, missed scheduled days, unsafe reps); a "needs attention" column and sort on the caseload; reasons in the chart header; thresholds as named placeholder constants for PT review (see TASK-007); each flag states which input sources it counted (simulated sessions still count until TASK-003 is decided); tests.
 - **Completion criteria:** each flag has tests for firing and not firing; the caseload sorts by attention.

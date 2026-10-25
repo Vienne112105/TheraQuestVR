@@ -36,6 +36,7 @@ Provides a lightweight, local-first Python REST API and SQLite persistence layer
 - A session upload with a `session_uuid` already stored is answered with the stored session (idempotent retry), never saved twice.
 - Re-seeding built-in protocols (`protocol.builtin = 1`) must never delete therapist-authored protocols, and keeps built-in protocols whose content is unchanged (patients on them keep their phase); only changed or withdrawn ones are replaced.
 - Built-in protocols are read-only through the API; only therapist-authored protocols can have phases edited or added (DEC-014).
+- Attention flags (M5.3) are computed by the server only (`attention_flags`), suggest and never act, look back `ATTENTION_DAYS`, report the input sources they counted, and are never shown for archived patients. Thresholds are placeholders until a PT confirms them (TASK-007).
 - Patients are archived (`archived_at`), never deleted. An archived patient gets no new VR program, but sessions already recorded still upload (DEC-014).
 - A patient code never changes after registration (the VR app is configured with it).
 - Every prescription write path applies the same bounds (`RX_FIELDS`).

@@ -11,6 +11,7 @@ import shutil
 import sqlite3
 import tempfile
 import unittest
+from datetime import date, timedelta
 
 import server
 from testsupport import ServerTestCase, TEST_USER, TEST_PASSWORD
@@ -505,6 +506,107 @@ class ProtocolPhaseEditTests(ServerTestCase):
         self.call("PUT", f"/api/protocols/{prot['id']}/phases/{ph['id']}", {"exercises": ["heelSlide"]}, self.auth)
         _, prog = self.call("GET", f"/api/patients/{pid}/program", headers=self.auth)
         self.assertEqual([e["code"] for e in prog["exercises"]], ["slr"])
+
+
+class AttentionFlagTests(ServerTestCase):
+    """M5.3: per-patient attention flags (pain, accuracy, missed days, unsafe reps) with the sources they counted."""
+
+    counter = 0
+
+    def new_patient(self):
+        AttentionFlagTests.counter += 1
+        code = f"P-6{AttentionFlagTests.counter:02d}"
+        status, body = self.call("POST", "/api/patients", {"code": code}, self.auth)
+        self.assertEqual(status, 201, body)
+        return body["id"], {"X-Patient-Code": code}
+
+    def upload(self, pid, vr, days_ago, accuracy=90, unsafe=0, source="webcam"):
+        _, prog = self.call("GET", "/api/vr/program", headers=vr)
+        day = (date.today() - timedelta(days=days_ago)).isoformat()
+        results = [{"exercise_id": e["id"], "target_reps": e["reps"] * e["sets"], "valid_reps": e["reps"] * e["sets"],
+                    "attempts": e["reps"] * e["sets"], "avg_accuracy": accuracy, "mean_angle_error": 3,
+                    "unsafe_reps": unsafe} for e in prog["exercises"]]
+        body = self.session_body(pid, results, input_source=source,
+                                 started_at=f"{day}T09:{days_ago:02d}:00", ended_at=f"{day}T09:59:00")
+        status, out = self.call("POST", "/api/vr/sessions", body, vr)
+        self.assertEqual(status, 201, out)
+        return out["session_id"]
+
+    def pain(self, sid, before, after):
+        self.assertEqual(self.call("PUT", f"/api/sessions/{sid}/clinical",
+                                   {"pain_before": before, "pain_after": after}, self.auth)[0], 200)
+
+    def flags(self, pid):
+        _, dash = self.call("GET", f"/api/patients/{pid}/dashboard", headers=self.auth)
+        return {f["code"]: f for f in dash["attention"]}
+
+    def test_quiet_patient_has_no_flags(self):
+        pid, vr = self.new_patient()
+        for d in (1, 2, 3):
+            self.pain(self.upload(pid, vr, d), 2, 3)
+        self.assertEqual(self.flags(pid), {})
+
+    def test_pain_spike(self):
+        pid, vr = self.new_patient()
+        self.pain(self.upload(pid, vr, 1, source="simulated"), 2, 2 + server.PAIN_SPIKE + 1)
+        f = self.flags(pid)["pain"]
+        self.assertEqual(f["sources"], {"simulated": 1})
+        self.assertIn("Pain went from 2", f["detail"])
+
+    def test_pain_rising_across_sessions(self):
+        pid, vr = self.new_patient()
+        for d, after in ((3, 2), (2, 3), (1, 2 + server.PAIN_RISE)):
+            self.pain(self.upload(pid, vr, d), after - 1, after)   # +1 each time: never a spike
+        self.assertIn("pain", self.flags(pid))
+
+    def test_accuracy_drop(self):
+        pid, vr = self.new_patient()
+        for d in (6, 5, 4):
+            self.upload(pid, vr, d, accuracy=90)
+        for d in (3, 2, 1):
+            self.upload(pid, vr, d, accuracy=90 - server.ACCURACY_DROP - 5, source="keyboard")
+        f = self.flags(pid)["accuracy"]
+        self.assertEqual(f["sources"], {"webcam": 3, "keyboard": 3})
+
+    def test_small_accuracy_dip_is_not_flagged(self):
+        pid, vr = self.new_patient()
+        for d, acc in ((6, 90), (5, 90), (4, 90), (3, 85), (2, 85), (1, 85)):
+            self.upload(pid, vr, d, accuracy=acc)
+        self.assertNotIn("accuracy", self.flags(pid))
+
+    def test_unsafe_reps_and_old_sessions_ignored(self):
+        pid, vr = self.new_patient()
+        self.upload(pid, vr, server.ATTENTION_DAYS + 2, unsafe=3)      # outside the window
+        self.assertNotIn("unsafe", self.flags(pid))
+        self.upload(pid, vr, 1, unsafe=2)
+        f = self.flags(pid)["unsafe"]
+        self.assertIn("2 reps", f["detail"])
+        self.assertEqual(list(self.flags(pid))[0], "unsafe")        # most urgent first
+
+    def test_missed_days(self):
+        pid, _ = self.new_patient()
+        con = server.db()
+        p = con.execute("SELECT * FROM patient WHERE patient_id=?", (pid,)).fetchone()
+        con.execute("UPDATE rehabilitation_program SET schedule_days='0,1,2,3,4,5,6' WHERE program_id=?", (p["program_id"],))
+        con.execute("UPDATE patient SET created_at=? WHERE patient_id=?", ((date.today() - timedelta(days=30)).isoformat(), pid))
+        con.commit()
+        con.close()
+        f = self.flags(pid)["missed"]
+        self.assertIn(f"in the last {server.MISSED_WINDOW} days", f["detail"])
+        # Shown on the caseload too, so it can be sorted by attention
+        _, patients = self.call("GET", "/api/patients", headers=self.auth)
+        row = next(r for r in patients if r["id"] == pid)
+        self.assertEqual([f["code"] for f in row["attention"]], ["missed"])
+
+    def test_new_patient_is_not_flagged_for_days_before_enrolment(self):
+        pid, _ = self.new_patient()
+        self.assertNotIn("missed", self.flags(pid))
+
+    def test_archived_patient_has_no_flags(self):
+        pid, vr = self.new_patient()
+        self.upload(pid, vr, 1, unsafe=2)
+        self.call("POST", f"/api/patients/{pid}/archive", {"archived": True}, self.auth)
+        self.assertEqual(self.flags(pid), {})
 
 
 OLD_SCHEMA = """

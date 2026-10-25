@@ -1088,6 +1088,94 @@ def adherence_rate(statuses):
     return {"rate": round(100 * done / len(sched)) if sched else 0, "done": done, "scheduled": len(sched)}
 
 
+# ------------------------------------------------------- attention flags (M5.3)
+# Which patients the therapist should look at first, and why. The system only flags; the therapist decides.
+# Every threshold below is a PLACEHOLDER for a licensed physical therapist to confirm (see TASK-007).
+ATTENTION_DAYS = 14         # look-back window: only sessions and days in the last 14 days raise a flag
+PAIN_SPIKE = 2              # pain after minus pain before above this in one session
+PAIN_RISE = 2               # pain after up by this much or more across the last PAIN_SESSIONS recorded sessions
+PAIN_SESSIONS = 3
+ACCURACY_DROP = 10          # average of the last ACCURACY_SESSIONS sessions this many points below the ones before
+ACCURACY_SESSIONS = 3
+MISSED_DAYS = 2             # missed scheduled days within the last MISSED_WINDOW days
+MISSED_WINDOW = 7
+UNSAFE_REPS = 1             # reps past the safety limit within the window
+
+
+def _sources(rows):
+    """Input sources of the sessions a flag counted, e.g. {"webcam": 2, "simulated": 1}."""
+    out = defaultdict(int)
+    for r in rows:
+        out[r["input_source"] or "unknown"] += 1
+    return dict(out)
+
+
+def attention_flags(con, p, program, today=None):
+    """
+    Flags for one patient, most urgent first: [{code, label, detail, sources}]. `sources` counts the input
+    sources of the sessions behind the flag; keyboard and simulated sessions still count (TASK-003).
+    """
+    today = today or date.today()
+    since = (today - timedelta(days=ATTENTION_DAYS - 1)).isoformat()
+    rows = [dict(r) for r in con.execute("""
+        SELECT s.session_id, s.started_at, s.input_source, s.pain_before, s.pain_after,
+               COALESCE(SUM(r.attempts),0) AS attempts, COALESCE(SUM(r.unsafe_reps),0) AS unsafe,
+               CASE WHEN SUM(r.attempts)>0 THEN SUM(r.avg_accuracy*r.attempts)/SUM(r.attempts) ELSE 0 END AS accuracy
+        FROM session s LEFT JOIN performance_record r ON r.session_id = s.session_id
+        WHERE s.patient_id=? AND s.started_at>=?
+        GROUP BY s.session_id ORDER BY s.started_at DESC, s.session_id DESC""", (p["patient_id"], since))]
+    flags = []
+
+    # Pain: a spike in one session, or pain after rising across recent sessions
+    pained = [r for r in rows if r["pain_before"] is not None and r["pain_after"] is not None]
+    spikes = [r for r in pained if r["pain_after"] - r["pain_before"] > PAIN_SPIKE]
+    recent_pain = pained[:PAIN_SESSIONS]
+    rise = recent_pain[0]["pain_after"] - recent_pain[-1]["pain_after"] if len(recent_pain) == PAIN_SESSIONS else 0
+    if spikes or rise >= PAIN_RISE:
+        parts = []
+        if spikes:
+            s0 = spikes[0]
+            parts.append(f"pain went from {s0['pain_before']} to {s0['pain_after']} on {s0['started_at'][:10]}"
+                         + (f" ({len(spikes)} sessions with a spike)" if len(spikes) > 1 else ""))
+        if rise >= PAIN_RISE:
+            parts.append(f"pain after exercise rose from {recent_pain[-1]['pain_after']} to {recent_pain[0]['pain_after']} "
+                         f"over the last {PAIN_SESSIONS} recorded sessions")
+        flags.append({"code": "pain", "label": "Pain rising", "detail": "; ".join(parts).capitalize(),
+                      "sources": _sources(spikes + recent_pain if rise >= PAIN_RISE else spikes)})
+
+    # Accuracy: the recent average well below the sessions before it
+    scored = [r for r in rows if r["attempts"] > 0]
+    recent, earlier = scored[:ACCURACY_SESSIONS], scored[ACCURACY_SESSIONS:2 * ACCURACY_SESSIONS]
+    if len(recent) == ACCURACY_SESSIONS and len(earlier) >= 2:
+        avg = lambda rs: sum(r["accuracy"] for r in rs) / len(rs)
+        drop = avg(earlier) - avg(recent)
+        if drop >= ACCURACY_DROP:
+            flags.append({"code": "accuracy", "label": "Accuracy dropping",
+                          "detail": f"ROM accuracy fell from {avg(earlier):.0f}% to {avg(recent):.0f}% "
+                                    f"(last {len(recent)} sessions vs the {len(earlier)} before)",
+                          "sources": _sources(recent + earlier)})
+
+    # Adherence: missed scheduled days this week (days come from the schedule, not from sessions)
+    days = day_statuses(con, p["patient_id"], program, days=MISSED_WINDOW, today=today, created_at=p["created_at"])
+    missed = [d["date"] for d in days if d["status"] == "missed"]
+    if len(missed) >= MISSED_DAYS:
+        flags.append({"code": "missed", "label": "Missed sessions",
+                      "detail": f"{len(missed)} scheduled days missed in the last {MISSED_WINDOW} days ({', '.join(missed)})",
+                      "sources": {}})
+
+    # Safety: reps past the safety limit
+    unsafe = [r for r in rows if r["unsafe"]]
+    total = sum(r["unsafe"] for r in unsafe)
+    if total >= UNSAFE_REPS:
+        flags.append({"code": "unsafe", "label": "Unsafe reps",
+                      "detail": f"{total} rep{'s' if total != 1 else ''} past the safety limit in {len(unsafe)} "
+                                f"session{'s' if len(unsafe) != 1 else ''} in the last {ATTENTION_DAYS} days",
+                      "sources": _sources(unsafe)})
+
+    order = {"unsafe": 0, "pain": 1, "accuracy": 2, "missed": 3}
+    return sorted(flags, key=lambda f: order[f["code"]])
+
+
 # ------------------------------------------------------- protocol phases
 def phase_info(con, p):
     """The patient's current protocol phase (empty fields = custom program without a protocol)."""
@@ -1877,6 +1965,7 @@ def dashboard(con, patient_id, session_limit=SESSION_PAGE):
             "streak": info["patient"]["streak"],
         },
         "archivedAt": p["archived_at"],
+        "attention": [] if p["archived_at"] else attention_flags(con, p, prog),
         "calendar": statuses,
         "readiness": readiness(con, p),
         "phaseHistory": [dict(r) for r in con.execute("""
@@ -2187,7 +2276,14 @@ class Handler(BaseHTTPRequestHandler):
                 GROUP BY p.patient_id
                 ORDER BY p.code
             """, (parse_qs(urlparse(self.path).query).get("include_archived", ["0"])[0] == "1",)).fetchall()
-            return self._send(200, [dict(r) for r in rows])
+            out = []
+            for r in rows:
+                row = dict(r)
+                p = con.execute("SELECT * FROM patient WHERE patient_id=?", (r["id"],)).fetchone()
+                prog = con.execute("SELECT * FROM rehabilitation_program WHERE program_id=?", (p["program_id"],)).fetchone()
+                row["attention"] = [] if p["archived_at"] or not prog else attention_flags(con, p, prog)
+                out.append(row)
+            return self._send(200, out)
         if method == "POST" and parts == ["api", "patients"]:
             return self._send(201, add_patient(con, self._body(), therapist["therapist_id"]))
         if method == "GET" and parts == ["api", "protocols"]:

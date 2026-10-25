@@ -4,13 +4,14 @@
 Delivers a web browser interface for physical therapists to monitor patient adherence, customize exercise prescriptions, record clinical progress notes, and approve protocol stage advancements.
 
 ## Status
-`in-progress` (M5.1 and M5.2 are TBF, waiting on the human checks in the desktop app; M5.3 follows)
+`in-progress` (M5.1, M5.2, M5.3 and M5.7 are TBF, waiting on the human checks in the desktop app)
 
 ## Responsibilities
 - Serve as a formal clinical Rehabilitation Monitoring & Prescription System (RMS) designed specifically for Physical Therapists.
 - Enforce Clinician Authentication with a dedicated in-app login view (`#viewLogin`), first-run login creation (`#setupForm`), password change (`#passwordModal`, forced after a demo-password sign-in), bearer token persistence in localStorage, and clean sign-out.
 - Provide a Patient Caseload Directory for managing enrolled patients, diagnosis filtering, and quick chart access; archived patients are hidden unless "Show archived patients" is ticked.
 - Patient chart actions (M5.2): Edit Details (name and condition; the code is fixed) and Archive / Reactivate with a confirmation and an "Archived on …" notice (DEC-014).
+- Attention flags (M5.3): the caseload shows flag chips per patient and sorts "Needs attention first" by default; the chart shows a "Needs attention" notice with each reason and the input sources it counted, and the Clinical Status box is driven by the server's flags (no client-side pain rule).
 - Protocol Phase Editor (M5.2): edit or add phases, criteria and VR exercises of therapist-authored protocols; built-in protocols show a read-only note.
 - Show adherence (rate and completed/scheduled sessions). The server also sends a 14-day calendar with Complete / Incomplete / Missed statuses, phase history and per-exercise stats; the page does not show them yet (left out of M5 by the human; see TASK-001 for the export buttons).
 - Provide an interactive prescription editor and customized Add Movement modal (`#addExerciseModal`) allowing therapists to modify targets, tolerance, repetitions, sets, limb sides, and rest times prior to prescribing.
