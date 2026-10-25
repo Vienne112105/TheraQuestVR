@@ -48,7 +48,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M5.1 | M5 | TBF | Dashboard UX & Accessibility Polish |
 | M5.2 | M5 | TBF | Patient & Protocol Management |
 | M5.3 | M5 | TBF | Clinical Insights & Attention Flags |
-| M5.4 | M5 | planned | Session Flow Polish |
+| M5.4 | M5 | TBF | Session Flow Polish |
 | M5.5 | M5 | planned | Session Summary & Progress Screens |
 | M5.6 | M5 | planned | Audio & Visual Assets |
 | M5.7 | M5 | TBF | Additional Built-in Clinical Protocols |
@@ -273,7 +273,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
   - `M5.1`: Dashboard UX & Accessibility Polish (TBF)
   - `M5.2`: Patient & Protocol Management (TBF)
   - `M5.3`: Clinical Insights & Attention Flags (TBF)
-  - `M5.4`: Session Flow Polish
+  - `M5.4`: Session Flow Polish (TBF)
   - `M5.5`: Session Summary & Progress Screens
   - `M5.6`: Audio & Visual Assets
   - `M5.7`: Additional Built-in Clinical Protocols (TBF; added by the human 2026-10-26)
@@ -308,7 +308,8 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** ClinicalBackend, TherapistDashboard
 
 ### M5.4 — Session Flow Polish
-- **Status:** planned
+- **Status:** TBF
+- **Verification so far (2026-10-26):** Unity EditMode tests 30 pass in batch mode (4 new: countdown 3-2-1-Go, countdown frozen while paused, restart keeps every attempt and unsafe rep while resetting the sets, control hints per device); no compile errors. Restart design: the sets start again from set 1, but all attempts stay in the rep log and the upload (attempt numbers keep counting), so the therapist and the evaluation see them; the session UUID is unchanged. Left: human Play-mode check (`pending_human_tests`); the Unity Editor was not open, so nothing was checked in Play mode.
 - **Objective:** Give the patient clear pacing and control during a session.
 - **Deliverables:** 3-2-1 countdown and transition card between exercises; exercise-complete celebration; "Restart exercise" in the pause menu (rep log and session UUID stay consistent); queued offline uploads shown on the menu; control hints from the active input mode; EditMode tests for new pure logic.
 - **Completion criteria:** EditMode tests pass; restart keeps the uploaded session correct; human Play-mode check.

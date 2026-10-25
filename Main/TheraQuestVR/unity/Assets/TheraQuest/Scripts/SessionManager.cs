@@ -46,6 +46,10 @@ namespace TheraQuest
         bool awaitingReady;          // patient is getting into the start position for the next exercise
         float autoReadyTimer;        // simulated mode continues on its own
         LiveState lastState;
+        readonly Countdown countdown = new Countdown();   // 3-2-1 before each exercise (M5.4)
+        float celebrateTimer;        // "exercise complete" moment before the next exercise (M5.4)
+        const float CelebrateSeconds = 3.5f;
+        static ControlHints Keys => ControlHints.Current;
 
         ExerciseDef Current => program != null && program.exercises.Length > 0 ? program.exercises[Mathf.Clamp(index, 0, program.exercises.Length - 1)] : null;
         ExerciseEvaluator CurrentEval => phase == Phase.Running && index < evaluators.Count ? evaluators[index] : null;
@@ -124,7 +128,7 @@ namespace TheraQuest
             else if (program.exercises.Length == 0)
                 hud.SetFeedback("No exercises prescribed yet. Ask your therapist.", Tone.Warn);
             else
-                hud.SetFeedback("Stand on the teal spot and press Start!\n<size=34>Space or A · Esc / B for the menu</size>", Tone.Neutral);
+                hud.SetFeedback($"Stand on the teal spot and press Start!\n<size=34>{Keys.Start} to start · {Keys.Back} for the menu</size>", Tone.Neutral);
         }
 
         // ---------------------------------------------------------------- menu actions
@@ -161,11 +165,26 @@ namespace TheraQuest
                 }
                 if (!online && program.exercises.Length > 0)
                     sb.Append($"\n<color={UIKit.HexWarn}>Offline: your results are saved and sent to your therapist later.</color>");
+                int queued = api.QueuedCount;
+                if (queued > 0)
+                    sb.Append($"\n<color={UIKit.HexMuted}>{queued} saved session{(queued == 1 ? " is" : "s are")} waiting to be sent to your therapist.</color>");
                 return sb.ToString();
             }
         }
 
         public string PauseSubtitle => Current != null ? $"{Current.name} · set {CurrentEval?.SetNumber ?? 1} of {Mathf.Max(1, Current.sets)}" : "";
+
+        /// <summary>Pause menu: start the current exercise again from set 1 (not during the "complete" moment).</summary>
+        public bool CanRestartExercise => phase == Phase.Running && celebrateTimer <= 0f && CurrentEval != null;
+
+        public void RestartExercise()
+        {
+            if (!CanRestartExercise) return;
+            Resume();
+            CurrentEval.RestartSets();
+            hud.SetQuest(program.exercises, evaluators, index, true);
+            PrepareExercise(restarted: true);
+        }
 
         public void StartQuest()
         {
@@ -178,8 +197,9 @@ namespace TheraQuest
         public void FreeRoam()
         {
             menu.Close();
-            hud.SetFeedback("Explore the clinic! Then press Start on the teal spot\n<size=32>Walk W A S D · Turn Q / E · Menu Esc</size>", Tone.Neutral);
-            Subtitles.Say("Explore the clinic. Walk with W A S D or the left stick. Come back to the teal spot and press Start when you're ready.", 5f);
+            var k = Keys;
+            hud.SetFeedback($"Explore the clinic! Then press Start on the teal spot\n<size=32>Walk {k.Walk} · Turn {k.Turn} · Menu {k.Back}</size>", Tone.Neutral);
+            Subtitles.Say($"Explore the clinic. Walk with {k.Walk}. Come back to the teal spot and press {k.Start} when you're ready.", 5f);
         }
 
         void Pause()
@@ -276,8 +296,9 @@ namespace TheraQuest
                 cur.State == LiveState.TooFar || cur.State == LiveState.Fault || cur.State == LiveState.Unsafe ? Tone.Bad : Tone.Neutral;
             if (coach != null)
             {
-                coach.isSessionActive = phase == Phase.Running && !awaitingReady;
-                coach.ghostVisible = phase == Phase.Running && !awaitingReady;   // no ghost on the menu or summary screens
+                bool exercising = phase == Phase.Running && !awaitingReady && celebrateTimer <= 0f;
+                coach.isSessionActive = exercising;
+                coach.ghostVisible = exercising;   // no ghost on the menu, summary or between exercises
                 coach.Show(ex, motion.Angle, figTone);
             }
             else figure.Show(ex, motion.Angle, figTone);
@@ -286,15 +307,43 @@ namespace TheraQuest
 
         void RunExercise(ExerciseDef ex, float dt)
         {
+            if (celebrateTimer > 0f)
+            {
+                // "Exercise complete" moment, then the next exercise's get-ready card (frozen while paused)
+                if ((celebrateTimer -= dt) <= 0f)
+                {
+                    index++;
+                    hud.SetQuest(program.exercises, evaluators, index, true);
+                    PrepareExercise();
+                }
+                return;
+            }
             if (awaitingReady)
             {
+                if (countdown.Active || countdown.Finished)
+                {
+                    if (countdown.Tick(dt))
+                    {
+                        if (countdown.Number > 0) { feedback.PlayClick(); hud.Pop(countdown.Number.ToString(), true); }
+                        else if (!countdown.Finished) hud.Pop("GO!", true);
+                    }
+                    if (countdown.Finished)
+                    {
+                        countdown.Cancel();
+                        awaitingReady = false;
+                        ShowRepMessage(ex.cue, Tone.Neutral, 2f);
+                        Subtitles.Say(ex.cue, 3f, "Coach");
+                    }
+                    else hud.SetFeedback(countdown.Number > 0 ? $"Starting in… {countdown.Number}" : "Starting in… Go!", Tone.Neutral);
+                    return;
+                }
                 if (InputHelper.StartPressed || (Simulated && (autoReadyTimer -= dt) <= 0f))
                 {
-                    awaitingReady = false;
-                    ShowRepMessage(ex.cue, Tone.Neutral, 2f);
-                    Subtitles.Say(ex.cue, 3f, "Coach");
+                    countdown.Begin();
+                    Subtitles.Say("3, 2, 1, go!", 3f, "Countdown beeps");
                 }
-                else hud.SetFeedback($"Get ready: {ex.position}\n<size=34>Camera {ex.CameraText} · press Start when ready</size>", Tone.Neutral);
+                else hud.SetFeedback($"Exercise {index + 1} of {evaluators.Count}: <b>{ex.name}</b>\nGet ready: {ex.position}\n" +
+                                     $"<size=34>Camera {ex.CameraText} · press {Keys.Start} when ready</size>", Tone.Neutral);
                 return;
             }
             var ev = CurrentEval;
@@ -339,7 +388,7 @@ namespace TheraQuest
                 status = receiver.IsReceiving ? $"<color={UIKit.HexGood}>●</color> Camera is watching. You're good to go!"
                                               : $"<color={UIKit.HexBad}>●</color> Camera can't see you yet. Ask for help.";
             else if (motion.source == InputSource.Keyboard)
-                status = $"<color={UIKit.HexWarn}>●</color> Practice: move with the Up / Down keys";
+                status = $"<color={UIKit.HexWarn}>●</color> Practice: move with {Keys.Angle}";
             else
                 status = $"<color={UIKit.HexPurple}>●</color> Demo: the game plays by itself";
             hud.SetSource(status);
@@ -357,6 +406,8 @@ namespace TheraQuest
                 evaluators.Add(ev);
             }
             index = 0;
+            celebrateTimer = 0f;
+            countdown.Cancel();
             game = new GamificationManager(program.patient.badges);
             game.BadgeUnlocked += code =>
             {
@@ -372,14 +423,36 @@ namespace TheraQuest
             PrepareExercise();
         }
 
-        void PrepareExercise()
+        void PrepareExercise(bool restarted = false)
         {
             awaitingReady = true;
             autoReadyTimer = 2.5f;
             repMessageTimer = 0f;
             lastState = LiveState.Idle;
+            countdown.Cancel();
             var ex = Current;
-            Subtitles.Say($"{(index > 0 ? "Next: " : "")}{ex.name}. {ex.position}. Put the camera {ex.CameraText}, then press Start.", 5f, "Coach");
+            string intro = restarted ? $"Starting {ex.name} again from set 1. Your earlier tries are still saved for your therapist."
+                                     : $"{(index > 0 ? "Next: " : "")}{ex.name}.";
+            Subtitles.Say($"{intro} {ex.position}. Put the camera {ex.CameraText}, then press {Keys.Start}.", 5f, "Coach");
+        }
+
+        /// <summary>The short "exercise complete" moment between exercises (M5.4).</summary>
+        void CelebrateExercise(ExerciseEvaluator done)
+        {
+            celebrateTimer = CelebrateSeconds;
+            feedback.PlayHoldComplete();
+            hud.Pop("★ EXERCISE COMPLETE ★", true);
+            var next = program.exercises[index + 1];
+            string acc = GameSettings.ShowDetails && done.Accuracies.Count > 0 ? $" · {Average(done.Accuracies):0}% accuracy" : "";
+            hud.SetFeedback($"{done.Exercise.name} complete!\n<size=34>{done.ValidReps} good reps{acc} · Up next: {next.name}</size>", Tone.Good);
+            Subtitles.Say($"{done.Exercise.name} complete! Up next: {next.name}.", 3f, "Chime");
+        }
+
+        static float Average(List<int> xs)
+        {
+            float sum = 0f;
+            foreach (var x in xs) sum += x;
+            return xs.Count > 0 ? sum / xs.Count : 0f;
         }
 
         void OnRep(RepResult r)
@@ -404,11 +477,7 @@ namespace TheraQuest
 
             if (ev.Done)
             {
-                if (index < evaluators.Count - 1)
-                {
-                    index++;
-                    PrepareExercise();
-                }
+                if (index < evaluators.Count - 1) CelebrateExercise(ev);
                 else FinishSession(endedEarly: false);
             }
             hud.SetQuest(program.exercises, evaluators, index, phase == Phase.Running);
@@ -497,7 +566,7 @@ namespace TheraQuest
                     sb.AppendLine("\nSaved on this computer. It will be sent to your therapist later.");
                 }
                 sb.AppendLine("Tell your therapist how you feel after today's session.");
-                sb.AppendLine($"\n<color={UIKit.HexMuted}>Press Start to continue</color>");
+                sb.AppendLine($"\n<color={UIKit.HexMuted}>Press {Keys.Start} to continue</color>");
                 if (completed)
                 {
                     feedback.PlayVictory();

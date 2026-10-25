@@ -297,4 +297,68 @@ namespace TheraQuest.Tests
             Assert.AreEqual("shoulderFlex", FigureVisualizer.PoseOf(new ExerciseDef { measure = "shoulderElev", view = "side" }));
         }
     }
+
+    /// <summary>M5.4 session flow: countdown, restart and control hints.</summary>
+    public class SessionFlowTests
+    {
+        [Test]
+        public void CountdownShowsThreeTwoOneGoThenFinishes()
+        {
+            var c = new Countdown(3, 0.6f);
+            Assert.IsFalse(c.Active);
+            c.Begin();
+            var shown = new List<int>();
+            for (int i = 0; i < 400 && !c.Finished; i++)
+                if (c.Tick(0.02f)) shown.Add(c.Number);
+            CollectionAssert.AreEqual(new[] { 3, 2, 1, 0 }, shown);
+            Assert.IsTrue(c.Finished);
+            Assert.IsFalse(c.Active);
+        }
+
+        [Test]
+        public void CountdownFreezesWhilePaused()
+        {
+            var c = new Countdown();
+            c.Begin();
+            c.Tick(0.02f);
+            for (int i = 0; i < 1000; i++) c.Tick(0f);   // Time.deltaTime is 0 while paused
+            Assert.AreEqual(3, c.Number);
+            Assert.IsTrue(c.Active);
+            c.Cancel();
+            Assert.IsFalse(c.Active);
+            Assert.IsFalse(c.Finished);
+        }
+
+        [Test]
+        public void RestartStartsSetsAgainButKeepsEveryAttempt()
+        {
+            var ev = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex(reps: 2, sets: 2, safetyMax: 100));
+            ExerciseEvaluatorTests.Rep(ev, 90f);
+            ExerciseEvaluatorTests.Rep(ev, 110f);   // unsafe, not counted
+            Assert.AreEqual(1, ev.ValidReps);
+            ev.RestartSets();
+            Assert.AreEqual(0, ev.ValidReps);
+            Assert.AreEqual(1, ev.SetNumber);
+            Assert.AreEqual(1, ev.Restarts);
+            Assert.AreEqual(2, ev.Attempts);
+            Assert.AreEqual(1, ev.UnsafeReps);
+            Assert.AreEqual(2, ev.RepEvents.Count);
+            ExerciseEvaluatorTests.Rep(ev, 90f);
+            Assert.AreEqual(1, ev.ValidReps);
+            Assert.AreEqual(3, ev.RepEvents[2].attempt);   // attempt numbers keep going, so rep log rows stay unique
+            var result = ev.ToResult();
+            Assert.AreEqual(1, result.valid_reps);
+            Assert.AreEqual(3, result.attempts);
+        }
+
+        [Test]
+        public void ControlHintsMatchTheDevice()
+        {
+            Assert.AreEqual("Space", ControlHints.For(false).Start);
+            Assert.AreEqual("A", ControlHints.For(true).Start);
+            Assert.AreEqual("B", ControlHints.For(true).Back);
+            StringAssert.Contains("Esc", ControlHints.Keyboard.MenuFooter);
+            StringAssert.DoesNotContain("Esc", ControlHints.Controller.MenuFooter);
+        }
+    }
 }

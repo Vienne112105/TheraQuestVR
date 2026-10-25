@@ -177,6 +177,26 @@ namespace TheraQuest
             RepCompleted?.Invoke(r);
         }
 
+        /// <summary>Times the patient chose "Restart exercise" (M5.4).</summary>
+        public int Restarts { get; private set; }
+
+        /// <summary>
+        /// "Restart exercise" from the pause menu (M5.4): the sets start again from set 1, so the valid reps counted
+        /// toward them go back to 0. Every attempt made so far stays in <see cref="Attempts"/>, the accuracy lists,
+        /// <see cref="UnsafeReps"/> and <see cref="RepEvents"/>, so the therapist and the evaluation still see them.
+        /// </summary>
+        public void RestartSets()
+        {
+            ValidReps = 0;
+            RestRemaining = 0f;
+            inRep = false;
+            HoldTime = bestHold = outOfBand = 0f;
+            RepDuration = 0f;
+            holdFiredThisRep = false;
+            State = LiveState.Idle;
+            Restarts++;
+        }
+
         public string Describe(RepResult r)
         {
             float tol = Exercise.tolerance, target = Exercise.targetAngle;

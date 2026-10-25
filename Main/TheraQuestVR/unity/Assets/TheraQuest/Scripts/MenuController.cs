@@ -74,7 +74,6 @@ namespace TheraQuest
             rr.anchorMin = rr.anchorMax = new Vector2(0, 1);
             rr.pivot = new Vector2(0, 1);
             footer = UIKit.Label(t, Vector2.zero, new Vector2(Width - 100, 40), 24, UIKit.Muted, TextAnchor.MiddleCenter);
-            footer.text = "↑ ↓ navigate   ·   ‹ › or Click to toggle   ·   Space / A select   ·   Esc / B back";
             UIKit.MakeOnTop(canvas, 40);
             canvas.gameObject.SetActive(false);
             EnsureEventSystem();
@@ -105,6 +104,7 @@ namespace TheraQuest
                 case Page.Therapist: BuildTherapist(); break;
                 default: BuildSettings(); break;
             }
+            footer.text = ControlHints.Current.MenuFooter;
             Layout();
             if (!IsOpen) PlaceInFront();
             canvas.gameObject.SetActive(true);
@@ -139,6 +139,7 @@ namespace TheraQuest
             subtitle.text = session.PauseSubtitle;
             info.text = "Take your time. Your reps so far are kept.";
             Add(() => "Resume", select: session.Resume);
+            Add(() => "Restart this exercise", select: session.RestartExercise, enabled: () => session.CanRestartExercise);
             Add(() => "Back to the exercise spot", select: () => { session.ReturnToStation(); session.Resume(); });
             Add(() => "Settings", select: () => Open(Page.Settings));
             Add(() => "End session and save", select: session.EndSessionEarly);

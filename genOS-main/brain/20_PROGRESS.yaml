@@ -14,15 +14,16 @@ last_agent: claude-code
 last_ide: claude-desktop
 
 # ID only — resolve objective/criteria in 50_ROADMAP.md
-current_milestone: M5.3
+current_milestone: M5.4
 
 # Active scene or primary file in focus, if any
 current_scene: null
 
 # System file basenames under brain/systems/ (without .md) to load on BOOT
 systems_in_scope:
-  - TherapistDashboard
-  - ClinicalBackend
+  - SessionOrchestration
+  - VRClinicExperience
+  - Gamification
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on: []
@@ -36,6 +37,7 @@ pending_human_tests:
   - "M5.2 check in the desktop app (Start_Therapist_App.bat): open a test patient, use Edit Details to change the name or condition, then Archive them (they disappear from the caseload; tick Show archived patients to see them again) and Reactivate. In the Protocol Library, create a protocol of your own, open it, use Edit on a phase and Add Phase. Open a built-in protocol and check it says read-only and has no Edit buttons. Report anything wrong."
   - "M5.7 check in the desktop app: open the Protocol Library and read through the seven new protocols (ACL reconstruction, Total knee replacement (MGB), Hip fracture fixation, Ankle fracture ORIF, Distal radius fracture ORIF, Tibial plateau fracture ORIF, Lateral ankle sprain). Check phases, timelines and precautions read correctly against the sources, and apply one to a test patient. The angles and reps are starting points for a licensed PT to confirm (TASK-007)."
   - "M5.3 check in the desktop app: the caseload should list patients that need attention first, with red chips (Unsafe reps, Pain rising, Accuracy dropping, Missed sessions); hover a chip for the reason. Open a flagged patient and read the Needs attention notice and the Clinical Status box. Say whether the reasons make clinical sense; the thresholds are placeholders for a PT to set (TASK-007)."
+  - "M5.4 Play-mode check (Unity Editor, or the built player with -patient): start a session; each exercise shows an Exercise N of M get-ready card, then 3-2-1-Go after pressing Start; finishing an exercise shows EXERCISE COMPLETE and Up next for a few seconds; pause (Esc / B) and choose Restart this exercise, which starts again from set 1; the hints say Space / Esc on the laptop (A / B in a headset); with an unsent offline session the main menu says it is waiting to be sent."
 
 # Known bugs or risks
 known_issues:
@@ -48,4 +50,4 @@ known_issues:
 blocked: []
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-10-26: M5 Dashboard & Game Experience is active. Committed in 6061dc3: M5.1, M5.2, M5.7. Then M5.3 Clinical Insights & Attention Flags: server attention_flags (pain spike or rise, accuracy drop, missed scheduled days, unsafe reps; 14-day window; placeholder thresholds; sources counted) on /api/patients and the dashboard endpoint; caseload chips and Needs attention first sort; chart notice; Clinical Status box from the flags. All four (M5.1, M5.2, M5.3, M5.7) are TBF, waiting on the human checks in pending_human_tests. Tests: backend 51, authorization 13 pass. Dashboard children are done; next are the game children M5.4 Session Flow Polish, M5.5 Session Summary & Progress Screens, M5.6 Audio & Visual Assets (Unity; needs the Unity Editor via MCP)."
+session_summary: "2026-10-26: M5 Dashboard & Game Experience is active. Committed: 6061dc3 (M5.1, M5.2, M5.7), 265f7da (M5.3). M5.4 Session Flow Polish implemented in Unity: SessionFlow.cs (Countdown, ControlHints), ExerciseEvaluator.RestartSets (sets restart, all attempts kept), SessionManager get-ready card, 3-2-1 countdown, exercise-complete moment, Restart this exercise in the pause menu, queued uploads on the main menu, device-specific control hints in SessionManager, MenuController and HUDController. Unity EditMode tests 30 pass (run in batch mode; the Unity Editor was not open, so no Play-mode check yet). M5.1, M5.2, M5.3, M5.4 and M5.7 are TBF, waiting on the human checks in pending_human_tests. Next: M5.5 Session Summary & Progress Screens."

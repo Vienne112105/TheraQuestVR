@@ -454,7 +454,8 @@ namespace TheraQuest
             }
             questCount.text = $"{done} / {exs.Count}";
             foreach (var go in questFullOnly) go.SetActive(open);
-            questHint.text = open ? "M = hide   ·   Esc / B = menu   ·   R / Y = back to your spot" : "M = show all exercises";
+            var k = ControlHints.Current;
+            questHint.text = open ? $"{k.Quest} = hide   ·   {k.Back} = menu   ·   {k.Recenter} = back to your spot" : $"{k.Quest} = show all exercises";
             questHint.rectTransform.anchoredPosition = new Vector2(28, open ? -838f : -(110f + rowH + 14f));
         }
 
