@@ -180,6 +180,11 @@ namespace TheraQuest
             }
         }
 
+        /// <summary>Progress page on the main menu (M5.5): level, streak, badges, recent sessions.</summary>
+        public string ProgressInfoText => ProgressViews.ProgressPage(program, online);
+        public string ProgressSubtitle => program?.patient == null ? "" :
+            $"{program.patient.code}" + (online ? "" : " · offline: last saved progress");
+
         public string PauseSubtitle => Current != null ? $"{Current.name} · set {CurrentEval?.SetNumber ?? 1} of {Mathf.Max(1, Current.sets)}" : "";
 
         /// <summary>Pause menu: start the current exercise again from set 1 (not during the "complete" moment).</summary>
@@ -564,31 +569,42 @@ namespace TheraQuest
                                      out int valid, out int attempts, out int unsafeReps);
 
             hud.SetFeedback("Saving session…", Tone.Neutral);
+            int xpBefore = program.patient.xp;
             StartCoroutine(api.UploadSession(upload, resp =>
             {
+                // Summary (M5.5): totals, one line per exercise, then the XP bar and new badges animate below
                 var sb = new StringBuilder();
-                sb.AppendLine($"<color={UIKit.HexGood}>✓</color>  <b>{valid}</b> good reps");
-                sb.AppendLine($"<color={UIKit.HexGold}>★</color>  <b>{game.Points}</b> points" + (completed ? $"  (+{GamificationManager.CompletionBonus} bonus!)" : ""));
+                sb.AppendLine($"<color={UIKit.HexGood}>✓</color>  <b>{valid}</b> good reps   ·   <color={UIKit.HexGold}>★</color>  <b>{game.Points}</b> points" +
+                              (completed ? $"  (+{GamificationManager.CompletionBonus} bonus!)" : ""));
                 if (GameSettings.ShowDetails)
                     sb.AppendLine($"<color={UIKit.HexMuted}>{valid}/{attempts} valid · accuracy {avgAcc:0}% · mean error {avgErr:0.0}°</color>");
                 if (unsafeReps > 0) sb.AppendLine($"<color={UIKit.HexBad}>!</color>  {unsafeReps} reps went too far. Remember the STOP line.");
                 sb.AppendLine();
+                foreach (var line in ProgressViews.ExerciseLines(evaluators, GameSettings.ShowDetails)) sb.AppendLine("<size=27>" + line + "</size>");
+                sb.AppendLine();
+
+                int xpAfter;
+                List<string> newBadges;
                 if (resp != null)
                 {
-                    bool levelUp = false;
-                    foreach (var n in resp.notes) { sb.AppendLine($"<color={UIKit.HexPurple}>♦</color>  {n}"); levelUp |= n.StartsWith("Level up"); }
-                    if (levelUp) { feedback.PlayLevelUp(); Subtitles.Say("Level up!", 2.5f, "Level-up jingle"); }
+                    foreach (var n in ProgressViews.OtherNotes(resp.notes)) sb.AppendLine($"<color={UIKit.HexPurple}>♦</color>  {n}");
+                    // The server's own numbers: offline sessions sent since the program loaded also added XP,
+                    // so the loaded xp can be stale. Start the bar from the total minus this session's XP.
+                    xpAfter = resp.patient != null ? resp.patient.xp : xpBefore + resp.xpGained;
+                    xpBefore = Mathf.Max(0, xpAfter - resp.xpGained);
+                    newBadges = ProgressViews.BadgeNames(resp.new_badges);
                     program.patient = resp.patient;
                     hud.SetPatient(resp.patient, program.program, true, program.phase);
-                    sb.AppendLine("\nSaved! Your therapist can see how you did.");
+                    sb.AppendLine("Saved! Your therapist can see how you did.");
                 }
                 else
                 {
-                    foreach (var b in game.EarnedThisSession) sb.AppendLine($"<color={UIKit.HexPurple}>♦</color>  Badge: " + GamificationManager.BadgeNames[b]);
-                    sb.AppendLine("\nSaved on this computer. It will be sent to your therapist later.");
+                    xpAfter = xpBefore + game.Points;   // what the server will add once the session is sent
+                    newBadges = ProgressViews.BadgeNames(game.EarnedThisSession);
+                    sb.AppendLine("Saved on this computer. It will be sent to your therapist later.");
                 }
                 sb.AppendLine("Tell your therapist how you feel after today's session.");
-                sb.AppendLine($"\n<color={UIKit.HexMuted}>Press {Keys.Start} to continue</color>");
+                sb.Append($"<color={UIKit.HexMuted}>Press {Keys.Start} to continue</color>");
                 if (completed)
                 {
                     feedback.PlayVictory();
@@ -596,6 +612,10 @@ namespace TheraQuest
                 }
                 else Subtitles.Say("Session ended. Your progress is saved.", 3f);
                 hud.ShowSummary(completed ? "Quest cleared!" : "Good effort!", upload.stars, sb.ToString());
+                var xp = ProgressViews.Xp(xpBefore, xpAfter);
+                hud.ShowRewards(xp, xpAfter - xpBefore, newBadges, resp == null,
+                    onLevelUp: () => { feedback.PlayLevelUp(); Subtitles.Say($"Level up! You reached level {xp.toLevel}.", 2.5f, "Level-up jingle"); },
+                    onBadge: () => feedback.PlayBadge());
                 hud.SetFeedback(completed ? "Great work today" : "Session ended early", Tone.Neutral);
                 phase = Phase.Summary;
             }));

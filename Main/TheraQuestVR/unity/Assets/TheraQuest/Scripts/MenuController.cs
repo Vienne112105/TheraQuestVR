@@ -20,7 +20,7 @@ namespace TheraQuest
     /// </summary>
     public class MenuController : MonoBehaviour
     {
-        public enum Page { Main, Pause, Settings, TherapistPin, Therapist }
+        public enum Page { Main, Pause, Settings, TherapistPin, Therapist, Progress }
 
         public SessionManager session;
 
@@ -39,6 +39,7 @@ namespace TheraQuest
         sealed class Row { public Image bg; public Text label, value; }
 
         const float Width = 1000f, RowH = 84f, RowGap = 12f, Top = 300f;
+        const float BaseScale = 0.00115f, MaxHeight = 1000f;   // taller pages (Progress) shrink to stay in view
 
         Canvas canvas;
         UIKit.CardRef card;
@@ -102,6 +103,7 @@ namespace TheraQuest
                 case Page.Pause: BuildPause(); break;
                 case Page.TherapistPin: BuildTherapistPin(); break;
                 case Page.Therapist: BuildTherapist(); break;
+                case Page.Progress: BuildProgress(); break;
                 default: BuildSettings(); break;
             }
             footer.text = ControlHints.Current.MenuFooter;
@@ -123,6 +125,7 @@ namespace TheraQuest
             var coach = session.coach;
             Add(() => "Start today's quest", select: session.StartQuest, enabled: () => session.CanStart);
             Add(() => "Explore the clinic", select: session.FreeRoam);
+            Add(() => "Your progress", select: () => Open(Page.Progress));
             if (coach != null && coach.Ready && coach.Count > 1)
                 Add(() => coach.Has3DModels ? "Coach (Female / Male)" : "Coach Style", value: () => coach.CoachName, adjust: d => coach.Cycle(d));
             if (coach != null && coach.Ready)
@@ -143,6 +146,14 @@ namespace TheraQuest
             Add(() => "Back to the exercise spot", select: () => { session.ReturnToStation(); session.Resume(); });
             Add(() => "Settings", select: () => Open(Page.Settings));
             Add(() => "End session and save", select: session.EndSessionEarly);
+        }
+
+        void BuildProgress()
+        {
+            title.text = "Your progress";
+            subtitle.text = session.ProgressSubtitle;
+            info.text = session.ProgressInfoText;
+            Add(() => "Back", select: () => Open(Page.Main));
         }
 
         void BuildSettings()
@@ -254,6 +265,7 @@ namespace TheraQuest
         {
             if (Current == Page.Settings) Open(back);
             else if (Current == Page.TherapistPin || Current == Page.Therapist) { changingPin = false; Open(Page.Main); }
+            else if (Current == Page.Progress) Open(Page.Main);
             else if (Current == Page.Pause) session.Resume();
             else session.FreeRoam();   // Esc on the main menu: close it and look around
         }
@@ -264,7 +276,10 @@ namespace TheraQuest
             foreach (Transform c in rowRoot) Destroy(c.gameObject);
             rows.Clear();
             bool hasInfo = !string.IsNullOrEmpty(info.text);
-            float top = hasInfo ? Top : 190f;
+            // The info text grows with its content (the Progress page is long); rows start below it
+            float infoH = hasInfo ? Mathf.Max(120f, info.preferredHeight + 10f) : 0f;
+            info.rectTransform.sizeDelta = new Vector2(Width - 100, infoH);
+            float top = hasInfo ? Mathf.Max(Top, 170f + infoH + 10f) : 190f;
             ((RectTransform)rowRoot).anchoredPosition = new Vector2(50, -top);
             for (int i = 0; i < items.Count; i++)
             {
@@ -288,6 +303,7 @@ namespace TheraQuest
             }
             float h = top + items.Count * (RowH + RowGap) + 90f;
             ((RectTransform)canvas.transform).sizeDelta = new Vector2(Width, h);
+            canvas.transform.localScale = Vector3.one * BaseScale * Mathf.Min(1f, MaxHeight / h);
             card.Resize(new Vector2(Width, h));
             ((RectTransform)footer.transform).anchoredPosition = new Vector2(50, -(h - 66f));
         }
@@ -300,7 +316,6 @@ namespace TheraQuest
             fwd.Normalize();
             canvas.transform.position = cam.position + fwd * 1.35f + Vector3.down * 0.10f;
             canvas.transform.rotation = Quaternion.LookRotation(fwd, Vector3.up);
-            canvas.transform.localScale = Vector3.one * 0.00115f;
         }
 
         void Refresh()

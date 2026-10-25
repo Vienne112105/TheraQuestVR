@@ -609,6 +609,56 @@ class AttentionFlagTests(ServerTestCase):
         self.assertEqual(self.flags(pid), {})
 
 
+class ProgressTests(ServerTestCase):
+    """M5.5: progress data in the VR program and structured rewards in the upload response."""
+
+    def test_progress_comes_with_the_vr_program(self):
+        status, body = self.call("POST", "/api/patients", {"code": "P-701"}, self.auth)
+        self.assertEqual(status, 201, body)
+        vr = {"X-Patient-Code": "P-701"}
+        _, prog = self.call("GET", "/api/vr/program", headers=vr)
+        self.assertEqual(prog["progress"]["recent"], [])
+        self.assertEqual(prog["progress"]["totalSessions"], 0)
+        self.assertEqual({b["code"] for b in prog["progress"]["badges"]}, set(server.BADGES))
+        self.assertFalse(any(b["earned"] for b in prog["progress"]["badges"]))
+        # The dashboard's program endpoint is unchanged (no patient-facing progress block)
+        _, dash_prog = self.call("GET", f"/api/patients/{body['id']}/program", headers=self.auth)
+        self.assertNotIn("progress", dash_prog)
+
+    def test_upload_reports_rewards_and_progress_updates(self):
+        _, body = self.call("POST", "/api/patients", {"code": "P-702"}, self.auth)
+        pid, vr = body["id"], {"X-Patient-Code": "P-702"}
+        _, prog = self.call("GET", "/api/vr/program", headers=vr)
+        results = [{"exercise_id": e["id"], "target_reps": e["reps"] * e["sets"], "valid_reps": e["reps"] * e["sets"],
+                    "attempts": e["reps"] * e["sets"], "avg_accuracy": 90, "mean_angle_error": 3, "unsafe_reps": 0}
+                   for e in prog["exercises"]]
+        status, resp = self.call("POST", "/api/vr/sessions",
+                                 self.session_body(pid, results, points=150, badges_earned=["combo10"]), vr)
+        self.assertEqual(status, 201, resp)
+        self.assertEqual(resp["xpGained"], 150)
+        self.assertEqual((resp["levelBefore"], resp["levelAfter"]), (1, 2))   # 100 XP for level 2
+        self.assertIn("combo10", resp["new_badges"])
+        _, prog = self.call("GET", "/api/vr/program", headers=vr)
+        recent = prog["progress"]["recent"]
+        self.assertEqual(len(recent), 1)
+        self.assertEqual(recent[0]["points"], 150)
+        self.assertEqual(recent[0]["accuracy"], 90)
+        earned = {b["code"] for b in prog["progress"]["badges"] if b["earned"]}
+        self.assertTrue({"combo10", "first"} <= earned)
+
+    def test_progress_lists_at_most_the_recent_sessions(self):
+        _, body = self.call("POST", "/api/patients", {"code": "P-703"}, self.auth)
+        pid, vr = body["id"], {"X-Patient-Code": "P-703"}
+        for d in range(server.PROGRESS_SESSIONS + 3):
+            self.call("POST", "/api/vr/sessions",
+                      self.session_body(pid, started_at=f"2026-09-{d + 1:02d}T09:00:00",
+                                        ended_at=f"2026-09-{d + 1:02d}T09:20:00"), vr)
+        _, prog = self.call("GET", "/api/vr/program", headers=vr)
+        self.assertEqual(len(prog["progress"]["recent"]), server.PROGRESS_SESSIONS)
+        self.assertEqual(prog["progress"]["totalSessions"], server.PROGRESS_SESSIONS + 3)
+        self.assertTrue(prog["progress"]["recent"][0]["started_at"].startswith(f"2026-09-{server.PROGRESS_SESSIONS + 3:02d}"))
+
+
 OLD_SCHEMA = """
 CREATE TABLE physical_therapist (therapist_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, license_no TEXT, email TEXT);
 CREATE TABLE rehabilitation_program (program_id INTEGER PRIMARY KEY AUTOINCREMENT, therapist_id INTEGER NOT NULL,

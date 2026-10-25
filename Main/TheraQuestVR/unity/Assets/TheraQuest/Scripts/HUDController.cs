@@ -42,6 +42,16 @@ namespace TheraQuest
         float bubbleH = -1f;
         Text bubbleIconTxt, feedbackTxt, popTxt, sumTitle, sumBody, sumStars;
         GameObject summary;
+        // Summary rewards (M5.5): XP bar that fills (and rolls over on a level-up), badges revealed one by one
+        Text sumLevel, sumXpGain, sumBadges;
+        Image sumXpFill;
+        const float SumXpW = 520f;
+        ProgressViews.XpSpan sumXp;
+        float sumXpT = -1f, sumBadgeT;
+        List<string> sumBadgeNames = new List<string>();
+        int sumBadgesShown;
+        bool sumLevelShown;
+        System.Action sumOnLevelUp, sumOnBadge;
         string lastFeedback = "";
         float popTimer;
         Vector2 popStart;
@@ -285,7 +295,14 @@ namespace TheraQuest
             sumTitle = UIKit.Stroke(Label(card, new Vector2(0, -36), new Vector2(884, 90), 72, UIKit.Orange, TextAnchor.UpperCenter, FontStyle.Bold), UIKit.Outline, 3f);
             sumStars = UIKit.Stroke(Label(card, new Vector2(0, -130), new Vector2(884, 140), 124, UIKit.Yellow, TextAnchor.UpperCenter, FontStyle.Bold), UIKit.Outline, 4f);
             UIKit.Bouncy(sumStars);
-            sumBody = Label(card, new Vector2(60, -290), new Vector2(764, 620), 34, UIKit.Ink, TextAnchor.UpperLeft);
+            sumBody = Label(card, new Vector2(60, -280), new Vector2(764, 490), 30, UIKit.Ink, TextAnchor.UpperLeft);
+            // XP row and badge reveal along the bottom of the card
+            sumLevel = UIKit.Pill(card, new Vector2(60, -786), new Vector2(170, 52), UIKit.Purple, "LEVEL 1", 28, Color.white);
+            Box(card, new Vector2(246, -799), new Vector2(SumXpW, 26), UIKit.Track, "Summary XP track");
+            sumXpFill = Box(card, new Vector2(246, -799), new Vector2(26, 26), UIKit.Yellow, "Summary XP fill");
+            sumXpGain = Label(card, new Vector2(246, -760), new Vector2(SumXpW, 34), 24, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
+            sumBadges = Label(card, new Vector2(60, -852), new Vector2(764, 70), 30, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
+            UIKit.Bouncy(sumBadges);
             summary.SetActive(false);
         }
 
@@ -552,11 +569,72 @@ namespace TheraQuest
             UIKit.Bouncy(sumStars).Punch(0.3f);
         }
 
-        public void HideSummary() { summary.SetActive(false); }
+        /// <summary>
+        /// Animates the rewards on the summary card: the XP bar fills from before to after the session (rolling
+        /// over on a level-up, when <paramref name="onLevelUp"/> runs), then new badges appear one by one.
+        /// </summary>
+        public void ShowRewards(ProgressViews.XpSpan xp, int xpGained, IList<string> newBadges, bool pending,
+                                System.Action onLevelUp, System.Action onBadge)
+        {
+            sumXp = xp;
+            sumXpT = 0f;
+            sumLevelShown = false;
+            sumOnLevelUp = onLevelUp;
+            sumOnBadge = onBadge;
+            sumLevel.text = $"LEVEL {xp.fromLevel}";
+            SetSumXp(xp.fromFrac);
+            sumXpGain.text = xpGained > 0 ? $"+{xpGained} XP" + (pending ? " (added when it's sent)" : "") : "";
+            sumBadgeNames = new List<string>(newBadges ?? new string[0]);
+            sumBadgesShown = 0;
+            sumBadgeT = 0f;
+            sumBadges.text = "";
+        }
+
+        void SetSumXp(float frac) =>
+            sumXpFill.rectTransform.sizeDelta = new Vector2(Mathf.Max(26f, SumXpW * Mathf.Clamp01(frac)), 26);
+
+        void AnimateRewards(float dt)
+        {
+            if (sumXpT < 0f || !summary.activeSelf) return;
+            const float fill = 1.4f;   // seconds for the bar
+            if (sumXpT < 1f)
+            {
+                sumXpT = Mathf.Min(1f, sumXpT + dt / fill);
+                float k = 1f - Mathf.Pow(1f - sumXpT, 3f);   // ease out
+                if (!sumXp.LevelUp) SetSumXp(Mathf.Lerp(sumXp.fromFrac, sumXp.toFrac, k));
+                else if (k < 0.5f) SetSumXp(Mathf.Lerp(sumXp.fromFrac, 1f, k * 2f));
+                else
+                {
+                    if (!sumLevelShown)
+                    {
+                        sumLevelShown = true;
+                        sumLevel.text = $"LEVEL {sumXp.toLevel}";
+                        UIKit.Bouncy(sumLevel.transform.parent as RectTransform).Punch(0.35f);
+                        Pop($"LEVEL UP!  {sumXp.toLevel}", true);
+                        sumOnLevelUp?.Invoke();
+                    }
+                    SetSumXp(Mathf.Lerp(0f, sumXp.toFrac, (k - 0.5f) * 2f));
+                }
+                return;
+            }
+            // Badges after the bar, one every 0.7 s
+            if (sumBadgesShown < sumBadgeNames.Count && (sumBadgeT -= dt) <= 0f)
+            {
+                sumBadgesShown++;
+                sumBadgeT = 0.7f;
+                var shown = sumBadgeNames.GetRange(0, sumBadgesShown);
+                sumBadges.text = $"<color={UIKit.HexGold}>★</color> New badge{(sumBadgeNames.Count > 1 ? "s" : "")}: " + string.Join(", ", shown);
+                UIKit.Bouncy(sumBadges).Punch(0.25f);
+                sumOnBadge?.Invoke();
+            }
+        }
+
+        public void HideSummary() { summary.SetActive(false); sumXpT = -1f; }
         public bool SummaryVisible => summary.activeSelf;
 
         void Update()
         {
+            AnimateRewards(Time.unscaledDeltaTime);
             if (popTimer > 0f)
             {
                 popTimer -= Time.deltaTime;

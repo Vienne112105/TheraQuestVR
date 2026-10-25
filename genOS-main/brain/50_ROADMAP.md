@@ -49,7 +49,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M5.2 | M5 | TBF | Patient & Protocol Management |
 | M5.3 | M5 | TBF | Clinical Insights & Attention Flags |
 | M5.4 | M5 | TBF | Session Flow Polish |
-| M5.5 | M5 | planned | Session Summary & Progress Screens |
+| M5.5 | M5 | TBF | Session Summary & Progress Screens |
 | M5.6 | M5 | planned | Audio & Visual Assets |
 | M5.7 | M5 | TBF | Additional Built-in Clinical Protocols |
 | HW | — | planned | Hardware Integration & Field Validation |
@@ -274,7 +274,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
   - `M5.2`: Patient & Protocol Management (TBF)
   - `M5.3`: Clinical Insights & Attention Flags (TBF)
   - `M5.4`: Session Flow Polish (TBF)
-  - `M5.5`: Session Summary & Progress Screens
+  - `M5.5`: Session Summary & Progress Screens (TBF)
   - `M5.6`: Audio & Visual Assets
   - `M5.7`: Additional Built-in Clinical Protocols (TBF; added by the human 2026-10-26)
 - **Done when:** all children are done; the server, tracker, evaluation and Unity EditMode test suites pass; the human has done a dashboard walkthrough and a Play-mode walkthrough of the game (listed in `pending_human_tests` while open; the milestone is TBF until then).
@@ -317,7 +317,8 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** SessionOrchestration, VRClinicExperience
 
 ### M5.5 — Session Summary & Progress Screens
-- **Status:** planned
+- **Status:** TBF
+- **Verification so far (2026-10-26):** server tests 54 pass (3 new: progress in the VR program and not in the dashboard's program endpoint, structured rewards xpGained / levelBefore / levelAfter in the upload response, recent-session limit); Unity EditMode tests 42 pass (7 new: XP span within a level and across a level-up, exercise lines, notes left to the animation, badge gallery, Progress page text, gamification scoring). Agent play-test against a throwaway server and database (the offline queue and program cache were backed up and restored): Progress page, full session summary with per-exercise lines, XP bar and new badges. Found and fixed during the play-test: the summary's starting XP was stale when queued offline sessions were sent at load (now from the server's xpGained); the Progress page overflowed the view (tall menu pages now scale down); badge names wrapped mid-name. Progress data rides on GET /api/vr/program (loopback, patient code, DEC-009) and is cached with the program for offline use. Left: human Play-mode check (`pending_human_tests`).
 - **Objective:** Make progress visible and rewarding to the patient.
 - **Deliverables:** summary with per-exercise breakdown, animated XP fill, badge reveal online and offline, and a clear level-up moment (not a string match); main-menu Progress page with recent sessions, streak, level/XP and a badge gallery (earned and locked); progress data from a loopback-only, patient-code-scoped VR route or the program payload (DEC-009), shown as cached when offline; server tests; EditMode tests for summary/progress shaping and `GamificationManager`.
 - **Completion criteria:** server and EditMode tests pass; human Play-mode check online and offline.

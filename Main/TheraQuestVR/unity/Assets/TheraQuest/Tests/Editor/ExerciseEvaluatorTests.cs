@@ -418,4 +418,105 @@ namespace TheraQuest.Tests
             Assert.AreEqual(3f - p.distance, p.rigPosition.x, 0.001f);
         }
     }
+
+    /// <summary>M5.5: summary and Progress page shaping, and the gamification rules behind them.</summary>
+    public class ProgressViewsTests
+    {
+        [Test]
+        public void XpSpanWithinOneLevel()
+        {
+            var x = ProgressViews.Xp(20, 70);           // level 1 needs 100 XP
+            Assert.AreEqual(1, x.fromLevel);
+            Assert.AreEqual(1, x.toLevel);
+            Assert.AreEqual(0.2f, x.fromFrac, 0.001f);
+            Assert.AreEqual(0.7f, x.toFrac, 0.001f);
+            Assert.IsFalse(x.LevelUp);
+        }
+
+        [Test]
+        public void XpSpanAcrossALevelUp()
+        {
+            var x = ProgressViews.Xp(90, 130);          // level 2 starts at 100 and needs 160 more
+            Assert.IsTrue(x.LevelUp);
+            Assert.AreEqual(2, x.toLevel);
+            Assert.AreEqual(30f / 160f, x.toFrac, 0.001f);
+        }
+
+        [Test]
+        public void ExerciseLinesShowGoodRepsOutOfTarget()
+        {
+            var done = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex(reps: 1));
+            ExerciseEvaluatorTests.Rep(done, 90f);
+            var notDone = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex(reps: 3));
+            var lines = ProgressViews.ExerciseLines(new[] { done, notDone }, details: true);
+            Assert.AreEqual(2, lines.Count);
+            StringAssert.Contains("<b>1/1</b>", lines[0]);
+            StringAssert.Contains("100%", lines[0]);
+            StringAssert.Contains("✓", lines[0]);
+            StringAssert.Contains("<b>0/3</b>", lines[1]);
+            StringAssert.DoesNotContain("%", ProgressViews.ExerciseLines(new[] { done }, details: false)[0]);
+        }
+
+        [Test]
+        public void LevelUpAndBadgeNotesAreLeftToTheAnimation()
+        {
+            var keep = ProgressViews.OtherNotes(new[] { "Level up! Reached level 3", "Badge unlocked: Combo 10", "Heel slide: next session goes to 10 reps" });
+            CollectionAssert.AreEqual(new[] { "Heel slide: next session goes to 10 reps" }, keep);
+            CollectionAssert.AreEqual(new[] { "Combo 10", "mystery" }, ProgressViews.BadgeNames(new[] { "combo10", "mystery", "combo10" }));
+        }
+
+        [Test]
+        public void GalleryMarksEarnedBadgesFromServerOrGame()
+        {
+            var fromGame = ProgressViews.Gallery(null, new[] { "first" });
+            Assert.AreEqual(GamificationManager.BadgeNames.Count, fromGame.Count);
+            Assert.IsTrue(fromGame.Find(b => b.code == "first").earned);
+            Assert.IsFalse(fromGame.Find(b => b.code == "lv5").earned);
+            var server = new ProgressInfo { badges = new[] { new BadgeInfo { code = "first", name = "First steps", earned = false } } };
+            Assert.IsTrue(ProgressViews.Gallery(server, new[] { "first" })[0].earned);   // earned since the last download
+        }
+
+        [Test]
+        public void ProgressPageListsBadgesSessionsAndOfflineNote()
+        {
+            var p = new ProgramResponse
+            {
+                patient = new PatientInfo { code = "P-001", xp = 150, streak = 2, badges = new[] { "first" } },
+                progress = new ProgressInfo
+                {
+                    totalSessions = 3, completeSessions = 2,
+                    recent = new[] { new RecentSession { started_at = "2026-10-20T09:00:00", status = "complete", stars = 3, valid = 16, points = 140 } },
+                },
+            };
+            string online = ProgressViews.ProgressPage(p, true);
+            StringAssert.Contains("Level 2", online);
+            StringAssert.Contains("2</b> day streak", online);
+            StringAssert.Contains("2</b> of 3 sessions", online);
+            StringAssert.Contains("2026-10-20", online);
+            StringAssert.Contains("First steps", online);
+            StringAssert.DoesNotContain("Offline", online);
+            StringAssert.Contains("Offline", ProgressViews.ProgressPage(p, false));
+            p.progress.recent = new RecentSession[0];
+            StringAssert.Contains("No sessions yet", ProgressViews.ProgressPage(p, true));
+        }
+
+        [Test]
+        public void GamificationScoringComboAndBadges()
+        {
+            var g = new GamificationManager(new[] { "fullrom" });
+            var unlocked = new List<string>();
+            g.BadgeUnlocked += unlocked.Add;
+            var good = new RepResult { valid = true, accuracy = 100, error = 0f };
+            Assert.AreEqual(10, g.ScoreRep(good));                  // combo 1: x1.0
+            Assert.AreEqual(11, g.ScoreRep(good));                  // combo 2: x1.1
+            Assert.AreEqual(2, g.ScoreRep(new RepResult { valid = false }));
+            Assert.AreEqual(0, g.Combo);
+            for (int i = 0; i < 5; i++) g.ScoreRep(good);
+            CollectionAssert.Contains(unlocked, "perfect");
+            CollectionAssert.DoesNotContain(unlocked, "fullrom");   // already owned
+            g.AddCompletionBonus();
+            Assert.AreEqual(3, GamificationManager.Stars(92f, true));
+            Assert.AreEqual(0, GamificationManager.Stars(92f, false));
+        }
+    }
 }

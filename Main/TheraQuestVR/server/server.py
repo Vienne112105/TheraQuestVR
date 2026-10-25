@@ -1586,6 +1586,33 @@ def set_patient_archived(con, patient_id, body):
     return {"id": patient_id, "code": p["code"], "archivedAt": archived_at}
 
 
+PROGRESS_SESSIONS = 7   # recent sessions on the patient's in-game Progress page
+
+
+def vr_progress(con, p):
+    """
+    The patient's own progress for the in-game Progress page (M5.5): recent sessions, totals and every badge,
+    earned or not. Sent with the VR program, so the VR app caches it with the program for offline use.
+    """
+    rows = con.execute("""
+        SELECT s.started_at, s.status, s.points, s.stars,
+               COALESCE(SUM(r.valid_reps),0) AS valid, COALESCE(SUM(r.attempts),0) AS attempts,
+               CASE WHEN SUM(r.attempts)>0 THEN SUM(r.avg_accuracy*r.attempts)/SUM(r.attempts) ELSE 0 END AS accuracy
+        FROM session s LEFT JOIN performance_record r ON r.session_id = s.session_id
+        WHERE s.patient_id=? GROUP BY s.session_id ORDER BY s.started_at DESC, s.session_id DESC LIMIT ?""",
+                       (p["patient_id"], PROGRESS_SESSIONS)).fetchall()
+    total, complete = con.execute("SELECT COUNT(*), COALESCE(SUM(status='complete'),0) FROM session WHERE patient_id=?",
+                                  (p["patient_id"],)).fetchone()
+    owned = {r[0] for r in con.execute("SELECT badge_code FROM patient_badge WHERE patient_id=?", (p["patient_id"],))}
+    return {
+        "recent": [{"started_at": r["started_at"], "status": r["status"], "points": r["points"], "stars": r["stars"],
+                    "valid": r["valid"], "attempts": r["attempts"], "accuracy": round(r["accuracy"], 1)} for r in rows],
+        "totalSessions": total,
+        "completeSessions": complete,
+        "badges": [{"code": c, "name": n, "earned": c in owned} for c, n in BADGES.items()],
+    }
+
+
 # ------------------------------------------------------------- API logic
 def get_program(con, patient_id, patient=None, program=None):
     p = patient or con.execute("SELECT * FROM patient WHERE patient_id=?", (patient_id,)).fetchone()
@@ -1847,6 +1874,8 @@ def save_session(con, body):
                 notes.append(f"Badge unlocked: {BADGES[b]}")
     con.commit()
     return {"session_id": sid, "status": status, "notes": notes, "new_badges": new_badges,
+            # Structured rewards for the summary screen (M5.5); `notes` keeps the same facts as text
+            "xpGained": points, "levelBefore": old_level, "levelAfter": new_level,
             "patient": get_program(con, pid)["patient"]}
 
 
@@ -2225,7 +2254,7 @@ class Handler(BaseHTTPRequestHandler):
             if method == "GET" and parts == ["api", "vr", "program"]:
                 if p["archived_at"]:
                     return self._send(403, {"error": "This patient is archived. Ask the therapist to reactivate them."})
-                return self._send(200, get_program(con, p["patient_id"], patient=p))
+                return self._send(200, {**get_program(con, p["patient_id"], patient=p), "progress": vr_progress(con, p)})
             if method == "POST" and parts == ["api", "vr", "sessions"]:
                 body = self._body()
                 try:

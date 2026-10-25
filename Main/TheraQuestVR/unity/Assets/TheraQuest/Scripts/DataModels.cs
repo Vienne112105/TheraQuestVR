@@ -143,6 +143,37 @@ namespace TheraQuest
         public ProgramInfo program;
         public PhaseInfo phase = new PhaseInfo();
         public ExerciseDef[] exercises;
+        public ProgressInfo progress = new ProgressInfo();   // patient's own progress page (M5.5); cached with the program
+    }
+
+    /// <summary>The patient's progress for the in-game Progress page (M5.5), from GET /api/vr/program.</summary>
+    [Serializable]
+    public class ProgressInfo
+    {
+        public RecentSession[] recent = new RecentSession[0];
+        public int totalSessions;
+        public int completeSessions;
+        public BadgeInfo[] badges = new BadgeInfo[0];
+    }
+
+    [Serializable]
+    public class RecentSession
+    {
+        public string started_at;
+        public string status;       // complete | incomplete
+        public int points;
+        public int stars;
+        public int valid;
+        public int attempts;
+        public float accuracy;
+    }
+
+    [Serializable]
+    public class BadgeInfo
+    {
+        public string code;
+        public string name;
+        public bool earned;
     }
 
     // ---------------------------------------------------------------
@@ -207,6 +238,9 @@ namespace TheraQuest
         public string status;
         public string[] notes = new string[0];
         public string[] new_badges = new string[0];
+        public int xpGained;        // structured rewards for the summary screen (M5.5)
+        public int levelBefore;
+        public int levelAfter;
         public PatientInfo patient;
     }
 
