@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEngine;
 
 namespace TheraQuest.EditorTools
 {
@@ -17,7 +18,7 @@ namespace TheraQuest.EditorTools
         public const string Folder = "/Coaches/";
         public const string AnimationFolder = "/CoachAnimations/";
 
-        public override uint GetVersion() => 4;
+        public override uint GetVersion() => 5;
 
         static bool In(string path, string folder) => path.Replace('\\', '/').IndexOf(folder, System.StringComparison.OrdinalIgnoreCase) >= 0;
 
@@ -28,6 +29,7 @@ namespace TheraQuest.EditorTools
             {
                 importer.animationType = ModelImporterAnimationType.Human;
                 importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+                MapQuaterniusRig(importer);
                 importer.importAnimation = false;
                 // Smooth shading: blend facets that meet at less than 80°, keep sharper creases crisp
                 importer.importNormals = ModelImporterNormals.Calculate;
@@ -41,6 +43,37 @@ namespace TheraQuest.EditorTools
                 importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
                 importer.importAnimation = true;
             }
+        }
+
+        // Quaternius Ultimate Modular rigs keep the feet as IK bones under the root ("Bone/Foot.L"), so Unity's automatic
+        // mapping finds no feet and the avatar is not Humanoid: idle clips then don't play on the coach. Map the rig by
+        // hand, with the ankle points (LowerLeg.*_end, children of the lower legs) as the feet; HumanoidCoach re-attaches
+        // the Foot.* bones (the shoes) to the lower legs at runtime. Bone names come from the skeleton Unity recorded on
+        // the previous import, so a brand-new model of this kind becomes Humanoid on its first reimport.
+        static readonly string[,] QuaterniusMap =
+        {
+            { "Hips", "Body" }, { "Spine", "Hips" }, { "Chest", "Abdomen" }, { "UpperChest", "Torso" }, { "Neck", "Neck" }, { "Head", "Head" },
+            { "LeftShoulder", "Shoulder.L" }, { "LeftUpperArm", "UpperArm.L" }, { "LeftLowerArm", "LowerArm.L" }, { "LeftHand", "Palm.L" },
+            { "RightShoulder", "Shoulder.R" }, { "RightUpperArm", "UpperArm.R" }, { "RightLowerArm", "LowerArm.R" }, { "RightHand", "Palm.R" },
+            { "LeftUpperLeg", "UpperLeg.L" }, { "LeftLowerLeg", "LowerLeg.L" }, { "LeftFoot", "LowerLeg.L_end" },
+            { "RightUpperLeg", "UpperLeg.R" }, { "RightLowerLeg", "LowerLeg.R" }, { "RightFoot", "LowerLeg.R_end" },
+        };
+
+        static void MapQuaterniusRig(ModelImporter importer)
+        {
+            var desc = importer.humanDescription;
+            var bones = new System.Collections.Generic.HashSet<string>();
+            if (desc.skeleton != null) foreach (var s in desc.skeleton) bones.Add(s.name);
+            for (int i = 0; i < QuaterniusMap.GetLength(0); i++)
+                if (!bones.Contains(QuaterniusMap[i, 1])) return;   // not this rig (e.g. Mixamo): keep Unity's own mapping
+            var human = new HumanBone[QuaterniusMap.GetLength(0)];
+            for (int i = 0; i < human.Length; i++)
+            {
+                human[i] = new HumanBone { humanName = QuaterniusMap[i, 0], boneName = QuaterniusMap[i, 1] };
+                human[i].limit.useDefaultValues = true;
+            }
+            desc.human = human;
+            importer.humanDescription = desc;
         }
 
         void OnPreprocessAnimation()

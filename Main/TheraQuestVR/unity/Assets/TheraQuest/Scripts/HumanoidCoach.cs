@@ -695,6 +695,14 @@ namespace TheraQuest
 
                 f.foot[0] = SafeGetBone(anim, HumanBodyBones.LeftFoot) ?? FindBone(go.transform, "Foot.L", "LowerLeg.L_end", "LeftFoot", "Foot_L");
                 f.foot[1] = SafeGetBone(anim, HumanBodyBones.RightFoot) ?? FindBone(go.transform, "Foot.R", "LowerLeg.R_end", "RightFoot", "Foot_R");
+                // Quaternius rigs map the ankle point (LowerLeg.*_end) as the Humanoid foot (CoachModelImporter): hang the
+                // shoe bone from it, so the ankle (animated or posed) turns the shoe
+                for (int s = 0; s < 2; s++)
+                {
+                    var shoe = FindBone(go.transform, s == 0 ? "Foot.L" : "Foot.R");
+                    if (shoe != null && f.foot[s] != null && shoe != f.foot[s] && !shoe.IsChildOf(f.foot[s]) && !f.foot[s].IsChildOf(shoe))
+                        shoe.SetParent(f.foot[s], true);
+                }
 
                 if (f.hips == null || f.head == null || f.upperArm[0] == null || f.upperArm[1] == null ||
                     f.lowerArm[0] == null || f.lowerArm[1] == null || f.upperLeg[0] == null || f.upperLeg[1] == null ||
@@ -969,8 +977,10 @@ namespace TheraQuest
                         break;
                 }
 
-                // Standing legs that the exercise doesn't move: soft knees instead of locked straight
-                if (p == Posture.Standing && !useAnim)
+                // Standing legs that the exercise doesn't move: soft knees instead of locked straight. Also with the idle
+                // clip, which drives the trunk, head and arms: retargeted onto the coach rigs its legs take a stride
+                // and crease the thigh, so the feet stay planted side by side
+                if (p == Posture.Standing)
                     for (int side = -1; side <= 1; side += 2)
                         if (!legPosed[I(side)]) Leg(side, 3f, 7f);
                 // Lying down they lie straight along the bed (the rig's rest pose bends the knees, which pushed the

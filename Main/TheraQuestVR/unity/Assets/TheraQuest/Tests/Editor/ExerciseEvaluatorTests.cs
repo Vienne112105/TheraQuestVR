@@ -599,6 +599,21 @@ namespace TheraQuest.Tests
         }
 
         [Test]
+        public void EveryCoachModelIsAHumanoidSoTheIdleClipPlays()
+        {
+            var guids = UnityEditor.AssetDatabase.FindAssets("t:Model", new[] { "Assets/TheraQuest/Coaches" });
+            Assert.IsNotEmpty(guids);
+            foreach (var guid in guids)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+                Avatar avatar = null;
+                foreach (var a in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path)) if (a is Avatar av) avatar = av;
+                Assert.IsNotNull(avatar, path);
+                Assert.IsTrue(avatar.isValid && avatar.isHuman, path + " is not a valid Humanoid (see CoachModelImporter)");
+            }
+        }
+
+        [Test]
         public void LofiTracksAndHoldSoundAreInResources()
         {
             Assert.AreEqual(9, Resources.LoadAll<AudioClip>(MusicPlayer.PlaylistFolder).Length);
