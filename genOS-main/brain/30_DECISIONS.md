@@ -32,6 +32,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-013 | accepted | 2026-10-26 | Therapist Dashboard Is a Desktop App, Not a Website |
 | DEC-014 | accepted | 2026-10-26 | Patients Are Archived, Never Deleted; Built-in Protocols Are Read-Only |
 | DEC-015 | accepted | 2026-10-26 | Game Text Uses TextMeshPro; Game Assets Load from Resources with Generated Fallbacks |
+| DEC-016 | accepted | 2026-10-26 | Five-Colour Game Palette; Red Only for Safety Warnings |
 
 ---
 
@@ -159,4 +160,11 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Date:** 2026-10-26
 - **Reason:** Legacy `UnityEngine.UI.Text` blurs up close and at an angle in a headset; the human approved moving to TextMeshPro in M5.6 (before the pending Play-mode checks, so they check the final text once). The scene file holds the human's own unsaved work and can't be relied on to carry asset references into a build, and the game must keep running when an asset is missing (M5.6 completion criteria).
 - **Impact:** All game text is `TextMeshProUGUI`, created only through `UIKit.Label`, which picks the font (SDF assets made at runtime from the TTFs in `Resources/Fonts`, DejaVu Sans Bold as the fallback for symbols), applies outlines through the text material (`UIKit.Stroke`) and makes on-top panels ignore depth with shared materials. TextMesh Pro essentials live in `Assets/TextMesh Pro`. Music, sounds, badge icons and the coach idle load from `Assets/TheraQuest/Resources` when their inspector field is empty; each has a fallback (generated loop and chimes, ★ chips, hand-made idle sway, TextMeshPro's default font). Badge icons inside text use `<sprite name="code">` from `Resources/Badges/BadgeSprites.asset`.
+- **Supersedes:** none
+
+### DEC-016: Five-Colour Game Palette; Red Only for Safety Warnings
+- **Status:** accepted
+- **Date:** 2026-10-26
+- **Reason:** The human set the game's colours to five: navy #1D3557, blue #277DA1, orange #F3722C, green #43AA8B, off-white #F8F9FA. Asked about scope and warnings, the human chose panels and text only (the 3D clinic room keeps its own colours) and to keep red for safety warnings so they never look like ordinary orange hints.
+- **Impact:** Every panel and text colour in the game (menus, HUD, summary, Progress page, subtitles, pop-ups, posters) comes from `UIKit`'s palette, which holds only these five colours and tints of them; the older role names stay (Teal = accent blue, Yellow = rewards orange, Pink = combo green, Purple = navy). Red `#E5484D` is used only for safety (STOP line, unsafe or too-far reps, posture faults). Outline rule: display text gets a lighter shade of its colour, navy text a light off-white outline, white text on pills a darker shade of the pill, and pop-ups a darker shade of their own colour. The therapist dashboard is not covered by this decision.
 - **Supersedes:** none
