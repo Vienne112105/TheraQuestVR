@@ -37,6 +37,7 @@ Renders an immersive 3D physical therapy clinic environment in Unity 6, handles 
 ## Notes
 - Anti-aliasing (SMAA) is applied to ensure sharp edges and avoid VR pixelation artifacts.
 - Subtitle presets support 3 typography scales (34pt, 44pt, 56pt) for maximum legibility.
+- All HUD and menu text is TextMeshPro made through `UIKit.Label` (DEC-015); don't add `UnityEngine.UI.Text`.
 
 ## Future Changes
 - Hand tracking support via Quest OpenXR Hand Tracking extension.

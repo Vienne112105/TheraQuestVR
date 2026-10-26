@@ -31,6 +31,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-012 | accepted | 2026-10-20 | Server Exercise Library Is the Single Source of Exercise Rules |
 | DEC-013 | accepted | 2026-10-26 | Therapist Dashboard Is a Desktop App, Not a Website |
 | DEC-014 | accepted | 2026-10-26 | Patients Are Archived, Never Deleted; Built-in Protocols Are Read-Only |
+| DEC-015 | accepted | 2026-10-26 | Game Text Uses TextMeshPro; Game Assets Load from Resources with Generated Fallbacks |
 
 ---
 
@@ -151,4 +152,11 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Date:** 2026-10-26
 - **Reason:** M5.2 lets therapists retire patients and refine protocols from the dashboard (archive-instead-of-delete was approved with the M5 plan). Clinical and research records must survive (Section 3.9 evaluation, RA 10173 accountability), and built-in protocols are reloaded from `PROTOCOLS` whenever `PROTOCOL_VERSION` changes, so edits to them would be lost.
 - **Impact:** Archiving sets `patient.archived_at`; nothing is deleted. Archived patients are hidden from the caseload unless the therapist asks for them, the VR app gets 403 for a new program (no new sessions), and uploads of sessions already recorded (offline queue) are still accepted. Only therapist-authored protocols (`builtin = 0`) can have phases edited or added; built-in ones answer 403. Editing a phase does not change the prescription of patients already on it: a phase's exercises are copied to the patient when it is assigned. The patient code can't be edited (the VR app is configured with it).
+- **Supersedes:** none
+
+### DEC-015: Game Text Uses TextMeshPro; Game Assets Load from Resources with Generated Fallbacks
+- **Status:** accepted
+- **Date:** 2026-10-26
+- **Reason:** Legacy `UnityEngine.UI.Text` blurs up close and at an angle in a headset; the human approved moving to TextMeshPro in M5.6 (before the pending Play-mode checks, so they check the final text once). The scene file holds the human's own unsaved work and can't be relied on to carry asset references into a build, and the game must keep running when an asset is missing (M5.6 completion criteria).
+- **Impact:** All game text is `TextMeshProUGUI`, created only through `UIKit.Label`, which picks the font (SDF assets made at runtime from the TTFs in `Resources/Fonts`, DejaVu Sans Bold as the fallback for symbols), applies outlines through the text material (`UIKit.Stroke`) and makes on-top panels ignore depth with shared materials. TextMesh Pro essentials live in `Assets/TextMesh Pro`. Music, sounds, badge icons and the coach idle load from `Assets/TheraQuest/Resources` when their inspector field is empty; each has a fallback (generated loop and chimes, ★ chips, hand-made idle sway, TextMeshPro's default font). Badge icons inside text use `<sprite name="code">` from `Resources/Badges/BadgeSprites.asset`.
 - **Supersedes:** none

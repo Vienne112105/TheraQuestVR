@@ -14,16 +14,16 @@ last_agent: claude-code
 last_ide: claude-desktop
 
 # ID only — resolve objective/criteria in 50_ROADMAP.md
-current_milestone: M5.5
+current_milestone: M5
 
 # Active scene or primary file in focus, if any
 current_scene: null
 
 # System file basenames under brain/systems/ (without .md) to load on BOOT
 systems_in_scope:
-  - SessionOrchestration
   - VRClinicExperience
   - Gamification
+  - AvatarCoach
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on: []
@@ -33,12 +33,13 @@ working_on: []
 # A milestone with pending tests stays TBF in 50_ROADMAP.md until this list has none left for it.
 # The headset run and the real-footage signed-angle check are not here: they belong to roadmap milestone HW.
 pending_human_tests:
-  - "M5.1 dashboard walkthrough in the desktop app: double-click Start_Therapist_App.bat (it starts the server and opens the TheraQuest window). Using the keyboard only (Tab, Shift+Tab, Enter, Escape, arrow keys on the chart tabs), sign in, open a chart, switch tabs, and open and close every dialog; focus should go back to the button you came from. Shrink the window to its smallest size and check nothing scrolls sideways. Open a patient with more than 50 sessions and use Show older sessions. Report anything that looks wrong or worse than before."
+  - "M5.1 dashboard walkthrough in the desktop app: double-click Start_Therapist_App.bat (it starts the server and opens the TheraQuest window). Using the keyboard only (Tab, Shift+Tab, Enter, Escape, arrow keys on the chart tabs), sign in, open a chart, switch tabs, and open and close every dialog; focus should go back to the button you came from. Shrink the window to its smallest size and check nothing scrolls sideways. Open a patient with more than 50 sessions and use Show older sessions. Report anything that looks wrong or worse than before."
   - "M5.2 check in the desktop app (Start_Therapist_App.bat): open a test patient, use Edit Details to change the name or condition, then Archive them (they disappear from the caseload; tick Show archived patients to see them again) and Reactivate. In the Protocol Library, create a protocol of your own, open it, use Edit on a phase and Add Phase. Open a built-in protocol and check it says read-only and has no Edit buttons. Report anything wrong."
   - "M5.7 check in the desktop app: open the Protocol Library and read through the seven new protocols (ACL reconstruction, Total knee replacement (MGB), Hip fracture fixation, Ankle fracture ORIF, Distal radius fracture ORIF, Tibial plateau fracture ORIF, Lateral ankle sprain). Check phases, timelines and precautions read correctly against the sources, and apply one to a test patient. The angles and reps are starting points for a licensed PT to confirm (TASK-007)."
   - "M5.3 check in the desktop app: the caseload should list patients that need attention first, with red chips (Unsafe reps, Pain rising, Accuracy dropping, Missed sessions); hover a chip for the reason. Open a flagged patient and read the Needs attention notice and the Clinical Status box. Say whether the reasons make clinical sense; the thresholds are placeholders for a PT to set (TASK-007)."
   - "M5.4 Play-mode check (Unity Editor, or the built player with -patient): start a session; on the laptop the camera eases in to frame the coach at each exercise (closer for small moves, tilted down for table exercises; in a headset it only re-centers); each exercise shows an Exercise N of M get-ready card, then 3-2-1-Go after pressing Start; finishing an exercise shows EXERCISE COMPLETE and Up next for a few seconds; pause (Esc / B) and choose Restart this exercise, which starts again from set 1; the hints say Space / Esc on the laptop (A / B in a headset); with an unsent offline session the main menu says it is waiting to be sent."
   - "M5.5 Play-mode check (with the clinical server running): main menu > Your progress shows level, streak, badges (earned gold, locked grey) and recent sessions; finish a session and check the summary stays short (good reps, points, saved), the XP bar fills (and rolls over with LEVEL UP when a level is reached), and new badges appear one by one; repeat with the server stopped: the summary says the XP is added when sent, and Your progress says it is the last saved progress."
+  - "M5.6 Play-mode check (Unity Editor or built player), with headphones at a normal volume: menu, HUD, summary and Your progress text is sharp and readable (now TextMeshPro; symbols like ★ ✓ ▶ show); badge icons are gold when earned and grey when locked on the HUD Badges row, the summary (New badge) and Your progress; the lo-fi music plays and moves to another track when one ends, and Settings > Music changes its volume; holding a target plays the new hold-complete chime, a new badge plays the chime with reverb, and click, STOP and level up sound as before; the coach stands with a natural idle (breathing, small shifts) before and between exercises. Also tell the agent where the old rep sounds (Perfect, Great, Awesome, Miss, Victory) and the coach models came from, for CREDITS.md."
 
 # Known bugs or risks
 known_issues:
@@ -51,4 +52,4 @@ known_issues:
 blocked: []
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-10-26: M5 Dashboard & Game Experience is active. Done and TBF (waiting on human checks in pending_human_tests): M5.1, M5.2, M5.3, M5.7 (dashboard and protocols), M5.4 (session flow, auto-focus) and M5.5 (summary and Progress page; server sends progress with the VR program and structured rewards on upload). Agent play-tests in the Unity Editor used simulated input and a throwaway server/database; the Unity offline queue (pending_sessions.jsonl) and program cache were backed up and restored each time. Tests: backend 54, authorization 13, Unity EditMode 42 pass. TheraQuest.unity has uncommitted changes saved from the human's Editor; left alone. Next: M5.6 Audio & Visual Assets (needs licensed or human-supplied assets)."
+session_summary: "2026-10-26: M5 Dashboard & Game Experience is active; every child (M5.1-M5.7) is now built and TBF, waiting on the human checks in pending_human_tests. Latest: M5.6 Audio & Visual Assets finished: hold-complete chime (Kenney), reverb on the generated badge chime, nine CC0 lo-fi tracks as a shuffled playlist, seven Kenney badge icons (gold earned, grey locked) on the HUD, summary and Progress page, Quaternius CC0 coach idle, and TextMeshPro for all game text (DEC-015; human approved). Assets live in Assets/TheraQuest/Resources with fallbacks when missing; all credited in Assets/TheraQuest/CREDITS.md except the older rep sounds and coach models, whose source the human still has to give. Unity EditMode tests 49 pass; agent play-tested in the Editor with simulated input and a throwaway server (offline queue and program cache backed up and restored). Backend 54 and authorization 13 tests unchanged this session. TheraQuest.unity has the human's own uncommitted changes; left alone. Next: the human runs the pending checks; then M5 can close (or HW gets scheduled)."

@@ -29,6 +29,7 @@ Visualizes a virtual physical therapy coach avatar that demonstrates exercise mo
 - Holographic range-of-motion guidance marker must be visible in both Coach Mode and Silhouette Mode.
 
 ## Notes
+- The standing idle is Quaternius' CC0 `Idle_Loop` (`Resources/CoachAnimations`, M5.6), loaded when the coach's Idle Clip field is empty; without it the hand-made breathing and sway are used.
 - Users can drop any Mixamo Humanoid FBX into `Assets/TheraQuest/Coaches/Male/` or `Assets/TheraQuest/Coaches/Female/` to expand the coach roster automatically.
 
 ## Future Changes

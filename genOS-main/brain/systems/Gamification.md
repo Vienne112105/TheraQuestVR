@@ -20,12 +20,15 @@ Maintains patient motivation and adherence through real-time feedback loops, sco
 ## Runtime References
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/GamificationManager.cs`: Score calculation, combo counters, XP persistence, and badge unlock logic.
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/FeedbackManager.cs`: Audio cue management and motivational banner triggers.
-- `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/MusicPlayer.cs`: Ambient soundtrack playback.
+- `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/MusicPlayer.cs`: Background music: shuffled lo-fi playlist from `Resources/Music`, generated ambient loop as fallback.
+- `Main/TheraQuestVR/unity/Assets/TheraQuest/Resources/` (`Audio`, `Music`, `Badges`): M5.6 assets (sources and licences in `Assets/TheraQuest/CREDITS.md`); badge icons via `UIKit.BadgeIcon` / `UIKit.BadgeTag`.
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/*.mp3`: Audio asset clips ("Awesome sound", "great sound", "miss sound", "Perfect sound", "victory sound").
 
 ## Invariants
 - Badges and player XP progression must persist locally between workout sessions.
 - Incomplete sessions terminated prematurely award 0 stars.
+- Earned and locked badges must look different (earned gold, locked grey), wherever badges are shown.
+- Every sound, music track and icon keeps a working fallback when its file is missing (DEC-015), and every third-party asset is credited with a verifiable licence.
 
 ## Notes
 - Gamification mechanics are balanced to reward accuracy and consistency over rapid movement velocity to prevent patient injury.
