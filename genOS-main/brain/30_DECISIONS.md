@@ -33,6 +33,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-014 | accepted | 2026-10-26 | Patients Are Archived, Never Deleted; Built-in Protocols Are Read-Only |
 | DEC-015 | accepted | 2026-10-26 | Game Text Uses TextMeshPro; Game Assets Load from Resources with Generated Fallbacks |
 | DEC-016 | accepted | 2026-10-26 | Five-Colour Game Palette; Red Only for Safety Warnings |
+| DEC-017 | accepted | 2026-10-27 | Cartoon Coach: Toon Shading, Outlines and Stylised Proportions |
 
 ---
 
@@ -167,4 +168,11 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Date:** 2026-10-26
 - **Reason:** The human set the game's colours to five: navy #1D3557, blue #277DA1, orange #F3722C, green #43AA8B, off-white #F8F9FA. Asked about scope and warnings, the human chose panels and text only (the 3D clinic room keeps its own colours) and to keep red for safety warnings so they never look like ordinary orange hints.
 - **Impact:** Every panel and text colour in the game (menus, HUD, summary, Progress page, subtitles, pop-ups, posters) comes from `UIKit`'s palette, which holds only these five colours and tints of them; the older role names stay (Teal = accent blue, Yellow = rewards orange, Pink = combo green, Purple = navy). Red `#E5484D` is used only for safety (STOP line, unsafe or too-far reps, posture faults). Outline rule: display text gets a lighter shade of its colour, navy text a light off-white outline, white text on pills a darker shade of the pill, and pop-ups a darker shade of their own colour. The therapist dashboard is not covered by this decision.
+- **Supersedes:** none
+
+### DEC-017: Cartoon Coach: Toon Shading, Outlines and Stylised Proportions
+- **Status:** accepted
+- **Date:** 2026-10-27
+- **Reason:** Asked to make the coaches either more realistic or more cartoony, the human chose cartoony for both genders. A stylised coach avoids the uncanny look of near-realistic people up close in VR, renders cheaply on headsets, and matches the game's XP, badge and palette style; realism would have needed new high-detail models.
+- **Impact:** Every coach (male and female) uses the `TheraQuest/Toon Outline` shader (`Assets/TheraQuest/Shaders`, template `Resources/Toon/CoachToon`): two-tone cel shading with a cool shadow tint, a soft rim light, and an outline in a darker shade of each part's own colour (none on eyes and brows, thinner on hair). Head and hands are slightly larger and the neck shorter, on both the coach and its see-through guide so the guide still lines up. All values are inspector fields on `HumanoidCoach` (`toonStyle`, `outlineWidth`, `headScale`, `handScale`, `neckLength`); turning `toonStyle` off restores the models' own materials. The shader is written for the Built-in render pipeline, which is what the project renders with today.
 - **Supersedes:** none
