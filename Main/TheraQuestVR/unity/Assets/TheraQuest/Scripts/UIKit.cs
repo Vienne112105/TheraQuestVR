@@ -14,33 +14,39 @@ namespace TheraQuest
     /// </summary>
     public static class UIKit
     {
-        // Palette
-        public static readonly Color Cream = new Color32(255, 251, 240, 250);
-        public static readonly Color Outline = new Color32(43, 45, 66, 255);
-        public static readonly Color Ink = new Color32(43, 45, 66, 255);
-        public static readonly Color Muted = new Color32(110, 120, 140, 255);
-        public static readonly Color Teal = new Color32(46, 196, 182, 255);
-        public static readonly Color Orange = new Color32(255, 159, 28, 255);
-        public static readonly Color Pink = new Color32(255, 93, 143, 255);
-        public static readonly Color Yellow = new Color32(255, 210, 63, 255);
-        public static readonly Color Green = new Color32(59, 178, 115, 255);
-        public static readonly Color Red = new Color32(229, 72, 77, 255);
-        public static readonly Color Purple = new Color32(123, 97, 255, 255);
-        public static readonly Color Blue = new Color32(58, 134, 255, 255);
-        public static readonly Color Track = new Color32(43, 45, 66, 28);
+        // Palette (human choice 2026-10-26): every panel and text colour is one of these five, or a tint of one.
+        //   Navy #1D3557, Blue #277DA1, Orange #F3722C, Green #43AA8B, Off-white #F8F9FA.
+        // The older names stay so each role keeps its meaning: Teal = the accent (blue), Yellow = rewards (orange),
+        // Pink = the combo tile (green), Purple = the level pill (navy). Red is the one exception: it is kept only for
+        // safety warnings (STOP line, unsafe or too-far reps, posture faults), so they never look like normal hints.
+        public static readonly Color Navy = new Color32(29, 53, 87, 255);
+        public static readonly Color White = new Color32(248, 249, 250, 255);
+        public static readonly Color Cream = new Color32(248, 249, 250, 250);
+        public static readonly Color Outline = Navy;
+        public static readonly Color Ink = Navy;
+        public static readonly Color Muted = new Color32(95, 112, 136, 255);     // navy, 70% over off-white
+        public static readonly Color Blue = new Color32(39, 125, 161, 255);
+        public static readonly Color Teal = Blue;
+        public static readonly Color Orange = new Color32(243, 114, 44, 255);
+        public static readonly Color Yellow = Orange;
+        public static readonly Color Green = new Color32(67, 170, 139, 255);
+        public static readonly Color Pink = Green;
+        public static readonly Color Purple = Navy;
+        public static readonly Color Red = new Color32(229, 72, 77, 255);        // safety warnings only
+        public static readonly Color Track = new Color32(29, 53, 87, 28);
 
         // Names used by the panels
         public static readonly Color Panel = Cream;
         public static readonly Color PanelDeep = Cream;
-        public static readonly Color Row = new Color32(43, 45, 66, 16);
+        public static readonly Color Row = new Color32(29, 53, 87, 16);
         public static readonly Color Accent = Teal;
         public static readonly Color AccentDark = Teal;
         public static readonly Color Gold = Yellow;
 
         // For rich text: <color=#...>
-        public const string HexInk = "#2B2D42", HexMuted = "#6E788C", HexGood = "#3BB273", HexWarn = "#E08600",
-                            HexBad = "#E5484D", HexTeal = "#1FA597", HexGold = "#E0A800", HexPurple = "#7B61FF",
-                            HexLocked = "#C9C3B6";
+        public const string HexInk = "#1D3557", HexMuted = "#5F7088", HexGood = "#43AA8B", HexWarn = "#F3722C",
+                            HexBad = "#E5484D", HexTeal = "#277DA1", HexGold = "#F3722C", HexPurple = "#1D3557",
+                            HexLocked = "#C1C8D1", HexSound = "#A4CBD9";   // locked: navy 25%; sound: light blue
 
         static Font font, boldFont, displayFont, builtinFont;
         static TMP_FontAsset tmpBody, tmpBold, tmpDisplay, tmpSymbols;
@@ -378,8 +384,15 @@ namespace TheraQuest
             return icons[name] = s;
         }
 
-        /// <summary>Cartoon stroke in a lighter shade of the text's own colour (human request 2026-10-26).</summary>
-        public static T Stroke<T>(T graphic, float width = 3f) where T : Graphic => Stroke(graphic, Lighter(graphic.color), width);
+        /// <summary>
+        /// Cartoon stroke in a lighter shade of the text's own colour; dark (navy) text gets a light off-white outline
+        /// for contrast instead (human requests 2026-10-26).
+        /// </summary>
+        public static T Stroke<T>(T graphic, float width = 3f) where T : Graphic =>
+            Stroke(graphic, IsDark(graphic.color) ? White : Lighter(graphic.color), width);
+
+        /// <summary>True for dark colours such as the navy text colour.</summary>
+        public static bool IsDark(Color c) => 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b < 0.35f;
 
         /// <summary>Cartoon stroke around text (thick outline) in a given colour.</summary>
         public static T Stroke<T>(T graphic, Color color, float width = 3f) where T : Graphic

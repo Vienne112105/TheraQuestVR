@@ -182,6 +182,8 @@ namespace TheraQuest
 
         /// <summary>Progress page on the main menu (M5.5): level, streak, badges, recent sessions.</summary>
         public string ProgressInfo(ProgressViews.ProgressTab tab) => ProgressViews.ProgressPage(program, online, tab);
+        public List<BadgeInfo> ProgressBadges => program?.patient == null ? new List<BadgeInfo>()
+            : ProgressViews.Gallery(program.progress, program.patient.badges);
         public string ProgressSubtitle => program?.patient == null ? "" :
             $"{program.patient.code}" + (online ? "" : " · offline: last saved progress");
 
@@ -389,19 +391,19 @@ namespace TheraQuest
         {
             string status;
             if (motion.source == InputSource.Webcam && receiver.Problem != null)
-                status = $"<color={UIKit.HexBad}>●</color> {receiver.Problem}";
+                status = $"<color={UIKit.HexWarn}>●</color> {receiver.Problem}";
             else if (GameSettings.ShowDetails)
             {
                 if (motion.source == InputSource.Webcam)
                     status = receiver.IsReceiving
                         ? $"<color={UIKit.HexGood}>● Tracker</color> {receiver.PacketsPerSecond:0} fps · side {motion.MeasuredSide}"
-                        : $"<color={UIKit.HexBad}>● No tracker data</color>: run tracker.py";
+                        : $"<color={UIKit.HexWarn}>● No tracker data</color>: run tracker.py";
                 else status = $"Input: {motion.SourceLabel}";
                 status += head != null && head.HeadsetActive ? " · headset on" : " · desktop view";
             }
             else if (motion.source == InputSource.Webcam)
                 status = receiver.IsReceiving ? $"<color={UIKit.HexGood}>●</color> Camera is watching. You're good to go!"
-                                              : $"<color={UIKit.HexBad}>●</color> Camera can't see you yet. Ask for help.";
+                                              : $"<color={UIKit.HexWarn}>●</color> Camera can't see you yet. Ask for help.";
             else if (motion.source == InputSource.Keyboard)
                 status = $"<color={UIKit.HexWarn}>●</color> Practice: move with {Keys.Angle}";
             else

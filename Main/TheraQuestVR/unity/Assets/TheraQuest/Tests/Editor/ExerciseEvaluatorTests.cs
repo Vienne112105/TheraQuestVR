@@ -482,13 +482,12 @@ namespace TheraQuest.Tests
             StringAssert.Contains("Offline", ProgressViews.ProgressPage(p, false, ProgressViews.ProgressTab.Profile));
             // Tab 2: recent sessions
             StringAssert.Contains("2026-10-20", ProgressViews.ProgressPage(p, true, ProgressViews.ProgressTab.Sessions));
-            // Tab 3: badges, earned gold and locked grey, each with how to earn it
+            // Tab 3: badges are cards drawn by the menu; the text is the count above them, and each card says how to earn it
             string badges = ProgressViews.ProgressPage(p, true, ProgressViews.ProgressTab.Badges);
-            StringAssert.Contains("First steps", badges);
-            StringAssert.Contains("<sprite name=\"first\" color=" + UIKit.HexGold, badges);
-            StringAssert.Contains("<sprite name=\"lv5\" color=" + UIKit.HexLocked, badges);
-            StringAssert.Contains("Reach level 5", badges);
+            StringAssert.Contains("1</b> of 7 badges earned", badges);
             StringAssert.DoesNotContain("2026-10-20", badges);
+            foreach (var code in GamificationManager.BadgeNames.Keys) Assert.IsNotEmpty(ProgressViews.BadgeHint(code), code);
+            Assert.AreEqual("", ProgressViews.BadgeHint("mystery"));
             p.progress.recent = new RecentSession[0];
             StringAssert.Contains("No sessions yet", ProgressViews.ProgressPage(p, true, ProgressViews.ProgressTab.Sessions));
         }
@@ -559,6 +558,17 @@ namespace TheraQuest.Tests
             Assert.AreEqual("LuckiestGuy-Regular", UIKit.FontFor(UIKit.DisplaySize, FontStyle.Normal).name);
             Assert.AreEqual("Nunito-ExtraBold", UIKit.FontFor(30, FontStyle.Bold).name);
             Assert.AreEqual("Nunito-SemiBold", UIKit.FontFor(30, FontStyle.Normal).name);
+        }
+
+        [Test]
+        public void PanelColoursComeFromTheFiveColourPalette()
+        {
+            string[] palette = { "1D3557", "277DA1", "F3722C", "43AA8B", "F8F9FA" };
+            foreach (var c in new[] { UIKit.Ink, UIKit.Teal, UIKit.Blue, UIKit.Orange, UIKit.Yellow, UIKit.Green, UIKit.Pink, UIKit.Purple, UIKit.White })
+                CollectionAssert.Contains(palette, ColorUtility.ToHtmlStringRGB(c));
+            Assert.IsTrue(UIKit.IsDark(UIKit.Ink));          // navy text gets a light outline
+            Assert.IsFalse(UIKit.IsDark(UIKit.Orange));
+            Assert.IsFalse(UIKit.IsDark(UIKit.White));
         }
 
         [Test]

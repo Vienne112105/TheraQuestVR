@@ -24,7 +24,7 @@ namespace TheraQuest
         public static void Say(string line, float seconds = 3f, string sound = null)
         {
             if (instance == null) return;
-            string s = string.IsNullOrEmpty(sound) ? "" : $"<color=#BFEFEA><i>[{sound}]</i></color> ";
+            string s = string.IsNullOrEmpty(sound) ? "" : $"<color={UIKit.HexSound}><i>[{sound}]</i></color> ";
             instance.Show(s + StripTags(line), seconds);
         }
 
@@ -37,10 +37,10 @@ namespace TheraQuest
             // No background box: white text with a dark outline and soft shadow reads on any background
             bg = UIKit.Box(canvas.transform, Vector2.zero, new Vector2(1200, 160), Color.clear, "Area");
             bg.enabled = false;
-            text = UIKit.Label(canvas.transform, new Vector2(30, -14), new Vector2(1140, 132), 38, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
-            UIKit.Stroke(text, new Color(0f, 0f, 0f, 0.85f), 2.5f);
+            text = UIKit.Label(canvas.transform, new Vector2(30, -14), new Vector2(1140, 132), 38, UIKit.White, TextAnchor.MiddleCenter, FontStyle.Bold);
+            UIKit.Stroke(text, new Color(UIKit.Navy.r, UIKit.Navy.g, UIKit.Navy.b, 0.9f), 2.5f);
             var shadow = text.gameObject.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.5f);
+            shadow.effectColor = new Color(UIKit.Navy.r, UIKit.Navy.g, UIKit.Navy.b, 0.5f);
             shadow.effectDistance = new Vector2(4f, -5f);
             UIKit.MakeOnTop(canvas, 50);
             canvas.gameObject.SetActive(false);

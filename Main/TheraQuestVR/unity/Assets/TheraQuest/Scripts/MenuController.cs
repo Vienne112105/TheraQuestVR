@@ -45,8 +45,12 @@ namespace TheraQuest
         Canvas canvas;
         UIKit.CardRef card;
         TextMeshProUGUI title, subtitle, info, footer;
-        Image headset;                          // VR headset logo beside the game name (main page only)
+        Image headset;                          // VR headset logo after the game name (main page only)
         RectTransform tabBar;                   // Progress page tabs
+        RectTransform badgeGrid;                // Progress page, Badges tab: one card per badge
+        const int BadgeCols = 4;
+        Vector3 placedAt;                       // where PlaceInFront put the menu's centre
+        const float BadgeCardH = 262f, BadgeGap = 18f;
         readonly List<(Image bg, TextMeshProUGUI text)> tabs = new List<(Image, TextMeshProUGUI)>();
         ProgressViews.ProgressTab progressTab;
         const float TitleX = 50f, TabsY = 172f, TabH = 56f;
@@ -76,10 +80,16 @@ namespace TheraQuest
             var headsetIcon = UIKit.Icon("Headset");   // Font Awesome "vr-cardboard" (see CREDITS.md)
             if (headsetIcon != null)
             {
-                headset = UIKit.Box(t, new Vector2(TitleX, -44), new Vector2(96, 59), UIKit.Orange, "VR headset logo");
+                headset = UIKit.Box(t, Vector2.zero, new Vector2(96, 59), UIKit.Orange, "VR headset logo");
                 headset.sprite = headsetIcon;
                 headset.preserveAspect = true;
+                // Tilted 30° with its top leaning away from the word (human request 2026-10-26); turns about its centre
+                headset.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                headset.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -30f);
             }
+            badgeGrid = (RectTransform)new GameObject("Badge cards", typeof(RectTransform)).transform;
+            badgeGrid.SetParent(t, false);
+            badgeGrid.anchorMin = badgeGrid.anchorMax = badgeGrid.pivot = new Vector2(0, 1);
             tabBar = (RectTransform)new GameObject("Tabs", typeof(RectTransform)).transform;
             tabBar.SetParent(t, false);
             tabBar.anchorMin = tabBar.anchorMax = tabBar.pivot = new Vector2(0, 1);
@@ -141,10 +151,15 @@ namespace TheraQuest
                 default: BuildSettings(); break;
             }
             footer.text = page == Page.Progress ? ProgressFooter : ControlHints.Current.MenuFooter;
-            // The VR headset logo sits beside the game name on the main page; other titles start at the edge
+            // The VR headset logo follows the game name on the main page
             bool logo = page == Page.Main && headset != null;
             if (headset != null) headset.gameObject.SetActive(logo);
-            title.rectTransform.anchoredPosition = new Vector2(logo ? TitleX + 96f + 16f : TitleX, -52);
+            title.rectTransform.anchoredPosition = new Vector2(TitleX, -52);
+            if (logo)
+            {
+                float nameW = title.GetPreferredValues(title.text).x;
+                headset.rectTransform.anchoredPosition = new Vector2(TitleX + nameW + 22f + 48f, -44f - 30f);
+            }
             tabBar.gameObject.SetActive(page == Page.Progress);
             Layout();
             if (!IsOpen) PlaceInFront();
@@ -218,6 +233,9 @@ namespace TheraQuest
             Layout();
             ((RectTransform)canvas.transform).GetWorldCorners(corners);
             canvas.transform.position += topBefore - (corners[1] + corners[2]) / 2f;
+            // ...unless a taller tab would then hang lower than when the menu opened: centre it as it was placed
+            var p = canvas.transform.position;
+            if (p.y < placedAt.y) canvas.transform.position = new Vector3(p.x, placedAt.y, p.z);
             Refresh();
             if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
         }
@@ -282,7 +300,7 @@ namespace TheraQuest
             }
             Array.Clear(pin, 0, pin.Length);
             if (++pinFailures >= MaxPinFailures) { pinLockedUntil = Time.unscaledTime + PinLockSeconds; pinFailures = 0; }
-            pinMessage = $"<color={UIKit.HexBad}>Wrong PIN.</color>";
+            pinMessage = $"<color={UIKit.HexWarn}>Wrong PIN.</color>";
             Open(Page.TherapistPin);
         }
 
@@ -348,6 +366,13 @@ namespace TheraQuest
             info.rectTransform.anchoredPosition = new Vector2(52, -infoTop);
             info.rectTransform.sizeDelta = new Vector2(Width - 100, infoH);
             float top = hasInfo || tabbed ? infoTop + infoH + 28f : 190f;
+            foreach (Transform c in badgeGrid) Destroy(c.gameObject);
+            if (tabbed && progressTab == ProgressViews.ProgressTab.Badges)
+            {
+                float gridTop = infoTop + infoH + 20f;
+                badgeGrid.anchoredPosition = new Vector2(50, -gridTop);
+                top = gridTop + BuildBadgeCards(session.ProgressBadges) + 34f;
+            }
             ((RectTransform)rowRoot).anchoredPosition = new Vector2(50, -top);
             for (int i = 0; i < items.Count; i++)
             {
@@ -376,13 +401,57 @@ namespace TheraQuest
             ((RectTransform)footer.transform).anchoredPosition = new Vector2(50, -(h - 66f));
         }
 
+        /// <summary>
+        /// One card per badge (human request 2026-10-26): icon on a round chip, name, and how to earn it at the bottom.
+        /// Earned cards are bright with an orange chip; locked ones are greyed. Returns the grid's height.
+        /// </summary>
+        float BuildBadgeCards(List<BadgeInfo> badges)
+        {
+            float w = (Width - 100f - (BadgeCols - 1) * BadgeGap) / BadgeCols;
+            for (int i = 0; i < badges.Count; i++)
+            {
+                var b = badges[i];
+                var holder = (RectTransform)new GameObject("Badge card " + b.code, typeof(RectTransform)).transform;
+                holder.SetParent(badgeGrid, false);
+                holder.anchorMin = holder.anchorMax = holder.pivot = new Vector2(0, 1);
+                holder.anchoredPosition = new Vector2(i % BadgeCols * (w + BadgeGap), -(i / BadgeCols) * (BadgeCardH + BadgeGap));
+                var card = UIKit.Card(holder, new Vector2(w, BadgeCardH), b.earned ? UIKit.White : UIKit.Lighter(UIKit.Muted, 0.85f),
+                                      b.earned ? UIKit.Orange : UIKit.Track, "Badge card");
+                if (!b.earned) card.outline.color = new Color(UIKit.Outline.r, UIKit.Outline.g, UIKit.Outline.b, 0.35f);
+                card.shadow.color = new Color(0f, 0f, 0f, b.earned ? 0.18f : 0.06f);
+                var f = card.fill.transform;
+                float inner = w - 16f;
+
+                var chip = UIKit.Box(f, new Vector2((inner - 80f) / 2f, -30f), new Vector2(80, 80), b.earned ? UIKit.Orange : UIKit.Track, "Chip", true);
+                var sprite = UIKit.BadgeIcon(b.code);
+                if (sprite != null)
+                {
+                    var icon = UIKit.Box(chip.transform, new Vector2(14, -14), new Vector2(52, 52), b.earned ? UIKit.White : UIKit.Muted, "Icon", false);
+                    icon.sprite = sprite;
+                    icon.preserveAspect = true;
+                }
+                else UIKit.Label(chip.transform, Vector2.zero, new Vector2(80, 80), 44, b.earned ? UIKit.White : UIKit.Muted,
+                                 TextAnchor.MiddleCenter, FontStyle.Bold).text = "★";
+
+                var name = UIKit.Label(f, new Vector2(10, -120), new Vector2(inner - 20f, 34), 27, b.earned ? UIKit.Ink : UIKit.Muted,
+                                       TextAnchor.UpperCenter, FontStyle.Bold);
+                name.text = b.name;
+                name.enableAutoSizing = true;
+                name.fontSizeMin = 18;
+                var desc = UIKit.Label(f, new Vector2(10, -160), new Vector2(inner - 20f, 70), 20, UIKit.Muted, TextAnchor.UpperCenter);
+                desc.text = ProgressViews.BadgeHint(b.code);
+            }
+            int rowsN = (badges.Count + BadgeCols - 1) / BadgeCols;
+            return rowsN == 0 ? 0f : rowsN * BadgeCardH + (rowsN - 1) * BadgeGap;
+        }
+
         void PlaceInFront()
         {
             var cam = Camera.main != null ? Camera.main.transform : transform;
             var fwd = cam.forward; fwd.y = 0f;
             if (fwd.sqrMagnitude < 1e-4f) fwd = Vector3.forward;
             fwd.Normalize();
-            canvas.transform.position = cam.position + fwd * 1.35f + Vector3.down * 0.10f;
+            canvas.transform.position = placedAt = cam.position + fwd * 1.35f + Vector3.down * 0.10f;
             canvas.transform.rotation = Quaternion.LookRotation(fwd, Vector3.up);
         }
 
@@ -392,7 +461,7 @@ namespace TheraQuest
             {
                 bool on = (int)progressTab == i;
                 tabs[i].bg.color = on ? UIKit.Teal : UIKit.Row;
-                tabs[i].text.color = on ? Color.white : UIKit.Ink;
+                tabs[i].text.color = on ? UIKit.White : UIKit.Ink;
             }
             for (int i = 0; i < rows.Count; i++)
             {
@@ -400,8 +469,8 @@ namespace TheraQuest
                 bool on = it.enabled(), chosen = i == sel;
                 rows[i].bg.color = chosen ? UIKit.Teal : UIKit.Row;
                 rows[i].label.text = (chosen ? "▶  " : "     ") + it.label();
-                rows[i].label.color = !on ? new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 0.6f) : chosen ? Color.white : UIKit.Ink;
-                rows[i].value.color = chosen ? Color.white : UIKit.Orange;
+                rows[i].label.color = !on ? new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 0.6f) : chosen ? UIKit.White : UIKit.Ink;
+                rows[i].value.color = chosen ? UIKit.White : UIKit.Orange;
                 string v = it.value != null ? it.value() : "";
                 rows[i].value.text = it.value != null ? (it.adjust != null ? (chosen ? $"◀   {v}   ▶" : $"‹  {v}  ›") : v) : "";
                 if (chosen && i != lastSel) UIKit.Bouncy(rows[i].bg).Punch(0.05f);

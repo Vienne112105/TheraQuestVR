@@ -73,13 +73,16 @@ namespace TheraQuest
         public enum ProgressTab { Profile, Sessions, Badges }
         public static readonly string[] ProgressTabNames = { "Profile", "Recent sessions", "Badges" };
 
-        /// <summary>How each badge is earned, in a few words for the Badges tab.</summary>
+        /// <summary>How each badge is earned, in a few words, for the badge cards on the Badges tab.</summary>
         static readonly Dictionary<string, string> BadgeHints = new Dictionary<string, string>
         {
             { "first", "Finish a whole session" }, { "perfect", "5 reps of 95% or better in a row" },
             { "combo10", "10 good reps in a row" }, { "fullrom", "A rep right on the target" },
             { "streak3", "A 3-day streak" }, { "adh80", "Do 80% of your planned days" }, { "lv5", "Reach level 5" },
         };
+
+        /// <summary>How to earn a badge ("" for an unknown code).</summary>
+        public static string BadgeHint(string code) => BadgeHints.TryGetValue(code ?? "", out var h) ? h : "";
 
         /// <summary>Rich text for one tab of the Progress page on the main menu.</summary>
         public static string ProgressPage(ProgramResponse p, bool online, ProgressTab tab)
@@ -115,13 +118,14 @@ namespace TheraQuest
                         }
                     break;
                 default:
-                    foreach (var b in Gallery(prog, p.patient.badges))
-                    {
-                        string hint = BadgeHints.TryGetValue(b.code ?? "", out var h) ? $"   <color={UIKit.HexMuted}><size=85%>{h}</size></color>" : "";
-                        string name = b.earned ? $"<b>{b.name}</b>" : $"<color={UIKit.HexMuted}>{b.name}</color>";
-                        sb.Append($"{UIKit.BadgeTag(b.code, b.earned)}  {name}{hint}\n");
-                    }
+                {
+                    // The badges themselves are cards drawn by the menu (MenuController); this is the line above them
+                    int earned = 0;
+                    var gallery = Gallery(prog, p.patient.badges);
+                    foreach (var b in gallery) if (b.earned) earned++;
+                    sb.Append($"<b>{earned}</b> of {gallery.Count} badges earned");
                     break;
+                }
             }
             return sb.ToString().TrimEnd('\n');
         }

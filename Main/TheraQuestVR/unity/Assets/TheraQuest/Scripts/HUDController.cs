@@ -190,17 +190,17 @@ namespace TheraQuest
             leftCard.Glass(GlassAlpha);
             var card = leftCard.fill.transform;
 
-            levelTxt = UIKit.Pill(card, new Vector2(28, -36), new Vector2(180, 56), UIKit.Purple, "LEVEL 1", 30, Color.white);
+            levelTxt = UIKit.Pill(card, new Vector2(28, -36), new Vector2(180, 56), UIKit.Purple, "LEVEL 1", 30, UIKit.White);
             Box(card, new Vector2(224, -51), new Vector2(372, 26), UIKit.Track, "XP track");
             xpFill = Box(card, new Vector2(224, -51), new Vector2(26, 26), UIKit.Yellow, "XP fill");
 
             exNameTxt = Label(card, new Vector2(28, -110), new Vector2(570, 110), 46, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
             pillsBlock = Group(card, "Pills");
-            setTxt = UIKit.Pill(pillsBlock, new Vector2(28, 0), new Vector2(180, 52), UIKit.Orange, "GET READY", 24, Color.white);
+            setTxt = UIKit.Pill(pillsBlock, new Vector2(28, 0), new Vector2(180, 52), UIKit.Orange, "GET READY", 24, UIKit.White);
             setPill = (Image)setTxt.transform.parent.GetComponent<Graphic>();
-            sideTxt = UIKit.Pill(pillsBlock, new Vector2(216, 0), new Vector2(200, 52), UIKit.Blue, "", 24, Color.white);
+            sideTxt = UIKit.Pill(pillsBlock, new Vector2(216, 0), new Vector2(200, 52), UIKit.Blue, "", 24, UIKit.White);
             sidePill = (Image)sideTxt.transform.parent.GetComponent<Graphic>();
-            cadenceTxt = UIKit.Pill(pillsBlock, new Vector2(424, 0), new Vector2(172, 52), UIKit.Teal, "SMOOTH", 22, Color.white);
+            cadenceTxt = UIKit.Pill(pillsBlock, new Vector2(424, 0), new Vector2(172, 52), UIKit.Teal, "SMOOTH", 22, UIKit.White);
             cadencePill = (Image)cadenceTxt.transform.parent.GetComponent<Graphic>();
             cadencePill.gameObject.SetActive(false);
 
@@ -237,8 +237,8 @@ namespace TheraQuest
             scoreTxt = Label(pointsTile.transform, new Vector2(20, -46), new Vector2(240, 80), 62, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
             UIKit.Bouncy(pointsTile);
             var comboTile = Box(tilesBlock, new Vector2(320, 0), new Vector2(276, 140), UIKit.Pink, "Combo tile");
-            Label(comboTile.transform, new Vector2(20, -14), new Vector2(240, 30), 24, Color.white, TextAnchor.UpperLeft, FontStyle.Bold).text = "COMBO";
-            comboTxt = UIKit.Stroke(Label(comboTile.transform, new Vector2(20, -46), new Vector2(240, 80), 62, Color.white, TextAnchor.UpperLeft, FontStyle.Bold),
+            Label(comboTile.transform, new Vector2(20, -14), new Vector2(240, 30), 24, UIKit.White, TextAnchor.UpperLeft, FontStyle.Bold).text = "COMBO";
+            comboTxt = UIKit.Stroke(Label(comboTile.transform, new Vector2(20, -46), new Vector2(240, 80), 62, UIKit.White, TextAnchor.UpperLeft, FontStyle.Bold),
                                     UIKit.Darker(UIKit.Pink), 3f);
 
             sourceTxt = Label(card, new Vector2(28, -790), new Vector2(MeterW, 90), 24, UIKit.Muted);
@@ -303,7 +303,7 @@ namespace TheraQuest
             questCard.Glass(GlassAlpha);
             var card = questCard.fill.transform;
             Label(card, new Vector2(28, -36), new Vector2(400, 56), 44, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold).text = "Today's quest";
-            questCount = UIKit.Pill(card, new Vector2(440, -36), new Vector2(156, 52), UIKit.Teal, "0 / 0", 28, Color.white);
+            questCount = UIKit.Pill(card, new Vector2(440, -36), new Vector2(156, 52), UIKit.Teal, "0 / 0", 28, UIKit.White);
             questRoot = new GameObject("Quest rows", typeof(RectTransform)).transform;
             questRoot.SetParent(card, false);
             var qr = (RectTransform)questRoot;
@@ -357,11 +357,12 @@ namespace TheraQuest
             bubbleBounce = UIKit.Bouncy(hr);
             var f = bubbleFill.transform;
             bubbleIcon = Box(f, new Vector2(18, -26), new Vector2(92, 92), UIKit.Teal, "Icon");
-            bubbleIconTxt = Label(bubbleIcon.transform, Vector2.zero, new Vector2(92, 92), 56, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
+            bubbleIconTxt = Label(bubbleIcon.transform, Vector2.zero, new Vector2(92, 92), 56, UIKit.White, TextAnchor.MiddleCenter, FontStyle.Bold);
             // Text starts below the strip on top of the card
             feedbackTxt = Label(f, new Vector2(128, -34), new Vector2(1040, 100), 42, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
 
-            popTxt = UIKit.Stroke(Label(c, new Vector2(0, -170), new Vector2(1200, 110), 84, UIKit.Yellow, TextAnchor.MiddleCenter, FontStyle.Bold), 4f);
+            popTxt = UIKit.Stroke(Label(c, new Vector2(0, -170), new Vector2(1200, 110), 84, UIKit.Yellow, TextAnchor.MiddleCenter, FontStyle.Bold),
+                                 UIKit.Darker(UIKit.Yellow, 0.45f), 4f);
             UIKit.Bouncy(popTxt);
             popStart = popTxt.rectTransform.anchoredPosition;
             popTxt.text = "";
@@ -380,7 +381,7 @@ namespace TheraQuest
             sumBody = Label(card, new Vector2(60, -280), new Vector2(764, 160), 34, UIKit.Ink, TextAnchor.UpperCenter);
             // XP row and badge reveal along the bottom of the card
             sumXpRow = Group(card, "XP row");   // placed below the body text by LayoutSummary
-            sumLevel = UIKit.Pill(sumXpRow, new Vector2(60, 0), new Vector2(170, 52), UIKit.Purple, "LEVEL 1", 28, Color.white);
+            sumLevel = UIKit.Pill(sumXpRow, new Vector2(60, 0), new Vector2(170, 52), UIKit.Purple, "LEVEL 1", 28, UIKit.White);
             Box(sumXpRow, new Vector2(246, -13), new Vector2(SumXpW, 26), UIKit.Track, "Summary XP track");
             sumXpFill = Box(sumXpRow, new Vector2(246, -13), new Vector2(26, 26), UIKit.Yellow, "Summary XP fill");
             sumXpGain = Label(sumXpRow, new Vector2(246, 26), new Vector2(SumXpW, 34), 24, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
@@ -448,7 +449,7 @@ namespace TheraQuest
             {
                 starTxt.text = "★";
                 starTxt.fontSize = 60;
-                starTxt.color = state == LiveState.OnTarget ? UIKit.Yellow : new Color(1f, 0.95f, 0.7f, 0.85f);
+                starTxt.color = state == LiveState.OnTarget ? UIKit.Yellow : UIKit.Lighter(UIKit.Yellow, 0.5f);
             }
             bool hasStop = ex.safetyMax > 0f;
             stopLine.enabled = stopTxt.enabled = hasStop;
@@ -547,7 +548,7 @@ namespace TheraQuest
                 row.circle.color = finished ? UIKit.Green : current ? UIKit.Teal : UIKit.Track;
                 row.mark.rectTransform.sizeDelta = new Vector2(cs, cs);
                 row.mark.text = finished ? "✓" : current ? "▶" : (i + 1).ToString();
-                row.mark.color = finished || current ? Color.white : UIKit.Ink;
+                row.mark.color = finished || current ? UIKit.White : UIKit.Ink;
                 row.mark.fontSize = Mathf.RoundToInt(cs * 0.55f);
                 row.name.text = ex.name;
                 row.name.fontSizeMax = rowH < 60 ? 23 : 27;
@@ -605,7 +606,7 @@ namespace TheraQuest
         {
             var r = new QuestRow { bg = Box(questRoot, Vector2.zero, new Vector2(584, 72), UIKit.Row, "Quest row") };
             r.circle = Box(r.bg.transform, new Vector2(12, -10), new Vector2(52, 52), UIKit.Track, "Circle");
-            r.mark = Label(r.circle.transform, Vector2.zero, new Vector2(52, 52), 28, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
+            r.mark = Label(r.circle.transform, Vector2.zero, new Vector2(52, 52), 28, UIKit.White, TextAnchor.MiddleCenter, FontStyle.Bold);
             r.name = Label(r.bg.transform, new Vector2(78, -6), new Vector2(380, 50), 27, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
             r.name.enableAutoSizing = true;   // shrink long names to fit the row
             r.name.fontSizeMin = 16;
@@ -651,8 +652,8 @@ namespace TheraQuest
         public void Pop(string text, bool good)
         {
             popTxt.text = text;
-            popTxt.color = good ? UIKit.Yellow : new Color(1f, 0.62f, 0.6f);
-            UIKit.Stroke(popTxt, 4f);   // outline follows the new colour
+            popTxt.color = good ? UIKit.Yellow : UIKit.Lighter(UIKit.Navy, 0.35f);
+            UIKit.Stroke(popTxt, UIKit.Darker(popTxt.color, 0.45f), 4f);   // pop-ups: a darker outline that follows the colour
             popTimer = 1f;
             UIKit.Bouncy(popTxt).Punch(0.35f);
         }
@@ -660,7 +661,7 @@ namespace TheraQuest
         public void ShowSummary(string title, int stars, string body)
         {
             sumTitle.text = title;
-            sumStars.text = new string('★', stars) + $"<color=#D8D2C4>{new string('★', 3 - stars)}</color>";
+            sumStars.text = new string('★', stars) + $"<color={UIKit.HexLocked}>{new string('★', 3 - stars)}</color>";
             sumBody.text = body;
             sumBadgeCodes.Clear();
             sumBadges.text = "";
