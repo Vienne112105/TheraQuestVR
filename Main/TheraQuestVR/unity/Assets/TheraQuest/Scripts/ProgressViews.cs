@@ -69,40 +69,60 @@ namespace TheraQuest
             return list;
         }
 
-        /// <summary>Rich text for the Progress page on the main menu.</summary>
-        public static string ProgressPage(ProgramResponse p, bool online)
+        /// <summary>The Progress page's tabs, in order (human request 2026-10-26).</summary>
+        public enum ProgressTab { Profile, Sessions, Badges }
+        public static readonly string[] ProgressTabNames = { "Profile", "Recent sessions", "Badges" };
+
+        /// <summary>How each badge is earned, in a few words for the Badges tab.</summary>
+        static readonly Dictionary<string, string> BadgeHints = new Dictionary<string, string>
         {
-            var sb = new StringBuilder();
+            { "first", "Finish a whole session" }, { "perfect", "5 reps of 95% or better in a row" },
+            { "combo10", "10 good reps in a row" }, { "fullrom", "A rep right on the target" },
+            { "streak3", "A 3-day streak" }, { "adh80", "Do 80% of your planned days" }, { "lv5", "Reach level 5" },
+        };
+
+        /// <summary>Rich text for one tab of the Progress page on the main menu.</summary>
+        public static string ProgressPage(ProgramResponse p, bool online, ProgressTab tab)
+        {
             if (p == null || p.patient == null) return "Loading…";
             var prog = p.progress ?? new ProgressInfo();
-            var xp = Xp(p.patient.xp, p.patient.xp);
-            sb.Append($"<b>Level {xp.toLevel}</b> · {Mathf.RoundToInt(xp.toFrac * 100)}% of the way to level {xp.toLevel + 1}");
-            sb.Append($"   ·   <b>{p.patient.streak}</b> day streak");
-            sb.Append($"   ·   <b>{prog.completeSessions}</b> of {prog.totalSessions} sessions completed\n");
-
-            var gallery = Gallery(prog, p.patient.badges);
-            int earned = 0;
-            foreach (var b in gallery) if (b.earned) earned++;
-            sb.Append($"\n<b>Badges</b>  {earned} of {gallery.Count}\n");
-            for (int i = 0; i < gallery.Count; i++)
+            var sb = new StringBuilder();
+            switch (tab)
             {
-                var b = gallery[i];
-                if (i > 0 && i % 4 == 0) sb.Append("\n");   // whole names per line, never "On a / roll"
-                sb.Append(b.earned ? $"{UIKit.BadgeTag(b.code, true)} {b.name}    " : $"{UIKit.BadgeTag(b.code, false)} <color={UIKit.HexMuted}>{b.name}</color>    ");
-            }
-            sb.Append("\n");
-
-            sb.Append("\n<b>Recent sessions</b>\n");
-            if (prog.recent == null || prog.recent.Length == 0) sb.Append($"<color={UIKit.HexMuted}>No sessions yet. Start today's quest!</color>\n");
-            else
-                foreach (var r in prog.recent)
+                case ProgressTab.Profile:
                 {
-                    string day = !string.IsNullOrEmpty(r.started_at) && r.started_at.Length >= 10 ? r.started_at.Substring(0, 10) : "";
-                    string stars = $"<color={UIKit.HexGold}>{new string('★', Mathf.Clamp(r.stars, 0, 3))}</color>" + $"<color=#C9C3B6>{new string('★', 3 - Mathf.Clamp(r.stars, 0, 3))}</color>";
-                    string status = r.status == "complete" ? $"<color={UIKit.HexGood}>done</color>" : $"<color={UIKit.HexWarn}>partly done</color>";
-                    sb.Append($"{day}   {stars}   {status}   {r.valid} good reps   {r.points} points\n");
+                    var xp = Xp(p.patient.xp, p.patient.xp);
+                    int earned = 0;
+                    var gallery = Gallery(prog, p.patient.badges);
+                    foreach (var b in gallery) if (b.earned) earned++;
+                    sb.Append($"<b>Level {xp.toLevel}</b>   {Mathf.RoundToInt(xp.toFrac * 100)}% of the way to level {xp.toLevel + 1}\n");
+                    sb.Append($"<b>{p.patient.streak}</b> day streak\n");
+                    sb.Append($"<b>{prog.completeSessions}</b> of {prog.totalSessions} sessions completed\n");
+                    sb.Append($"<b>{earned}</b> of {gallery.Count} badges earned\n");
+                    if (!online) sb.Append($"\n<color={UIKit.HexWarn}>Offline: this is your progress from the last time the app was connected.</color>");
+                    break;
                 }
-            if (!online) sb.Append($"\n<color={UIKit.HexWarn}>Offline: this is your progress from the last time the app was connected.</color>");
+                case ProgressTab.Sessions:
+                    if (prog.recent == null || prog.recent.Length == 0) sb.Append($"<color={UIKit.HexMuted}>No sessions yet. Start today's quest!</color>");
+                    else
+                        foreach (var r in prog.recent)
+                        {
+                            string day = !string.IsNullOrEmpty(r.started_at) && r.started_at.Length >= 10 ? r.started_at.Substring(0, 10) : "";
+                            int st = Mathf.Clamp(r.stars, 0, 3);
+                            string stars = $"<color={UIKit.HexGold}>{new string('★', st)}</color><color={UIKit.HexLocked}>{new string('★', 3 - st)}</color>";
+                            string status = r.status == "complete" ? $"<color={UIKit.HexGood}>done</color>" : $"<color={UIKit.HexWarn}>partly done</color>";
+                            sb.Append($"{day}   {stars}   {status}   {r.valid} good reps   {r.points} points\n");
+                        }
+                    break;
+                default:
+                    foreach (var b in Gallery(prog, p.patient.badges))
+                    {
+                        string hint = BadgeHints.TryGetValue(b.code ?? "", out var h) ? $"   <color={UIKit.HexMuted}><size=85%>{h}</size></color>" : "";
+                        string name = b.earned ? $"<b>{b.name}</b>" : $"<color={UIKit.HexMuted}>{b.name}</color>";
+                        sb.Append($"{UIKit.BadgeTag(b.code, b.earned)}  {name}{hint}\n");
+                    }
+                    break;
+            }
             return sb.ToString().TrimEnd('\n');
         }
     }

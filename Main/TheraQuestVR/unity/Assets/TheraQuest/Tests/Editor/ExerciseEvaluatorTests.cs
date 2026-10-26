@@ -471,18 +471,26 @@ namespace TheraQuest.Tests
                     recent = new[] { new RecentSession { started_at = "2026-10-20T09:00:00", status = "complete", stars = 3, valid = 16, points = 140 } },
                 },
             };
-            string online = ProgressViews.ProgressPage(p, true);
-            StringAssert.Contains("Level 2", online);
-            StringAssert.Contains("2</b> day streak", online);
-            StringAssert.Contains("2</b> of 3 sessions", online);
-            StringAssert.Contains("2026-10-20", online);
-            StringAssert.Contains("First steps", online);
-            StringAssert.DoesNotContain("Offline", online);
-            StringAssert.Contains("Offline", ProgressViews.ProgressPage(p, false));
+            // Tab 1: profile
+            string profile = ProgressViews.ProgressPage(p, true, ProgressViews.ProgressTab.Profile);
+            StringAssert.Contains("Level 2", profile);
+            StringAssert.Contains("2</b> day streak", profile);
+            StringAssert.Contains("2</b> of 3 sessions", profile);
+            StringAssert.Contains("1</b> of 7 badges", profile);
+            StringAssert.DoesNotContain("Offline", profile);
+            StringAssert.DoesNotContain("2026-10-20", profile);
+            StringAssert.Contains("Offline", ProgressViews.ProgressPage(p, false, ProgressViews.ProgressTab.Profile));
+            // Tab 2: recent sessions
+            StringAssert.Contains("2026-10-20", ProgressViews.ProgressPage(p, true, ProgressViews.ProgressTab.Sessions));
+            // Tab 3: badges, earned gold and locked grey, each with how to earn it
+            string badges = ProgressViews.ProgressPage(p, true, ProgressViews.ProgressTab.Badges);
+            StringAssert.Contains("First steps", badges);
+            StringAssert.Contains("<sprite name=\"first\" color=" + UIKit.HexGold, badges);
+            StringAssert.Contains("<sprite name=\"lv5\" color=" + UIKit.HexLocked, badges);
+            StringAssert.Contains("Reach level 5", badges);
+            StringAssert.DoesNotContain("2026-10-20", badges);
             p.progress.recent = new RecentSession[0];
-            StringAssert.Contains("No sessions yet", ProgressViews.ProgressPage(p, true));
-            StringAssert.Contains("<sprite name=\"first\" color=" + UIKit.HexGold, online);    // earned: gold icon
-            StringAssert.Contains("<sprite name=\"lv5\" color=" + UIKit.HexLocked, online);    // locked: grey icon
+            StringAssert.Contains("No sessions yet", ProgressViews.ProgressPage(p, true, ProgressViews.ProgressTab.Sessions));
         }
 
         [Test]

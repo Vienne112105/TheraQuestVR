@@ -58,6 +58,12 @@ The rep sounds in `Assets/TheraQuest` (`miss sound.mp3`, `great sound.mp3`, `Awe
 
 The icons were trimmed, scaled to fit a 128 px cell and recoloured white so the game can tint them.
 
+## Logo icon (`Resources/Icons`)
+
+| File | Used for | Source | Licence |
+|------|----------|--------|---------|
+| `Headset.png` | VR headset logo beside the game name on the main menu | the `vr-cardboard` glyph (U+F729) of Font Awesome Free 6.7.2 `fa-solid-900.ttf` by Fonticons, Inc., github.com/FortAwesome/Font-Awesome (6.x branch, `webfonts/`), rendered to a 256 px white PNG the game tints | SIL Open Font License 1.1, which Font Awesome applies to its font files (`FontAwesome-LICENSE.txt`; the same icon as SVG is CC BY 4.0). Downloaded 2026-10-26 |
+
 ## Coach animation (`Resources/CoachAnimations`)
 
 | File | Source | Licence |

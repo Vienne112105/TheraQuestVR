@@ -223,6 +223,12 @@ namespace TheraQuest
         public static Color Lighter(Color c, float amount = 0.55f) =>
             new Color(c.r + (1f - c.r) * amount, c.g + (1f - c.g) * amount, c.b + (1f - c.b) * amount, c.a);
 
+        /// <summary>A darker shade of a colour, e.g. the outline of white text on a coloured pill.</summary>
+        public static Color Darker(Color c, float amount = 0.28f) =>
+            new Color(c.r * (1f - amount), c.g * (1f - amount), c.b * (1f - amount), c.a);
+
+        static bool IsWhite(Color c) => c.r > 0.95f && c.g > 0.95f && c.b > 0.95f;
+
         /// <summary>9-sliced rounded rectangle, 36 canvas units corner radius. Small boxes become pills and circles.</summary>
         public static Sprite Rounded => rounded != null ? rounded : (rounded = MakeRounded(96, 36));
 
@@ -338,6 +344,9 @@ namespace TheraQuest
             t.raycastTarget = false;
             if (BadgeSprites != null) t.spriteAsset = BadgeSprites;
             ApplyOnTop(t, parent);
+            // Big display text always gets its cartoon outline (a lighter shade of its colour); white text has
+            // no lighter shade, so its caller outlines it against what it sits on (see Pill)
+            if (fontSize >= DisplaySize && !IsWhite(color)) Stroke(t);
             return t;
         }
 
@@ -347,7 +356,26 @@ namespace TheraQuest
             var bg = Box(parent, pos, size, color, "Pill", true);
             var t = Label(bg.transform, Vector2.zero, size, fontSize, textColor, TextAnchor.MiddleCenter, FontStyle.Bold);
             t.text = text;
+            if (IsWhite(textColor)) Stroke(t, Darker(color), 2f);
             return t;
+        }
+
+        /// <summary>Recolours a pill made by <see cref="Pill"/>, keeping its text outline a darker shade of the pill.</summary>
+        public static void PillColor(TMP_Text pillText, Color color)
+        {
+            if (pillText.transform.parent.TryGetComponent<Image>(out var bg)) bg.color = color;
+            if (pillText.outlineWidth > 0f) pillText.outlineColor = Darker(color);
+        }
+
+        static readonly Dictionary<string, Sprite> icons = new Dictionary<string, Sprite>();
+
+        /// <summary>A white icon from Resources/Icons (tint it), or null when the file is missing.</summary>
+        public static Sprite Icon(string name)
+        {
+            if (icons.TryGetValue(name, out var s)) return s;
+            var tex = Resources.Load<Texture2D>("Icons/" + name);
+            s = tex != null ? Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f) : null;
+            return icons[name] = s;
         }
 
         /// <summary>Cartoon stroke in a lighter shade of the text's own colour (human request 2026-10-26).</summary>
@@ -363,7 +391,7 @@ namespace TheraQuest
                 float w = Mathf.Clamp(width * 9f / Mathf.Max(1f, t.fontSize), 0.05f, 0.6f);
                 t.outlineColor = color;
                 t.outlineWidth = w;
-                t.fontMaterial.SetFloat(ShaderUtilities.ID_FaceDilate, w);
+                t.fontMaterial.SetFloat(ShaderUtilities.ID_FaceDilate, t.fontSize >= DisplaySize ? w : w * 0.5f);
                 t.UpdateMeshPadding();
                 return graphic;
             }

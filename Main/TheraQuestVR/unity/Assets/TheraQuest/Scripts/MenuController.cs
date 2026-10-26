@@ -39,12 +39,17 @@ namespace TheraQuest
 
         sealed class Row { public Image bg; public TextMeshProUGUI label, value; }
 
-        const float Width = 1000f, RowH = 84f, RowGap = 12f, Top = 300f;
+        const float Width = 1000f, RowH = 84f, RowGap = 12f;
         const float BaseScale = 0.00115f, MaxHeight = 1000f;   // taller pages (Progress) shrink to stay in view
 
         Canvas canvas;
         UIKit.CardRef card;
         TextMeshProUGUI title, subtitle, info, footer;
+        Image headset;                          // VR headset logo beside the game name (main page only)
+        RectTransform tabBar;                   // Progress page tabs
+        readonly List<(Image bg, TextMeshProUGUI text)> tabs = new List<(Image, TextMeshProUGUI)>();
+        ProgressViews.ProgressTab progressTab;
+        const float TitleX = 50f, TabsY = 172f, TabH = 56f;
         readonly List<Item> items = new List<Item>();
         readonly List<Row> rows = new List<Row>();
         Transform rowRoot;
@@ -67,7 +72,34 @@ namespace TheraQuest
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             var t = canvas.transform;
             card = UIKit.Card(t, new Vector2(Width, 900), UIKit.Cream, UIKit.Teal, "Card");
-            title = UIKit.Stroke(UIKit.Label(t, new Vector2(50, -52), new Vector2(Width - 100, 80), 70, UIKit.Orange, TextAnchor.UpperLeft, FontStyle.Bold), 3f);
+            title = UIKit.Stroke(UIKit.Label(t, new Vector2(TitleX, -52), new Vector2(Width - 100, 80), 70, UIKit.Orange, TextAnchor.UpperLeft, FontStyle.Bold), 3f);
+            var headsetIcon = UIKit.Icon("Headset");   // Font Awesome "vr-cardboard" (see CREDITS.md)
+            if (headsetIcon != null)
+            {
+                headset = UIKit.Box(t, new Vector2(TitleX, -44), new Vector2(96, 59), UIKit.Orange, "VR headset logo");
+                headset.sprite = headsetIcon;
+                headset.preserveAspect = true;
+            }
+            tabBar = (RectTransform)new GameObject("Tabs", typeof(RectTransform)).transform;
+            tabBar.SetParent(t, false);
+            tabBar.anchorMin = tabBar.anchorMax = tabBar.pivot = new Vector2(0, 1);
+            tabBar.anchoredPosition = new Vector2(TitleX, -TabsY);
+            float tx = 0f;
+            for (int i = 0; i < ProgressViews.ProgressTabNames.Length; i++)
+            {
+                int index = i;
+                float w = ProgressViews.ProgressTabNames[i].Length * 16f + 70f;
+                var bg = UIKit.Box(tabBar, new Vector2(tx, 0), new Vector2(w, TabH), UIKit.Row, "Tab " + i, true);
+                bg.raycastTarget = true;
+                var button = bg.gameObject.AddComponent<Button>();
+                button.transition = Selectable.Transition.None;
+                button.navigation = new Navigation { mode = Navigation.Mode.None };
+                button.onClick.AddListener(() => ShowTab((ProgressViews.ProgressTab)index));
+                var label = UIKit.Label(bg.transform, Vector2.zero, new Vector2(w, TabH), 28, UIKit.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
+                label.text = ProgressViews.ProgressTabNames[i];
+                tabs.Add((bg, label));
+                tx += w + 12f;
+            }
             subtitle = UIKit.Label(t, new Vector2(52, -124), new Vector2(Width - 100, 40), 30, UIKit.Muted);
             info = UIKit.Label(t, new Vector2(52, -170), new Vector2(Width - 100, 120), 28, UIKit.Ink);
             rowRoot = new GameObject("Rows", typeof(RectTransform)).transform;
@@ -96,6 +128,7 @@ namespace TheraQuest
         public void Open(Page page)
         {
             if (page == Page.Settings && Current != Page.Settings) back = IsOpen ? Current : Page.Main;
+            if (page == Page.Progress && Current != Page.Progress) progressTab = ProgressViews.ProgressTab.Profile;
             Current = page;
             items.Clear();
             switch (page)
@@ -107,7 +140,12 @@ namespace TheraQuest
                 case Page.Progress: BuildProgress(); break;
                 default: BuildSettings(); break;
             }
-            footer.text = ControlHints.Current.MenuFooter;
+            footer.text = page == Page.Progress ? ProgressFooter : ControlHints.Current.MenuFooter;
+            // The VR headset logo sits beside the game name on the main page; other titles start at the edge
+            bool logo = page == Page.Main && headset != null;
+            if (headset != null) headset.gameObject.SetActive(logo);
+            title.rectTransform.anchoredPosition = new Vector2(logo ? TitleX + 96f + 16f : TitleX, -52);
+            tabBar.gameObject.SetActive(page == Page.Progress);
             Layout();
             if (!IsOpen) PlaceInFront();
             canvas.gameObject.SetActive(true);
@@ -153,8 +191,35 @@ namespace TheraQuest
         {
             title.text = "Your progress";
             subtitle.text = session.ProgressSubtitle;
-            info.text = session.ProgressInfoText;
+            info.text = session.ProgressInfo(progressTab);
             Add(() => "Back", select: () => Open(Page.Main));
+        }
+
+        static string ProgressFooter
+        {
+            get
+            {
+                var k = ControlHints.Current;
+                return $"{k.Change} switch tab   ·   {k.Start} select   ·   {k.Back} back";
+            }
+        }
+
+        /// <summary>Shows one tab of the Progress page (Left / Right, or a click on the tab).</summary>
+        void ShowTab(ProgressViews.ProgressTab tab)
+        {
+            if (Current != Page.Progress) return;
+            if (tab != progressTab) session.feedback.PlayClick();
+            progressTab = tab;
+            info.text = session.ProgressInfo(tab);
+            // Each tab is only as tall as its content; keep the card's top edge where it was so it doesn't jump
+            var corners = new Vector3[4];
+            ((RectTransform)canvas.transform).GetWorldCorners(corners);
+            Vector3 topBefore = (corners[1] + corners[2]) / 2f;
+            Layout();
+            ((RectTransform)canvas.transform).GetWorldCorners(corners);
+            canvas.transform.position += topBefore - (corners[1] + corners[2]) / 2f;
+            Refresh();
+            if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
         }
 
         void BuildSettings()
@@ -276,11 +341,13 @@ namespace TheraQuest
         {
             foreach (Transform c in rowRoot) Destroy(c.gameObject);
             rows.Clear();
-            bool hasInfo = !string.IsNullOrEmpty(info.text);
-            // The info text grows with its content (the Progress page is long); rows start below it
-            float infoH = hasInfo ? Mathf.Max(120f, info.preferredHeight + 10f) : 0f;
+            bool hasInfo = !string.IsNullOrEmpty(info.text), tabbed = Current == Page.Progress;
+            // The info text is as tall as its content (no empty space); rows start right below it
+            float infoTop = tabbed ? TabsY + TabH + 22f : 170f;
+            float infoH = hasInfo ? info.preferredHeight : 0f;
+            info.rectTransform.anchoredPosition = new Vector2(52, -infoTop);
             info.rectTransform.sizeDelta = new Vector2(Width - 100, infoH);
-            float top = hasInfo ? Mathf.Max(Top, 170f + infoH + 10f) : 190f;
+            float top = hasInfo || tabbed ? infoTop + infoH + 28f : 190f;
             ((RectTransform)rowRoot).anchoredPosition = new Vector2(50, -top);
             for (int i = 0; i < items.Count; i++)
             {
@@ -321,6 +388,12 @@ namespace TheraQuest
 
         void Refresh()
         {
+            for (int i = 0; i < tabs.Count; i++)
+            {
+                bool on = (int)progressTab == i;
+                tabs[i].bg.color = on ? UIKit.Teal : UIKit.Row;
+                tabs[i].text.color = on ? Color.white : UIKit.Ink;
+            }
             for (int i = 0; i < rows.Count; i++)
             {
                 var it = items[i];
@@ -341,8 +414,9 @@ namespace TheraQuest
             if (!IsOpen) return;
             if (InputHelper.UpPressed) Move(-1);
             if (InputHelper.DownPressed) Move(1);
-            if (InputHelper.LeftPressed) Adjust(-1);
-            if (InputHelper.RightPressed) Adjust(1);
+            bool tabbed = Current == Page.Progress;   // Left / Right switch the Progress tabs
+            if (InputHelper.LeftPressed) { if (tabbed) ShowTab((ProgressViews.ProgressTab)(((int)progressTab + 2) % 3)); else Adjust(-1); }
+            if (InputHelper.RightPressed) { if (tabbed) ShowTab((ProgressViews.ProgressTab)(((int)progressTab + 1) % 3)); else Adjust(1); }
             if (InputHelper.StartPressed) Activate(sel);
             else if (InputHelper.BackPressed) GoBack();
             if (IsOpen) Refresh();

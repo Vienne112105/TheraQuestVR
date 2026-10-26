@@ -181,7 +181,7 @@ namespace TheraQuest
         }
 
         /// <summary>Progress page on the main menu (M5.5): level, streak, badges, recent sessions.</summary>
-        public string ProgressInfoText => ProgressViews.ProgressPage(program, online);
+        public string ProgressInfo(ProgressViews.ProgressTab tab) => ProgressViews.ProgressPage(program, online, tab);
         public string ProgressSubtitle => program?.patient == null ? "" :
             $"{program.patient.code}" + (online ? "" : " · offline: last saved progress");
 
@@ -576,7 +576,7 @@ namespace TheraQuest
                 // needed, then the XP bar and new badges animate below. Details stay on the therapist's dashboard.
                 var sb = new StringBuilder();
                 sb.AppendLine($"<color={UIKit.HexGood}>✓</color>  <b>{valid}</b> good reps   ·   <color={UIKit.HexGold}>★</color>  <b>{game.Points}</b> points");
-                if (unsafeReps > 0) sb.AppendLine($"<color={UIKit.HexBad}>!</color>  {unsafeReps} reps went past the STOP line");
+                if (unsafeReps > 0) sb.AppendLine($"<color={UIKit.HexBad}>!</color>  {unsafeReps} {(unsafeReps == 1 ? "rep" : "reps")} went past the STOP line");
 
                 int xpAfter;
                 List<string> newBadges;
