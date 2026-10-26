@@ -25,7 +25,8 @@ Visualizes a virtual physical therapy coach avatar that demonstrates exercise mo
 ## Invariants
 - Coach movement demonstrations must align with clinical target angles defined in the active prescription.
 - The coach and the figure choose animation, posture and facing from the exercise's `pose`, `posture` and `view` sent by the server (DEC-012), never from its code; an unknown pose falls back to one chosen by the measured angle and view.
-- Coach avatar must remain in resting idle during menus and free-roam, never moving unprompted before session begins.
+- Coach avatar must remain in resting idle during menus and free-roam, never moving unprompted before session begins. On menus, the summary and in free roam it stands facing the player with no chair or bed; during a session's get-ready cards and between exercises it waits, still, in the coming exercise's start position on its chair or bed.
+- The exercise mat (scene object "Exercise mat") always sits under the coach and its chair or bed: `HumanoidCoach` refits it to each posture at runtime.
 - Holographic range-of-motion guidance marker must be visible in both Coach Mode and Silhouette Mode.
 
 ## Notes
