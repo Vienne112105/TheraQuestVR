@@ -45,7 +45,8 @@ namespace TheraQuest.EditorTools
             var matMat = SaveMat("Exercise Mat", new Color(0.04f, 0.54f, 0.49f));
             Block("Floor", new Vector3(0, -0.05f, 2), new Vector3(10, 0.1f, 10), floorMat);
             Block("Back wall", new Vector3(0, 1.75f, 5.5f), new Vector3(10, 3.5f, 0.1f), wallMat);
-            Block("Exercise mat", new Vector3(0, 0.005f, 2.6f), new Vector3(1.6f, 0.01f, 1.2f), matMat);
+            // Centred under the coach (2 m ahead); HumanoidCoach refits it to each posture's chair or bed at runtime
+            Block("Exercise mat", new Vector3(0, 0.005f, 2f), new Vector3(1.4f, 0.01f, 1.2f), matMat);
             var light = Object.FindAnyObjectByType<Light>();
             if (light != null) light.transform.rotation = Quaternion.Euler(45, -20, 0);
 

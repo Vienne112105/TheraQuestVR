@@ -314,6 +314,7 @@ namespace TheraQuest
             {
                 bool exercising = phase == Phase.Running && !awaitingReady && celebrateTimer <= 0f;
                 coach.isSessionActive = exercising;
+                coach.sessionRunning = phase == Phase.Running;   // get-ready and between exercises: wait in the posture
                 coach.ghostVisible = exercising;   // no ghost on the menu, summary or between exercises
                 coach.Show(ex, motion.Angle, figTone);
             }

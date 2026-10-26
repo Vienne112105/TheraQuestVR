@@ -417,6 +417,7 @@ namespace TheraQuest
                 holder.anchoredPosition = new Vector2(i % BadgeCols * (w + BadgeGap), -(i / BadgeCols) * (BadgeCardH + BadgeGap));
                 var card = UIKit.Card(holder, new Vector2(w, BadgeCardH), b.earned ? UIKit.White : UIKit.Lighter(UIKit.Muted, 0.85f),
                                       b.earned ? UIKit.Orange : UIKit.Track, "Badge card");
+                card.strip.gameObject.SetActive(false);   // plain cards, no coloured bar on top (human request 2026-10-26)
                 if (!b.earned) card.outline.color = new Color(UIKit.Outline.r, UIKit.Outline.g, UIKit.Outline.b, 0.35f);
                 card.shadow.color = new Color(0f, 0f, 0f, b.earned ? 0.18f : 0.06f);
                 var f = card.fill.transform;

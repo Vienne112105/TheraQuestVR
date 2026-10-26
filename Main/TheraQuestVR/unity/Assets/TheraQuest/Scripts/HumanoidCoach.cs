@@ -92,6 +92,19 @@ namespace TheraQuest
         [HideInInspector] public bool ghostVisible = true;
         /// <summary>Set by SessionManager: true only while an exercise is actively running, false during menu or rest.</summary>
         [HideInInspector] public bool isSessionActive = false;
+        /// <summary>
+        /// Set by SessionManager: a session is under way (also during get-ready cards and between exercises). The coach
+        /// then waits in the coming exercise's posture (on its chair or bed); otherwise it stands, without props.
+        /// </summary>
+        [HideInInspector] public bool sessionRunning = false;
+
+        [Tooltip("Floor mat of the exercise area. It is moved and resized to sit under the coach and its chair or bed " +
+                 "for every posture. Empty: the scene object named \"Exercise mat\".")]
+        public Transform exerciseMat;
+        [Tooltip("Floor margin around the coach and its props, in metres.")]
+        public float matMargin = 0.3f;
+        [Tooltip("Smallest mat (x, z), in metres.")]
+        public Vector2 matMinSize = new Vector2(1.4f, 1.2f);
 
         public bool Ready => built.Count > 0 || fallback != null;
         public int Count => built.Count > 0 ? built.Count : (fallback != null ? FigureVisualizer.StyleCount : 0);
@@ -121,6 +134,9 @@ namespace TheraQuest
         Posture posture;
         int side;               // +1 = drive the character's right limbs, -1 = left
         float liveAngle, liveTarget, liveVel, demoTime, popTime = 10f;
+        bool idleLayout;            // standing with no props (menu, summary, free roam)
+        bool matDirty = true;       // posture or props changed: fit the mat once the coach has settled
+        Vector3 matPos, matScale;   // where the mat is heading (it glides there)
 
         void Awake()
         {
@@ -128,6 +144,12 @@ namespace TheraQuest
             if (femaleModel == null || maleModel == null)
                 OnValidate();
 #endif
+            if (exerciseMat == null)
+            {
+                var m = GameObject.Find("Exercise mat");
+                if (m != null) exerciseMat = m.transform;
+            }
+            if (exerciseMat != null) { matPos = exerciseMat.position; matScale = exerciseMat.localScale; }
             // Bundled CC0 idle (Quaternius, see CREDITS.md); without it the hand-made breathing and sway are used.
             if (idleClip == null) idleClip = Resources.Load<AnimationClip>(DefaultIdle);
             var allOptions = new List<Option>();
@@ -337,7 +359,9 @@ namespace TheraQuest
                 if (fallback != null) fallback.Show(ex, angle, tone);
                 return;
             }
-            if (ex.code != currentCode || ex.side != currentSide) Configure(ex);
+            bool exerciseLayout = sessionRunning || isSessionActive;
+            if (exerciseLayout && (idleLayout || ex.code != currentCode || ex.side != currentSide)) Configure(ex);
+            else if (!exerciseLayout && !idleLayout) ConfigureIdle();
             current = ex;
             liveTarget = angle;
             var c = tone == Tone.Neutral ? GhostNeutral : FeedbackManager.ToneColor(tone);
@@ -353,8 +377,25 @@ namespace TheraQuest
             }
         }
 
+        /// <summary>Standing, facing the player, no chair or bed (menu, summary, free roam).</summary>
+        void ConfigureIdle()
+        {
+            idleLayout = true;
+            matDirty = true;
+            foreach (var b in built)
+            {
+                b.coach.Configure(Posture.Standing, 0f, 1);
+                b.ghost.Configure(Posture.Standing, 0f, 1);
+                b.coach.Snap();
+                b.ghost.Snap();
+            }
+            popTime = 0f;
+        }
+
         void Configure(ExerciseDef ex)
         {
+            idleLayout = false;
+            matDirty = true;
             currentCode = ex.code;
             currentSide = ex.side;
             motion = MotionFor(ex);
@@ -431,15 +472,19 @@ namespace TheraQuest
             float dt = Time.deltaTime;   // 0 while paused: everything holds still
             var b = built[selected];
 
+            FitMat(b, dt);
             if (!isSessionActive || current == null)
             {
-                // Before a session begins, while on the menu, or resting between exercises:
-                // Coach stands in a natural, relaxed idle posture and DOES NOT move on its own.
+                // Before a session begins, while on the menu, or resting between exercises the coach DOES NOT move
+                // on its own: it stands in a natural, relaxed idle, or (get-ready card, between exercises) waits in
+                // the coming exercise's start position on its chair or bed.
                 float idleBreath = Mathf.Sin(Time.time * 1.6f) * 1.2f;
                 float idleSway = Mathf.Sin(Time.time * 0.7f) * 1.5f;
+                bool waiting = !idleLayout && current != null;
 
-                b.coach.Pose(Motion.ShoulderAbd, Posture.Standing, 0f, 1, idleBreath, idleSway);
-                if (Camera.main != null)
+                if (waiting) b.coach.Pose(motion, posture, 0f, side, idleBreath, idleSway);
+                else b.coach.Pose(Motion.ShoulderAbd, Posture.Standing, 0f, 1, idleBreath, idleSway);
+                if (Camera.main != null && (!waiting || (posture != Posture.Lying && posture != Posture.SideLying)))
                     b.coach.LookAt(Camera.main.transform.position, lookAtPlayer);
                 b.coach.Settle(dt, poseEasing);
 
@@ -491,6 +536,27 @@ namespace TheraQuest
             float x = Mathf.Clamp01(popTime / 0.35f) - 1f;
             float scale = 0.6f + 0.4f * (1f + 2.70158f * x * x * x + 1.70158f * x * x);
             b.root.transform.localScale = Vector3.one * scale;
+        }
+
+        /// <summary>
+        /// Keeps the exercise mat under the coach and its chair or bed (human request 2026-10-27: the coach stood on the
+        /// mat's front edge and props hung off it). Measured once per posture change, after the pop-in has finished,
+        /// then the mat glides there.
+        /// </summary>
+        void FitMat(Built b, float dt)
+        {
+            if (exerciseMat == null) return;
+            if (matDirty && popTime > 0.45f)
+            {
+                matDirty = false;
+                var area = b.coach.Footprint();
+                matPos = new Vector3(area.center.x, exerciseMat.position.y, area.center.z);
+                matScale = new Vector3(Mathf.Max(matMinSize.x, area.size.x + 2f * matMargin), exerciseMat.localScale.y,
+                                       Mathf.Max(matMinSize.y, area.size.z + 2f * matMargin));
+            }
+            float k = dt > 0f ? 1f - Mathf.Exp(-8f * Time.unscaledDeltaTime) : 0f;
+            exerciseMat.position = Vector3.Lerp(exerciseMat.position, matPos, k);
+            exerciseMat.localScale = Vector3.Lerp(exerciseMat.localScale, matScale, k);
         }
 
         void PlaceMarker(Vector3 from, Vector3 to)
@@ -790,6 +856,18 @@ namespace TheraQuest
                 slot.localPosition = offset;
             }
 
+            /// <summary>World box around the figure's body (head, hands, feet) and the chair or bed it is using.</summary>
+            public Bounds Footprint()
+            {
+                var area = new Bounds(hips.position, Vector3.zero);
+                foreach (var t in new[] { head, hand[0], hand[1], lowerLeg[0], lowerLeg[1], foot[0], foot[1] })
+                    if (t != null) area.Encapsulate(t.position);
+                foreach (var prop in new[] { chair, bed, bedSide })
+                    if (prop != null && prop.gameObject.activeInHierarchy)
+                        foreach (var r in prop.GetComponentsInChildren<Renderer>()) area.Encapsulate(r.bounds);
+                return area;
+            }
+
             /// <summary>Moves the figure by a world-space offset from its place (used to sit the ghost behind the coach).</summary>
             public void Nudge(Vector3 world) => slot.localPosition = offset + slot.parent.InverseTransformVector(world);
 
@@ -895,6 +973,11 @@ namespace TheraQuest
                 if (p == Posture.Standing && !useAnim)
                     for (int side = -1; side <= 1; side += 2)
                         if (!legPosed[I(side)]) Leg(side, 3f, 7f);
+                // Lying down they lie straight along the bed (the rig's rest pose bends the knees, which pushed the
+                // shins down through the mattress and left the shoes floating)
+                if (lying)
+                    for (int side = -1; side <= 1; side += 2)
+                        if (!legPosed[I(side)]) Leg(side, 0f, 0f);
 
                 // Arms last, so they hang down even when the trunk leans. Resting arms keep a soft elbow
                 // (straight along the body when lying down); some exercises move the other arm naturally.
@@ -949,7 +1032,7 @@ namespace TheraQuest
             /// </summary>
             Vector3 RestUpper(int s, Posture p, float sway)
             {
-                if (p == Posture.Seated) return (Out(s, armOut * 0.6f) + Vector3.forward * 0.45f).normalized;
+                if (p == Posture.Seated) return (Out(s, armOut * 0.6f) + Vector3.forward * 0.18f).normalized;   // elbow by the hip
                 return Out(s, armOut + sway * 0.4f);
             }
 
@@ -957,7 +1040,7 @@ namespace TheraQuest
             Vector3 RestFore(int s, Posture p, float sway)
             {
                 if (p == Posture.Lying || p == Posture.SideLying) return Out(s, armOut + 2f);
-                if (p == Posture.Seated) return (Sag(78f) + new Vector3(s * 0.12f, 0f, 0f)).normalized;
+                if (p == Posture.Seated) return (Sag(48f) + new Vector3(s * 0.1f, 0f, 0f)).normalized;   // forearm down onto the thigh
                 return (Out(s, armOut + 3f + sway * 0.4f) + Vector3.forward * 0.24f).normalized;
             }
 
