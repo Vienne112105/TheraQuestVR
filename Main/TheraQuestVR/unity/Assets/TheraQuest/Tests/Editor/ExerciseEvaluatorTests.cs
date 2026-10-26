@@ -614,6 +614,16 @@ namespace TheraQuest.Tests
         }
 
         [Test]
+        public void CoachToonMaterialShipsWithAWorkingShader()
+        {
+            var toon = Resources.Load<Material>("Toon/CoachToon");
+            Assert.IsNotNull(toon, "Resources/Toon/CoachToon is missing");
+            Assert.AreEqual("TheraQuest/Toon Outline", toon.shader.name);
+            Assert.IsTrue(toon.shader.isSupported);
+            Assert.IsTrue(toon.HasProperty("_OutlineWidth") && toon.HasProperty("_OutlineColor") && toon.HasProperty("_ShadeTint"));
+        }
+
+        [Test]
         public void LofiTracksAndHoldSoundAreInResources()
         {
             Assert.AreEqual(9, Resources.LoadAll<AudioClip>(MusicPlayer.PlaylistFolder).Length);
