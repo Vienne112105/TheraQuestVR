@@ -599,18 +599,15 @@ namespace TheraQuest.Tests
         }
 
         [Test]
-        public void EveryCoachModelIsAHumanoidSoTheIdleClipPlays()
+        public void EveryCoachHasAnUprightHumanoidAvatarSoTheIdlesPlay()
         {
-            var guids = UnityEditor.AssetDatabase.FindAssets("t:Model", new[] { "Assets/TheraQuest/Coaches" });
-            Assert.IsNotEmpty(guids);
-            foreach (var guid in guids)
+            foreach (var name in new[] { "Free Woman Tall", "Free Man Tall" })
             {
-                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
-                Avatar avatar = null;
-                foreach (var a in UnityEditor.AssetDatabase.LoadAllAssetsAtPath(path)) if (a is Avatar av) avatar = av;
-                Assert.IsNotNull(avatar, path);
-                Assert.IsTrue(avatar.isValid && avatar.isHuman, path + " is not a valid Humanoid (see CoachModelImporter)");
+                var avatar = Resources.Load<Avatar>("CoachAvatars/" + name);
+                Assert.IsNotNull(avatar, name + ": run TheraQuest > Build Coach T-Pose Avatars");
+                Assert.IsTrue(avatar.isValid && avatar.isHuman, name);
             }
+            Assert.IsNotNull(Resources.Load<AnimationClip>(HumanoidCoach.DefaultTalk));
         }
 
         [Test]

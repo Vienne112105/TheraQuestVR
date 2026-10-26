@@ -72,17 +72,20 @@ The icons were trimmed, scaled to fit a 128 px cell and recoloured white so the 
 
 The coach since 2026-10-27 (human request). The pack's own material uses a URP shader; this project renders with the
 Built-in pipeline, so the game draws the coach with a plain Standard material using the pack's texture.
+`Resources/CoachAvatars/Free Woman Tall.asset` and `Free Man Tall.asset` are Humanoid avatars made in this project
+from the pack's models straightened to a T-pose (`TheraQuest > Build Coach T-Pose Avatars`), so the idle clips play upright.
 
 ## Coach animation (`Resources/CoachAnimations`)
 
 | File | Source | Licence |
 |------|--------|---------|
 | `Idle_Loop.anim` | the `Idle_Loop` clip of Quaternius' "Universal Animation Library" (Standard), opengameart.org/content/universal-animation-library (`universal_animation_librarystandard.zip`, Unity FBX), also at quaternius.com/packs/universalanimationlibrary.html | CC0 1.0 (`Idle_Loop-LICENSE.txt`) |
+| `Idle_Talking_Loop.anim` | the `Idle_Talking_Loop` clip of the same library and download (re-downloaded 2026-10-27); the coach gestures with it while it speaks | CC0 1.0 (`Idle_Loop-LICENSE.txt`) |
 
 Imported as a Humanoid clip (loop on, root baked in place) and saved on its own; the rest of the library is not in the project.
 
 ## Not yet recorded
 
 Assets that were in the project before M5.6 and whose source the human still has to confirm:
-the five rep sounds above and the older coach models in `Coaches/FBX-Female` and `Coaches/FBX-male`, no longer
-used by the scene since Little Guys (`CoachModelImporter` mentions Quaternius Ultimate Modular Men / Women, CC0, and Mixamo as likely sources).
+the five rep sounds above. (The older coach models in `Coaches/FBX-Female` and `Coaches/FBX-male` were removed on
+2026-10-27; the coaches are the Little Guys.)

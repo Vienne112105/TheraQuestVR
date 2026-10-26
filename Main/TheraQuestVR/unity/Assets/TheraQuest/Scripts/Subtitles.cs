@@ -21,8 +21,12 @@ namespace TheraQuest
         float timer;
 
         /// <param name="sound">sound cue shown in brackets before the line, or null</param>
+        /// <summary>Every line shown (also when subtitles are off): line, seconds, sound cue. The coach gestures as it speaks.</summary>
+        public static event System.Action<string, float, string> Said;
+
         public static void Say(string line, float seconds = 3f, string sound = null)
         {
+            Said?.Invoke(line, seconds, sound);
             if (instance == null) return;
             string s = string.IsNullOrEmpty(sound) ? "" : $"<color={UIKit.HexSound}><i>[{sound}]</i></color> ";
             instance.Show(s + StripTags(line), seconds);

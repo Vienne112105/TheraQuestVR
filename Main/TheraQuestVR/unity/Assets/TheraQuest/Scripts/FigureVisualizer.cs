@@ -6,7 +6,7 @@ namespace TheraQuest
     /// A mirror "coach" figure built from primitives (no 3D assets needed).
     /// It copies the patient's measured angle in real time and shows a translucent
     /// ghost limb at the therapist's target angle, coloured by the live feedback tone.
-    /// Each exercise's pose, posture (standing, seated on a chair, lying on a bed) and camera
+    /// Each exercise's pose, posture (standing, seated on a chair, lying on the mat) and camera
     /// view come from the server LIBRARY (DEC-012); several exercises share one pose. The figure
     /// is mirrored when the operated side is the left.
     /// HumanoidCoach drives a rigged avatar instead and falls back to this figure when
@@ -15,12 +15,12 @@ namespace TheraQuest
     public class FigureVisualizer : MonoBehaviour
     {
         const float UpperArm = 0.30f, Forearm = 0.28f, Thigh = 0.42f, Shin = 0.42f;
-        const float BedTop = 0.44f;
+        const float MatTop = 0.008f;   // lying exercises happen on the yoga mat on the floor (no bed)
 
         enum Posture { Standing, Seated, Lying, SideLying }
 
         Material skin, active, ghost;
-        Transform body, chair, bed, bedSide;
+        Transform body, chair, yogaMat;
         Transform rUpperArm, rForearm, rThigh, rShin, lUpperArm, lThigh, lShin;
         public enum CoachStyle { Clinical, Athletic, ZenSage, HighContrast }
         public const int StyleCount = 4;
@@ -75,7 +75,7 @@ namespace TheraQuest
             if (skin != null) skin.color = skinCol;
             if (active != null) active.color = actCol;
             if (ghost != null) ghost.color = ghCol;
-            foreach (var p in new[] { body, chair, bed, bedSide })
+            foreach (var p in new[] { body, chair })
             {
                 if (p == null) continue;
                 foreach (var r in p.GetComponentsInChildren<Renderer>())
@@ -175,14 +175,7 @@ namespace TheraQuest
             chair.SetParent(transform, false);
             PropBuilder.Chair(chair, 0.5f, -0.2f, 0.3f);
 
-            bed = new GameObject("Bed").transform;
-            bed.SetParent(transform, false);
-            PropBuilder.Bed(bed, BedTop, new Vector2(0f, -0.02f), 2.0f, 0.7f, false);   // head end toward -Z
-
-            bedSide = new GameObject("Bed (side-lying)").transform;   // across the view, for front-view side-lying
-            bedSide.SetParent(transform, false);
-            var pillow = PropBuilder.Bed(bedSide, BedTop, Vector2.zero, 2.0f, 0.7f, true);
-            pillow.localPosition = new Vector3(Mathf.Abs(pillow.localPosition.x), pillow.localPosition.y, pillow.localPosition.z);   // head toward +X
+            yogaMat = PropBuilder.YogaMat(transform, 1.9f, 0.7f);   // the figure exercises on a yoga mat
 
             ghostPivot = new GameObject("Target ghost").transform;
             ghostPivot.SetParent(body, false);
@@ -257,8 +250,6 @@ namespace TheraQuest
             string pose = currentPose = PoseOf(ex);
             posture = PostureOf(ex, pose);
             chair.gameObject.SetActive(posture == Posture.Seated);
-            bed.gameObject.SetActive(posture == Posture.Lying);
-            bedSide.gameObject.SetActive(posture == Posture.SideLying);
 
             // Front view for movements out to the side, side view for forward/backward ones,
             // matching where the camera should be. Left side = mirrored figure.
@@ -268,12 +259,15 @@ namespace TheraQuest
             popTime = 0f;
             transform.localRotation = Quaternion.Euler(0, ex.view == "front" ? 0f : left ? 90f : -90f, 0);
 
-            // Lying on the back: head away from the feet along the bed, face up.
-            // Side-lying: rolled onto the left side, so the right (moving) leg is on top; hips over the bed's middle.
+            // Lying on the back on the mat: head away from the feet, face up.
+            // Side-lying: rolled onto the left side, so the right (moving) leg is on top.
             body.localRotation = posture == Posture.Lying ? Quaternion.Euler(-90, 0, 0)
                                : posture == Posture.SideLying ? Quaternion.Euler(0, 0, -90) : Quaternion.identity;
-            body.localPosition = posture == Posture.Lying ? new Vector3(0, BedTop + 0.1f, 0.8f)
-                               : posture == Posture.SideLying ? new Vector3(-0.92f, BedTop + 0.18f, 0f) : Vector3.zero;
+            body.localPosition = posture == Posture.Lying ? new Vector3(0, MatTop + 0.1f, 0.8f)
+                               : posture == Posture.SideLying ? new Vector3(-0.92f, MatTop + 0.18f, 0f) : Vector3.zero;
+            // The mat runs along the body: across the view lying down sideways, along it lying on the back
+            yogaMat.localRotation = Quaternion.Euler(0f, posture == Posture.Lying ? 90f : 0f, 0f);
+            yogaMat.localPosition = posture == Posture.Lying ? new Vector3(0f, 0f, 0.1f) : posture == Posture.SideLying ? new Vector3(-0.2f, 0f, 0f) : Vector3.zero;
 
             rUpperArm.localRotation = rForearm.localRotation = lUpperArm.localRotation = Quaternion.identity;
             rThigh.localRotation = rShin.localRotation = lThigh.localRotation = lShin.localRotation = Quaternion.identity;
@@ -345,7 +339,7 @@ namespace TheraQuest
                     break;
                 case "slr": rThigh.localRotation = Flex(a); break;
                 case "march": rThigh.localRotation = Flex(a); rShin.localRotation = Bend(a); break;   // shin stays vertical
-                case "heelSlide":                                                                    // heel stays on the bed
+                case "heelSlide":                                                                    // heel stays on the mat
                     rThigh.localRotation = Flex(a / 2f); rShin.localRotation = Bend(a); break;
                 case "miniSquat":                                                                    // feet stay on the floor
                     rThigh.localRotation = lThigh.localRotation = Flex(a / 2f);

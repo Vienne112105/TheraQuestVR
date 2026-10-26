@@ -42,11 +42,9 @@ namespace TheraQuest.EditorTools
             // Room -----------------------------------------------------------------
             var floorMat = SaveMat("Floor", new Color(0.16f, 0.22f, 0.23f));
             var wallMat = SaveMat("Wall", new Color(0.82f, 0.88f, 0.86f));
-            var matMat = SaveMat("Exercise Mat", new Color(0.04f, 0.54f, 0.49f));
             Block("Floor", new Vector3(0, -0.05f, 2), new Vector3(10, 0.1f, 10), floorMat);
             Block("Back wall", new Vector3(0, 1.75f, 5.5f), new Vector3(10, 3.5f, 0.1f), wallMat);
-            // Centred under the coach (2 m ahead); HumanoidCoach refits it to each posture's chair or bed at runtime
-            Block("Exercise mat", new Vector3(0, 0.005f, 2f), new Vector3(1.4f, 0.01f, 1.2f), matMat);
+            // No floor mat here: HumanoidCoach lays a yoga mat under the coach for each posture at runtime
             var light = Object.FindAnyObjectByType<Light>();
             if (light != null) light.transform.rotation = Quaternion.Euler(45, -20, 0);
 
@@ -67,7 +65,7 @@ namespace TheraQuest.EditorTools
             var figure = figGo.AddComponent<TheraQuest.FigureVisualizer>();
 
             var coachGo = new GameObject("Humanoid Coach");
-            coachGo.transform.SetPositionAndRotation(new Vector3(0, 0, 2f), Quaternion.Euler(0, 180, 0));   // 2 m ahead, facing the player
+            coachGo.transform.SetPositionAndRotation(new Vector3(0, 0, 2f), Quaternion.Euler(0, 180, 0));   // 2 m ahead (HumanoidCoach.standBack moves it further back), facing the player
             var coach = coachGo.AddComponent<TheraQuest.HumanoidCoach>();
             coach.characters = characters;
             foreach (var opt in characters)

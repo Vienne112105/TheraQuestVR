@@ -6,16 +6,13 @@ namespace TheraQuest
 {
     /// <summary>
     /// Friendly-looking exercise furniture built from primitives (no assets): a padded chair with wooden legs
-    /// and a treatment table with legs, a light mattress and a pillow. Colours stand out from the floor so the
+    /// and a yoga mat. Colours stand out from the floor so the
     /// patient can see what the coach is sitting or lying on. No colliders (the player walks through the coach area).
     /// </summary>
     public static class PropBuilder
     {
         static readonly Color Wood = new Color(0.62f, 0.44f, 0.28f);
         static readonly Color Cushion = new Color(0.18f, 0.72f, 0.66f);
-        static readonly Color Mattress = new Color(0.93f, 0.95f, 0.97f);
-        static readonly Color Frame = new Color(0.30f, 0.38f, 0.45f);
-        static readonly Color Pillow = new Color(1f, 0.85f, 0.45f);
         static readonly Dictionary<Color, Material> mats = new Dictionary<Color, Material>();
 
         static Material Mat(Color c)
@@ -57,22 +54,74 @@ namespace TheraQuest
         }
 
         /// <summary>
-        /// Treatment table with its top at height top, centred at (x, z). alongX = the long side runs along X.
-        /// Returns the pillow so the caller can move it to the head end.
+        /// Yoga mat lying on the floor, centred on the parent, long side along X: a rounded slab (6 mm thick) in the
+        /// palette blue with a slightly lighter inset panel, like a real mat's textured top.
         /// </summary>
-        public static Transform Bed(Transform parent, float top, Vector2 centre, float length, float width, bool alongX)
+        public static Transform YogaMat(Transform parent, float length, float width)
         {
-            Vector3 Size(float l, float h, float w2) => alongX ? new Vector3(l, h, w2) : new Vector3(w2, h, l);
-            Vector3 At(float along, float y, float across) => alongX ? new Vector3(centre.x + along, y, centre.y + across)
-                                                                     : new Vector3(centre.x + across, y, centre.y + along);
-            Part(PrimitiveType.Cube, parent, At(0, top - 0.07f, 0), Size(length, 0.14f, width), Mattress, "Mattress");
-            Part(PrimitiveType.Cube, parent, At(0, top - 0.17f, 0), Size(length + 0.04f, 0.08f, width + 0.04f), Frame, "Frame");
-            float legH = Mathf.Max(0.05f, top - 0.21f);
-            foreach (var a in new[] { -length / 2f + 0.08f, length / 2f - 0.08f })
-                foreach (var b in new[] { -width / 2f + 0.06f, width / 2f - 0.06f })
-                    Part(PrimitiveType.Cylinder, parent, At(a, legH / 2f, b), new Vector3(0.06f, legH / 2f, 0.06f), Frame, "Leg");
-            return Part(PrimitiveType.Capsule, parent, At(-length / 2f + 0.22f, top + 0.04f, 0), new Vector3(0.18f, width * 0.32f, 0.3f),
-                        Pillow, "Pillow", Quaternion.Euler(0, alongX ? 90 : 0, 90));   // lies across the bed
+            var mat = new GameObject("Yoga mat").transform;
+            mat.SetParent(parent, false);
+            Slab(mat, "Mat", length, width, 0.006f, Mathf.Min(0.08f, width * 0.15f), 0f, UIKit.Blue);
+            Slab(mat, "Mat top", length - 0.07f, width - 0.07f, 0.0012f, Mathf.Min(0.06f, width * 0.12f), 0.006f,
+                 UIKit.Lighter(UIKit.Blue, 0.12f));
+            return mat;
+        }
+
+        /// <summary>Flat rounded rectangle of the given size and thickness, its bottom at y.</summary>
+        static void Slab(Transform parent, string name, float length, float width, float thick, float radius, float y, Color c)
+        {
+            var go = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = new Vector3(0f, y, 0f);
+            go.GetComponent<MeshFilter>().sharedMesh = RoundedSlab(length, width, thick, radius);
+            var r = go.GetComponent<MeshRenderer>();
+            r.sharedMaterial = Mat(c);
+            r.shadowCastingMode = ShadowCastingMode.Off;
+        }
+
+        static Mesh RoundedSlab(float length, float width, float thick, float radius, int seg = 6)
+        {
+            // Outline of the rounded rectangle, counter-clockwise seen from above
+            var ring = new List<Vector2>();
+            float hx = length / 2f - radius, hz = width / 2f - radius;
+            var corners = new[] { new Vector2(hx, hz), new Vector2(-hx, hz), new Vector2(-hx, -hz), new Vector2(hx, -hz) };
+            for (int c = 0; c < 4; c++)
+                for (int i = 0; i <= seg; i++)
+                {
+                    float a = (c * 90f + i * 90f / seg) * Mathf.Deg2Rad;
+                    ring.Add(corners[c] + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * radius);
+                }
+            int n = ring.Count;
+            var verts = new List<Vector3>();
+            var tris = new List<int>();
+            // Top and bottom caps (fans from the centre)
+            foreach (var (yy, up) in new[] { (thick, true), (0f, false) })
+            {
+                int centre = verts.Count;
+                verts.Add(new Vector3(0f, yy, 0f));
+                foreach (var p in ring) verts.Add(new Vector3(p.x, yy, p.y));
+                for (int i = 0; i < n; i++)
+                {
+                    int a = centre + 1 + i, b = centre + 1 + (i + 1) % n;
+                    if (up) { tris.Add(centre); tris.Add(b); tris.Add(a); }
+                    else { tris.Add(centre); tris.Add(a); tris.Add(b); }
+                }
+            }
+            // Side wall
+            int side = verts.Count;
+            foreach (var p in ring) { verts.Add(new Vector3(p.x, 0f, p.y)); verts.Add(new Vector3(p.x, thick, p.y)); }
+            for (int i = 0; i < n; i++)
+            {
+                int a = side + 2 * i, b = side + 2 * ((i + 1) % n);
+                tris.Add(a); tris.Add(a + 1); tris.Add(b);
+                tris.Add(b); tris.Add(a + 1); tris.Add(b + 1);
+            }
+            var mesh = new Mesh { name = "Rounded slab" };
+            mesh.SetVertices(verts);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
         }
     }
 }
