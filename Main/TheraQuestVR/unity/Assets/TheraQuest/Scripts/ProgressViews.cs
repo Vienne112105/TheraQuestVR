@@ -37,6 +37,24 @@ namespace TheraQuest
 
         static string Name(string code) => GamificationManager.BadgeNames.TryGetValue(code, out var n) ? n : code;
 
+        /// <summary>Badge codes without blanks or repeats, in order.</summary>
+        public static List<string> BadgeCodes(IEnumerable<string> codes)
+        {
+            var list = new List<string>();
+            if (codes != null)
+                foreach (var c in codes)
+                    if (!string.IsNullOrEmpty(c) && !list.Contains(c)) list.Add(c);
+            return list;
+        }
+
+        /// <summary>Summary line for the badges revealed so far, each with its icon: "New badges: [icon] Combo 10, ...".</summary>
+        public static string NewBadgesLine(IList<string> shown, int total)
+        {
+            var parts = new List<string>();
+            foreach (var c in shown) parts.Add($"{UIKit.BadgeTag(c, true)} {Name(c)}");
+            return $"New badge{(total > 1 ? "s" : "")}: " + string.Join(",  ", parts);
+        }
+
         /// <summary>Every badge, earned or locked. Uses the server's list when there is one, else the game's own.</summary>
         public static List<BadgeInfo> Gallery(ProgressInfo progress, IEnumerable<string> owned)
         {
@@ -70,7 +88,7 @@ namespace TheraQuest
             {
                 var b = gallery[i];
                 if (i > 0 && i % 4 == 0) sb.Append("\n");   // whole names per line, never "On a / roll"
-                sb.Append(b.earned ? $"<color={UIKit.HexGold}>★</color> {b.name}    " : $"<color=#C9C3B6>★</color> <color={UIKit.HexMuted}>{b.name}</color>    ");
+                sb.Append(b.earned ? $"{UIKit.BadgeTag(b.code, true)} {b.name}    " : $"{UIKit.BadgeTag(b.code, false)} <color={UIKit.HexMuted}>{b.name}</color>    ");
             }
             sb.Append("\n");
 

@@ -9,8 +9,11 @@ namespace TheraQuest
     ///   Feedback Decision Engine  -> LiveMessage()
     ///   Visual Cue Generator      -> message + tone colour shown by HUD and figure
     ///   Audio Prompt Generator    -> rep sounds from the mp3s in Assets/TheraQuest
-    ///                                (Miss / Great / Awesome / Perfect / Victory),
-    ///                                falling back to generated tones if a clip is missing
+    ///                                (Miss / Great / Awesome / Perfect / Victory) and the hold-complete
+    ///                                chime in Resources/Audio (Kenney, CC0; human pick 2026-10-26),
+    ///                                falling back to generated tones if a clip is missing. Menu click,
+    ///                                STOP warning, level up and badge stay generated (human choice); the
+    ///                                badge chime gets a reverb tail.
     ///   Corrective Instruction    -> ExerciseEvaluator.Describe(), logged per rep
     /// </summary>
     public class FeedbackManager : MonoBehaviour
@@ -23,6 +26,8 @@ namespace TheraQuest
         public AudioClip awesomeSound;  // 91-95%
         public AudioClip perfectSound;  // 96-100%
         public AudioClip victorySound;  // session completed
+        [Tooltip("Hold complete. Empty uses Resources/Audio/HoldComplete, else a generated chime.")]
+        public AudioClip holdSound;
 
         AudioSource src;
         AudioClip good, great, bad, levelUp, badge, warning, click, holdComplete;
@@ -53,10 +58,11 @@ namespace TheraQuest
             great = MakeChime(new[] { 660f, 880f, 1175f }, 0.08f);
             bad = MakeChime(new[] { 220f, 196f }, 0.14f);
             levelUp = MakeChime(new[] { 523f, 659f, 784f, 1047f }, 0.1f);
-            badge = MakeChime(new[] { 880f, 1319f }, 0.12f);
+            badge = Reverb(MakeChime(new[] { 880f, 1319f }, 0.12f), 0.6f);
             warning = MakeChime(new[] { 440f, 330f, 440f, 330f }, 0.12f);
             click = MakeChime(new[] { 1320f }, 0.035f);
-            holdComplete = MakeChime(new[] { 587.33f, 880f, 1174.66f }, 0.12f);
+            if (holdSound == null) holdSound = Resources.Load<AudioClip>("Audio/HoldComplete");
+            holdComplete = holdSound != null ? holdSound : MakeChime(new[] { 587.33f, 880f, 1174.66f }, 0.12f);
             src.ignoreListenerPause = true;   // menu clicks still play while the game is paused
             GameSettings.Changed += ApplyVolume;
             ApplyVolume();
@@ -133,6 +139,47 @@ namespace TheraQuest
         public void PlayBadge() { if (audioOn) src.PlayOneShot(badge, 0.7f); }
         public void PlayWarning() { if (audioOn) src.PlayOneShot(warning, 0.9f); }
         public void PlayHoldComplete() { if (audioOn) src.PlayOneShot(holdComplete, 0.85f); }
+
+        /// <summary>
+        /// Adds a small-room reverb tail (Schroeder: four comb filters into two all-pass filters) to a mono clip.
+        /// <paramref name="wet"/> is how loud the tail is next to the dry sound.
+        /// </summary>
+        public static AudioClip Reverb(AudioClip dry, float wet, float tailSeconds = 1.4f)
+        {
+            int rate = dry.frequency;
+            var src = new float[dry.samples];
+            dry.GetData(src, 0);
+            var x = new float[dry.samples + Mathf.RoundToInt(rate * tailSeconds)];
+            System.Array.Copy(src, x, src.Length);   // the tail starts silent
+            var y = new float[x.Length];
+            float k = rate / 44100f;
+            foreach (int d in new[] { 1557, 1617, 1491, 1422 })
+            {
+                var buf = new float[Mathf.Max(1, Mathf.RoundToInt(d * k))];
+                for (int i = 0, j = 0; i < x.Length; i++, j = (j + 1) % buf.Length)
+                {
+                    float o = buf[j];
+                    buf[j] = x[i] + o * 0.8f;
+                    y[i] += o * 0.25f;
+                }
+            }
+            foreach (int d in new[] { 225, 556 })
+            {
+                var buf = new float[Mathf.Max(1, Mathf.RoundToInt(d * k))];
+                for (int i = 0, j = 0; i < y.Length; i++, j = (j + 1) % buf.Length)
+                {
+                    float b = buf[j], v = y[i] + b * 0.5f;
+                    y[i] = b - v * 0.5f;
+                    buf[j] = v;
+                }
+            }
+            float peak = 0f;
+            for (int i = 0; i < x.Length; i++) { x[i] += y[i] * wet; peak = Mathf.Max(peak, Mathf.Abs(x[i])); }
+            if (peak > 0.9f) for (int i = 0; i < x.Length; i++) x[i] *= 0.9f / peak;
+            var clip = AudioClip.Create(dry.name + " reverb", x.Length, 1, rate, false);
+            clip.SetData(x, 0);
+            return clip;
+        }
 
         static AudioClip MakeChime(float[] notes, float noteLen)
         {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.XR;
@@ -22,33 +23,34 @@ namespace TheraQuest
         const float MeterW = 568f, MeterH = 74f;
 
         // left card
-        Text levelTxt, exNameTxt, setTxt, sideTxt, cadenceTxt, numbersTxt, holdLabel, repsCount, scoreTxt, comboTxt, sourceTxt, stopTxt, starTxt;
+        TextMeshProUGUI levelTxt, exNameTxt, setTxt, sideTxt, cadenceTxt, numbersTxt, holdLabel, repsCount, scoreTxt, comboTxt, sourceTxt, stopTxt, starTxt;
         Image xpFill, meterFill, zone, stopLine, holdTrack, holdFill, setPill, sidePill, cadencePill, pointsTile;
         Transform dotRoot;
         readonly List<Image> dots = new List<Image>();
         int dotsShown = -1, filledShown, lastScore;
 
         // right card
-        Text questCount;
+        TextMeshProUGUI questCount;
         Transform questRoot;
         readonly List<QuestRow> quest = new List<QuestRow>();
         readonly List<Image> badgeChips = new List<Image>();
-        Text badgeCount;
+        readonly List<Graphic> badgeIcons = new List<Graphic>();   // icon on each chip (a ★ when there is no icon)
+        TextMeshProUGUI badgeCount;
 
         // banner, pop, summary
         Image bubbleFill, bubbleIcon;
         UIKit.CardRef bubbleCard;
         Bounce bubbleBounce;
         float bubbleH = -1f;
-        Text bubbleIconTxt, feedbackTxt, popTxt, sumTitle, sumBody, sumStars;
+        TextMeshProUGUI bubbleIconTxt, feedbackTxt, popTxt, sumTitle, sumBody, sumStars;
         GameObject summary;
         // Summary rewards (M5.5): XP bar that fills (and rolls over on a level-up), badges revealed one by one
-        Text sumLevel, sumXpGain, sumBadges;
+        TextMeshProUGUI sumLevel, sumXpGain, sumBadges;
         Image sumXpFill;
         const float SumXpW = 520f;
         ProgressViews.XpSpan sumXp;
         float sumXpT = -1f, sumBadgeT;
-        List<string> sumBadgeNames = new List<string>();
+        List<string> sumBadgeCodes = new List<string>();
         int sumBadgesShown;
         bool sumLevelShown;
         System.Action sumOnLevelUp, sumOnBadge;
@@ -56,7 +58,7 @@ namespace TheraQuest
         float popTimer;
         Vector2 popStart;
 
-        sealed class QuestRow { public Image bg, circle, barFill; public Text mark, name, count; }
+        sealed class QuestRow { public Image bg, circle, barFill; public TextMeshProUGUI mark, name, count; }
 
         Canvas leftCanvas, rightCanvas, bubbleCanvas, summaryCanvas;
         Transform view;
@@ -71,7 +73,7 @@ namespace TheraQuest
         // Quest card: open on menus, minimised during a session; M / left stick click toggles
         UIKit.CardRef questCard;
         readonly List<GameObject> questFullOnly = new List<GameObject>();
-        Text questHint;
+        TextMeshProUGUI questHint;
         bool? questOpenByUser;
         bool questRunning;
         float questH = 900f;
@@ -163,7 +165,7 @@ namespace TheraQuest
             t.localScale = Vector3.one * scale;
         }
 
-        static Text Label(Transform p, Vector2 pos, Vector2 size, int fs, Color c, TextAnchor a = TextAnchor.UpperLeft, FontStyle st = FontStyle.Normal) =>
+        static TextMeshProUGUI Label(Transform p, Vector2 pos, Vector2 size, int fs, Color c, TextAnchor a = TextAnchor.UpperLeft, FontStyle st = FontStyle.Normal) =>
             UIKit.Label(p, pos, size, fs, c, a, st);
         static Image Box(Transform p, Vector2 pos, Vector2 size, Color c, string name = "Box", bool round = true) =>
             UIKit.Box(p, pos, size, c, name, round);
@@ -250,11 +252,27 @@ namespace TheraQuest
             badgeCount = Label(card, new Vector2(28, -712), new Vector2(568, 40), 26, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
             questFullOnly.Add(badgesTitle.gameObject);
             questFullOnly.Add(badgeCount.gameObject);
-            for (int i = 0; i < GamificationManager.BadgeNames.Count; i++)
+            int b = 0;
+            foreach (var code in GamificationManager.BadgeNames.Keys)
             {
-                var chip = Box(card, new Vector2(28 + i * 80, -758), new Vector2(64, 64), UIKit.Track, "Badge");
-                Label(chip.transform, Vector2.zero, new Vector2(64, 64), 40, UIKit.Ink, TextAnchor.MiddleCenter, FontStyle.Bold).text = "★";
+                var chip = Box(card, new Vector2(28 + b++ * 80, -758), new Vector2(64, 64), UIKit.Track, "Badge");
+                var sprite = UIKit.BadgeIcon(code);
+                Graphic icon;
+                if (sprite != null)
+                {
+                    var img = Box(chip.transform, new Vector2(10, -10), new Vector2(44, 44), UIKit.Ink, "Icon " + code, false);
+                    img.sprite = sprite;
+                    img.preserveAspect = true;
+                    icon = img;
+                }
+                else
+                {
+                    var star = Label(chip.transform, Vector2.zero, new Vector2(64, 64), 40, UIKit.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
+                    star.text = "★";
+                    icon = star;
+                }
                 badgeChips.Add(chip);
+                badgeIcons.Add(icon);
                 questFullOnly.Add(chip.gameObject);
             }
             questHint = Label(card, new Vector2(28, -838), new Vector2(568, 40), 22, UIKit.Muted);
@@ -317,7 +335,13 @@ namespace TheraQuest
             {
                 bool on = System.Array.IndexOf(p.badges ?? new string[0], kv.Key) >= 0;
                 if (on) earned++;
-                if (i < badgeChips.Count) badgeChips[i++].color = on ? UIKit.Yellow : UIKit.Track;
+                if (i < badgeChips.Count)
+                {
+                    // Earned: ink icon on a gold chip. Locked: faint grey icon on a faint chip.
+                    badgeChips[i].color = on ? UIKit.Yellow : UIKit.Track;
+                    badgeIcons[i].color = on ? UIKit.Ink : new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 0.6f);
+                    i++;
+                }
             }
             badgeCount.text = $"{earned} of {GamificationManager.BadgeNames.Count}";
         }
@@ -459,7 +483,7 @@ namespace TheraQuest
                 row.mark.color = finished || current ? Color.white : UIKit.Ink;
                 row.mark.fontSize = Mathf.RoundToInt(cs * 0.55f);
                 row.name.text = ex.name;
-                row.name.resizeTextMaxSize = rowH < 60 ? 23 : 27;
+                row.name.fontSizeMax = rowH < 60 ? 23 : 27;
                 row.name.rectTransform.anchoredPosition = new Vector2(cs + 26, -6);
                 row.name.rectTransform.sizeDelta = new Vector2(420 - cs, rowH - 22);
                 row.count.text = $"{v}/{ex.TotalReps}";
@@ -511,9 +535,9 @@ namespace TheraQuest
             r.circle = Box(r.bg.transform, new Vector2(12, -10), new Vector2(52, 52), UIKit.Track, "Circle");
             r.mark = Label(r.circle.transform, Vector2.zero, new Vector2(52, 52), 28, Color.white, TextAnchor.MiddleCenter, FontStyle.Bold);
             r.name = Label(r.bg.transform, new Vector2(78, -6), new Vector2(380, 50), 27, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
-            r.name.verticalOverflow = VerticalWrapMode.Truncate;   // shrink long names to fit the row
-            r.name.resizeTextForBestFit = true;
-            r.name.resizeTextMinSize = 16;
+            r.name.enableAutoSizing = true;   // shrink long names to fit the row
+            r.name.fontSizeMin = 16;
+            r.name.overflowMode = TextOverflowModes.Ellipsis;
             r.count = Label(r.bg.transform, new Vector2(450, -8), new Vector2(120, 50), 24, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
             var track = Box(r.bg.transform, new Vector2(78, -54), new Vector2(420, 10), UIKit.Track, "Bar");
             r.barFill = Box(track.transform, Vector2.zero, new Vector2(10, 10), UIKit.Teal, "Bar fill");
@@ -586,7 +610,7 @@ namespace TheraQuest
             sumLevel.text = $"LEVEL {xp.fromLevel}";
             SetSumXp(xp.fromFrac);
             sumXpGain.text = xpGained > 0 ? $"+{xpGained} XP" : "";
-            sumBadgeNames = new List<string>(newBadges ?? new string[0]);
+            sumBadgeCodes = new List<string>(newBadges ?? new string[0]);
             sumBadgesShown = 0;
             sumBadgeT = 0f;
             sumBadges.text = "";
@@ -620,12 +644,11 @@ namespace TheraQuest
                 return;
             }
             // Badges after the bar, one every 0.7 s
-            if (sumBadgesShown < sumBadgeNames.Count && (sumBadgeT -= dt) <= 0f)
+            if (sumBadgesShown < sumBadgeCodes.Count && (sumBadgeT -= dt) <= 0f)
             {
                 sumBadgesShown++;
                 sumBadgeT = 0.7f;
-                var shown = sumBadgeNames.GetRange(0, sumBadgesShown);
-                sumBadges.text = $"<color={UIKit.HexGold}>★</color> New badge{(sumBadgeNames.Count > 1 ? "s" : "")}: " + string.Join(", ", shown);
+                sumBadges.text = ProgressViews.NewBadgesLine(sumBadgeCodes.GetRange(0, sumBadgesShown), sumBadgeCodes.Count);
                 UIKit.Bouncy(sumBadges).Punch(0.25f);
                 sumOnBadge?.Invoke();
             }

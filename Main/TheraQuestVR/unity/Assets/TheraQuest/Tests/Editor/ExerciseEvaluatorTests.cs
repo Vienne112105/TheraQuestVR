@@ -481,6 +481,19 @@ namespace TheraQuest.Tests
             StringAssert.Contains("Offline", ProgressViews.ProgressPage(p, false));
             p.progress.recent = new RecentSession[0];
             StringAssert.Contains("No sessions yet", ProgressViews.ProgressPage(p, true));
+            StringAssert.Contains("<sprite name=\"first\" color=" + UIKit.HexGold, online);    // earned: gold icon
+            StringAssert.Contains("<sprite name=\"lv5\" color=" + UIKit.HexLocked, online);    // locked: grey icon
+        }
+
+        [Test]
+        public void NewBadgesLineShowsIconsAndNamesOnce()
+        {
+            CollectionAssert.AreEqual(new[] { "combo10", "mystery" }, ProgressViews.BadgeCodes(new[] { "combo10", "", "mystery", "combo10" }));
+            string line = ProgressViews.NewBadgesLine(new[] { "combo10" }, 2);
+            StringAssert.StartsWith("New badges: ", line);
+            StringAssert.Contains("<sprite name=\"combo10\"", line);
+            StringAssert.Contains("Combo 10", line);
+            StringAssert.Contains("★", ProgressViews.NewBadgesLine(new[] { "mystery" }, 1));   // no icon: a star
         }
 
         [Test]
@@ -507,6 +520,31 @@ namespace TheraQuest.Tests
     public class UIKitStyleTests
     {
         [Test]
+        public void TextMeshProFontsCoverTheSymbolsTheGameUses()
+        {
+            Assert.IsNotNull(TMPro.TMP_Settings.defaultFontAsset, "TextMesh Pro essentials are missing");
+            var body = UIKit.TmpFontFor(30, FontStyle.Normal);
+            StringAssert.StartsWith("Nunito-SemiBold", body.name);
+            StringAssert.StartsWith("LuckiestGuy-Regular", UIKit.TmpFontFor(72, FontStyle.Bold).name);
+            // Glyphs the game fonts lack come from the DejaVu fallback
+            foreach (char c in "★✓▶◀●☺↑↓‹›·°…×±")
+                Assert.IsTrue(body.HasCharacter(c, true, true), $"no glyph for {c} (U+{(int)c:X4})");
+        }
+
+        [Test]
+        public void EveryBadgeHasAnIcon()
+        {
+            Assert.IsNotNull(UIKit.BadgeSprites, "Resources/Badges/BadgeSprites is missing");
+            foreach (var code in GamificationManager.BadgeNames.Keys)
+            {
+                Assert.IsNotNull(UIKit.BadgeIcon(code), code);
+                Assert.GreaterOrEqual(UIKit.BadgeSprites.GetSpriteIndexFromName(code), 0, code);
+            }
+            Assert.IsNull(UIKit.BadgeIcon("mystery"));
+            StringAssert.Contains("★", UIKit.BadgeTag("mystery", true));
+        }
+
+        [Test]
         public void FontsLoadAndAreChosenBySizeAndWeight()
         {
             Assert.AreEqual("LuckiestGuy-Regular", UIKit.FontFor(72, FontStyle.Bold).name);
@@ -523,6 +561,48 @@ namespace TheraQuest.Tests
             Assert.AreEqual(UIKit.Orange.a, light.a);
             Assert.AreEqual(Color.white, UIKit.Lighter(Color.black, 1f));
             Assert.AreEqual(UIKit.Orange, UIKit.Lighter(UIKit.Orange, 0f));
+        }
+    }
+
+    /// <summary>Sounds and music (M5.6).</summary>
+    public class AudioTests
+    {
+        [Test]
+        public void ShuffleKeepsEveryTrackAndAvoidsRepeatingTheLastOne()
+        {
+            var rng = new System.Random(1);
+            for (int n = 0; n < 50; n++)
+            {
+                var list = new List<string> { "a", "b", "c", "d" };
+                MusicPlayer.Shuffle(list, "a", rng);
+                Assert.AreNotEqual("a", list[0]);
+                CollectionAssert.AreEquivalent(new[] { "a", "b", "c", "d" }, list);
+            }
+        }
+
+        [Test]
+        public void LofiTracksAndHoldSoundAreInResources()
+        {
+            Assert.AreEqual(9, Resources.LoadAll<AudioClip>(MusicPlayer.PlaylistFolder).Length);
+            Assert.IsNotNull(Resources.Load<AudioClip>("Audio/HoldComplete"));
+            Assert.IsNotNull(Resources.Load<AnimationClip>(HumanoidCoach.DefaultIdle));
+        }
+
+        [Test]
+        public void ReverbAddsATailAndStaysInRange()
+        {
+            var dry = AudioClip.Create("dry", 4410, 1, 44100, false);
+            var d = new float[4410];
+            for (int i = 0; i < d.Length; i++) d[i] = Mathf.Sin(i * 0.1f) * 0.5f;
+            dry.SetData(d, 0);
+            var wet = FeedbackManager.Reverb(dry, 0.6f);
+            Assert.AreEqual(4410 + 61740, wet.samples);
+            var w = new float[wet.samples];
+            wet.GetData(w, 0);
+            float tail = 0f, peak = 0f;
+            for (int i = 0; i < w.Length; i++) { peak = Mathf.Max(peak, Mathf.Abs(w[i])); if (i > 8000) tail = Mathf.Max(tail, Mathf.Abs(w[i])); }
+            Assert.Greater(tail, 0.001f);   // something rings on after the dry sound
+            Assert.LessOrEqual(peak, 0.9001f);
         }
     }
 }

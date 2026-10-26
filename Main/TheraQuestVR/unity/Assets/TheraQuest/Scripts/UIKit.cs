@@ -1,4 +1,7 @@
+using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.TextCore.LowLevel;
 using UnityEngine.UI;
 
 namespace TheraQuest
@@ -36,11 +39,14 @@ namespace TheraQuest
 
         // For rich text: <color=#...>
         public const string HexInk = "#2B2D42", HexMuted = "#6E788C", HexGood = "#3BB273", HexWarn = "#E08600",
-                            HexBad = "#E5484D", HexTeal = "#1FA597", HexGold = "#E0A800", HexPurple = "#7B61FF";
+                            HexBad = "#E5484D", HexTeal = "#1FA597", HexGold = "#E0A800", HexPurple = "#7B61FF",
+                            HexLocked = "#C9C3B6";
 
         static Font font, boldFont, displayFont, builtinFont;
+        static TMP_FontAsset tmpBody, tmpBold, tmpDisplay, tmpSymbols;
         static Sprite rounded;
         static Material onTop;
+        static readonly Dictionary<Material, Material> onTopText = new Dictionary<Material, Material>();
 
         /// <summary>UI material that ignores depth, so view-attached panels are never hidden by walls or the coach.</summary>
         public static Material OnTopMaterial
@@ -61,12 +67,34 @@ namespace TheraQuest
         {
             c.sortingOrder = sortingOrder;
             if (c.GetComponent<DrawOnTop>() == null) c.gameObject.AddComponent<DrawOnTop>();
-            foreach (var g in c.GetComponentsInChildren<Graphic>(true)) g.material = OnTopMaterial;
+            foreach (var g in c.GetComponentsInChildren<Graphic>(true)) SetOnTop(g);
         }
 
         static void ApplyOnTop(Graphic g, Transform parent)
         {
-            if (parent != null && parent.GetComponentInParent<DrawOnTop>(true) != null) g.material = OnTopMaterial;
+            if (parent != null && parent.GetComponentInParent<DrawOnTop>(true) != null) SetOnTop(g);
+        }
+
+        const int ZTestAlways = (int)UnityEngine.Rendering.CompareFunction.Always;
+
+        static void SetOnTop(Graphic g)
+        {
+            if (g is TMP_SubMeshUI) return;   // symbol and badge glyphs copy their text's material
+            if (!(g is TMP_Text t)) { g.material = OnTopMaterial; return; }
+            var m = t.fontSharedMaterial;
+            if (m == null || t.font == null) return;
+            if (m == t.font.material)
+            {
+                // Shared per font, so plain labels still batch
+                if (!onTopText.TryGetValue(m, out var top) || top == null)
+                {
+                    top = new Material(m) { name = m.name + " (always on top)" };
+                    top.SetInt("unity_GUIZTestMode", ZTestAlways);
+                    onTopText[m] = top;
+                }
+                t.fontSharedMaterial = top;
+            }
+            else m.SetInt("unity_GUIZTestMode", ZTestAlways);   // the label's own material (outlined text)
         }
 
         // Fonts (chosen by the human 2026-10-26, option C): Luckiest Guy for big headings, numbers and rewards,
@@ -94,6 +122,102 @@ namespace TheraQuest
         /// <summary>The font a label of this size and style uses.</summary>
         public static Font FontFor(int fontSize, FontStyle style) =>
             fontSize >= DisplaySize ? DisplayFont : style == FontStyle.Bold || style == FontStyle.BoldAndItalic ? BoldFont : Font;
+
+        // TextMeshPro (human decision 2026-10-26): labels draw from signed-distance-field atlases made at runtime from
+        // the fonts above, so text stays sharp up close and at an angle in a headset. Glyphs the fonts lack (★ ✓ ▶ ↑ …)
+        // come from DejaVu Sans Bold. A missing font file falls back to TextMeshPro's default font.
+        /// <summary>The TextMeshPro font a label of this size and style uses.</summary>
+        public static TMP_FontAsset TmpFontFor(int fontSize, FontStyle style)
+        {
+            var f = FontFor(fontSize, style);
+            if (f == DisplayFont) return tmpDisplay != null ? tmpDisplay : (tmpDisplay = MakeTmpFont(f, true));
+            if (f == BoldFont) return tmpBold != null ? tmpBold : (tmpBold = MakeTmpFont(f, true));
+            return tmpBody != null ? tmpBody : (tmpBody = MakeTmpFont(f, true));
+        }
+
+        /// <summary>Symbols the game fonts don't have (DejaVu Sans Bold).</summary>
+        static TMP_FontAsset TmpSymbols
+        {
+            get
+            {
+                if (tmpSymbols == null)
+                {
+                    var f = Resources.Load<Font>("Fonts/DejaVuSans-Bold");
+                    if (f == null) Debug.LogWarning("[TheraQuest] Font Fonts/DejaVuSans-Bold not found; symbols may not show.");
+                    else tmpSymbols = MakeTmpFont(f, false);
+                }
+                return tmpSymbols;
+            }
+        }
+
+        static TMP_FontAsset MakeTmpFont(Font f, bool withSymbols)
+        {
+            TMP_FontAsset a = null;
+            if (f != null && f != Builtin)
+                a = TMP_FontAsset.CreateFontAsset(f, 90, 9, GlyphRenderMode.SDFAA, 1024, 1024, AtlasPopulationMode.Dynamic, true);
+            if (a == null) return TMP_Settings.defaultFontAsset;
+            a.name = f.name + " SDF";
+            // The full distance-field shader (outlines, dilate); the default font's material keeps it in builds
+            var sdf = TMP_Settings.defaultFontAsset != null ? TMP_Settings.defaultFontAsset.material.shader : Shader.Find("TextMeshPro/Distance Field");
+            if (sdf != null) a.material.shader = sdf;
+            if (withSymbols && TmpSymbols != null) a.fallbackFontAssetTable = new List<TMP_FontAsset> { TmpSymbols };
+            return a;
+        }
+
+        static TextAlignmentOptions Align(TextAnchor a)
+        {
+            switch (a)
+            {
+                case TextAnchor.UpperCenter: return TextAlignmentOptions.Top;
+                case TextAnchor.UpperRight: return TextAlignmentOptions.TopRight;
+                case TextAnchor.MiddleLeft: return TextAlignmentOptions.Left;
+                case TextAnchor.MiddleCenter: return TextAlignmentOptions.Center;
+                case TextAnchor.MiddleRight: return TextAlignmentOptions.Right;
+                case TextAnchor.LowerLeft: return TextAlignmentOptions.BottomLeft;
+                case TextAnchor.LowerCenter: return TextAlignmentOptions.Bottom;
+                case TextAnchor.LowerRight: return TextAlignmentOptions.BottomRight;
+                default: return TextAlignmentOptions.TopLeft;
+            }
+        }
+
+        // Badge icons (M5.6): Kenney CC0 icons in Resources/Badges/BadgeSheet.png, one 128 px cell per badge in this
+        // order, and the same cells as a TextMeshPro sprite asset for icons inside text. See CREDITS.md.
+        public static readonly string[] BadgeIconCodes = { "first", "perfect", "combo10", "fullrom", "streak3", "adh80", "lv5" };
+        static TMP_SpriteAsset badgeSprites;
+        static Texture2D badgeSheet;
+        static bool badgeSpritesLoaded, badgeSheetLoaded;
+        static readonly Dictionary<string, Sprite> badgeIcons = new Dictionary<string, Sprite>();
+
+        /// <summary>Badge icons for &lt;sprite name="code"&gt; in text, or null when the asset is missing.</summary>
+        public static TMP_SpriteAsset BadgeSprites
+        {
+            get
+            {
+                if (!badgeSpritesLoaded) { badgeSpritesLoaded = true; badgeSprites = Resources.Load<TMP_SpriteAsset>("Badges/BadgeSprites"); }
+                return badgeSprites;
+            }
+        }
+
+        /// <summary>White icon for a badge (tint it), or null for an unknown code or a missing sheet.</summary>
+        public static Sprite BadgeIcon(string code)
+        {
+            if (badgeIcons.TryGetValue(code ?? "", out var s) && s != null) return s;
+            if (!badgeSheetLoaded) { badgeSheetLoaded = true; badgeSheet = Resources.Load<Texture2D>("Badges/BadgeSheet"); }
+            int i = System.Array.IndexOf(BadgeIconCodes, code);
+            if (badgeSheet == null || i < 0) return null;
+            int cell = badgeSheet.height;
+            s = Sprite.Create(badgeSheet, new Rect(i * cell, 0, cell, cell), new Vector2(0.5f, 0.5f), 100f);
+            s.name = "Badge " + code;
+            return badgeIcons[code] = s;
+        }
+
+        /// <summary>Rich text for a badge's icon: gold when earned, grey when locked; a ★ when it has no icon.</summary>
+        public static string BadgeTag(string code, bool earned)
+        {
+            string hex = earned ? HexGold : HexLocked;
+            bool icon = BadgeSprites != null && System.Array.IndexOf(BadgeIconCodes, code) >= 0;
+            return icon ? $"<sprite name=\"{code}\" color={hex}>" : $"<color={hex}>★</color>";
+        }
 
         /// <summary>A lighter shade of a colour, e.g. the outline of coloured text.</summary>
         public static Color Lighter(Color c, float amount = 0.55f) =>
@@ -189,33 +313,36 @@ namespace TheraQuest
             return c;
         }
 
-        public static Text Label(Transform parent, Vector2 pos, Vector2 size, int fontSize, Color color,
-                                 TextAnchor align = TextAnchor.UpperLeft, FontStyle style = FontStyle.Normal)
+        public static TextMeshProUGUI Label(Transform parent, Vector2 pos, Vector2 size, int fontSize, Color color,
+                                            TextAnchor align = TextAnchor.UpperLeft, FontStyle style = FontStyle.Normal)
         {
-            var go = new GameObject("Text", typeof(RectTransform), typeof(Text));
+            var go = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
             var rt = (RectTransform)go.transform;
             rt.anchorMin = rt.anchorMax = new Vector2(0, 1);
             rt.pivot = new Vector2(0, 1);
             rt.anchoredPosition = pos;
             rt.sizeDelta = size;
-            var t = go.GetComponent<Text>();
-            t.font = FontFor(fontSize, style);
+            var t = go.GetComponent<TextMeshProUGUI>();
+            t.font = TmpFontFor(fontSize, style);
             t.fontSize = fontSize;
             t.color = color;
-            t.alignment = align;
-            // The display and bold fonts are already heavy: don't fake-bold them again (the built-in fallback still needs it)
-            t.fontStyle = t.font != Builtin && style == FontStyle.Bold ? FontStyle.Normal : style;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            t.supportRichText = true;
+            t.alignment = Align(align);
+            // The display and bold fonts are already heavy: don't fake-bold them again (the default fallback still needs it)
+            bool bold = style == FontStyle.Bold || style == FontStyle.BoldAndItalic;
+            bool italic = style == FontStyle.Italic || style == FontStyle.BoldAndItalic;
+            t.fontStyle = (bold && t.font == TMP_Settings.defaultFontAsset ? FontStyles.Bold : FontStyles.Normal) | (italic ? FontStyles.Italic : FontStyles.Normal);
+            t.textWrappingMode = TextWrappingModes.Normal;
+            t.overflowMode = TextOverflowModes.Overflow;
+            t.richText = true;
             t.raycastTarget = false;
+            if (BadgeSprites != null) t.spriteAsset = BadgeSprites;
             ApplyOnTop(t, parent);
             return t;
         }
 
         /// <summary>Rounded coloured pill with centred bold text.</summary>
-        public static Text Pill(Transform parent, Vector2 pos, Vector2 size, Color color, string text, int fontSize, Color textColor)
+        public static TextMeshProUGUI Pill(Transform parent, Vector2 pos, Vector2 size, Color color, string text, int fontSize, Color textColor)
         {
             var bg = Box(parent, pos, size, color, "Pill", true);
             var t = Label(bg.transform, Vector2.zero, size, fontSize, textColor, TextAnchor.MiddleCenter, FontStyle.Bold);
@@ -229,6 +356,17 @@ namespace TheraQuest
         /// <summary>Cartoon stroke around text (thick outline) in a given colour.</summary>
         public static T Stroke<T>(T graphic, Color color, float width = 3f) where T : Graphic
         {
+            if (graphic is TMP_Text t)
+            {
+                // Distance-field outline: about `width` canvas units outside the letters, the face dilated by the
+                // same amount so letters keep their weight (the outline is centred on the glyph edge).
+                float w = Mathf.Clamp(width * 9f / Mathf.Max(1f, t.fontSize), 0.05f, 0.6f);
+                t.outlineColor = color;
+                t.outlineWidth = w;
+                t.fontMaterial.SetFloat(ShaderUtilities.ID_FaceDilate, w);
+                t.UpdateMeshPadding();
+                return graphic;
+            }
             var o = graphic.gameObject.AddComponent<UnityEngine.UI.Outline>();
             o.effectColor = color;
             o.effectDistance = new Vector2(width, -width);

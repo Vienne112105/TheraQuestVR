@@ -586,14 +586,14 @@ namespace TheraQuest
                     // so the loaded xp can be stale. Start the bar from the total minus this session's XP.
                     xpAfter = resp.patient != null ? resp.patient.xp : xpBefore + resp.xpGained;
                     xpBefore = Mathf.Max(0, xpAfter - resp.xpGained);
-                    newBadges = ProgressViews.BadgeNames(resp.new_badges);
+                    newBadges = ProgressViews.BadgeCodes(resp.new_badges);
                     program.patient = resp.patient;
                     hud.SetPatient(resp.patient, program.program, true, program.phase);
                 }
                 else
                 {
                     xpAfter = xpBefore + game.Points;   // what the server will add once the session is sent
-                    newBadges = ProgressViews.BadgeNames(game.EarnedThisSession);
+                    newBadges = ProgressViews.BadgeCodes(game.EarnedThisSession);
                 }
                 sb.Append($"<color={UIKit.HexMuted}>{(resp != null ? "Saved" : "Saved, sent later")}  ·  Press {Keys.Start} to continue</color>");
                 if (completed)

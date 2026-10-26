@@ -1,35 +1,85 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace TheraQuest
 {
     /// <summary>
-    /// Background music at the Settings > Music volume. Assign your own looping track to <see cref="music"/>;
-    /// without one, a calm 32-second ambient loop (soft pads and a light arpeggio) is generated at startup.
+    /// Background music at the Settings > Music volume: the lo-fi tracks in Resources/Music (CC0, see CREDITS.md;
+    /// human pick 2026-10-26: all of them, shuffled), or your own looping track in <see cref="music"/>.
+    /// With neither, a calm 32-second ambient loop (soft pads and a light arpeggio) is generated at startup.
     /// </summary>
     public class MusicPlayer : MonoBehaviour
     {
-        [Tooltip("Optional looping track. Leave empty for the generated ambient loop.")]
+        [Tooltip("Optional looping track. Leave empty for the shuffled tracks in Resources/Music (or the generated loop).")]
         public AudioClip music;
         [Range(0f, 1f)] public float maxVolume = 0.45f;
 
+        public const string PlaylistFolder = "Music";
+
         AudioSource src;
+        readonly List<AudioClip> playlist = new List<AudioClip>();
+        int next;
+        float startedAt;
 
         void Awake()
         {
             src = gameObject.AddComponent<AudioSource>();
-            src.clip = music != null ? music : Generate();
-            src.loop = true;
             src.playOnAwake = false;
             src.spatialBlend = 0f;
             src.ignoreListenerPause = true;
+            if (music == null) playlist.AddRange(Resources.LoadAll<AudioClip>(PlaylistFolder));
+            if (playlist.Count > 0)
+            {
+                Shuffle(playlist, null);
+                PlayNext();
+            }
+            else
+            {
+                src.clip = music != null ? music : Generate();
+                src.loop = true;
+                src.Play();
+            }
             Apply();
-            src.Play();
             GameSettings.Changed += Apply;
         }
 
         void OnDestroy() => GameSettings.Changed -= Apply;
 
         void Apply() { if (src != null) src.volume = GameSettings.Music * maxVolume; }
+
+        void Update()
+        {
+            // Streamed tracks finish on their own; then the next one starts (not while a track is still loading,
+            // or while the window is in the background and Unity has muted audio).
+            if (playlist.Count > 0 && !src.isPlaying && Application.isFocused && src.clip.loadState != AudioDataLoadState.Loading &&
+                Time.unscaledTime - startedAt > 1f) PlayNext();
+        }
+
+        void PlayNext()
+        {
+            if (next >= playlist.Count)
+            {
+                Shuffle(playlist, src.clip);   // a new order, never repeating the track that just ended
+                next = 0;
+            }
+            src.clip = playlist[next++];
+            src.loop = playlist.Count == 1;
+            src.Play();
+            startedAt = Time.unscaledTime;
+        }
+
+        /// <summary>Shuffles in place; when <paramref name="avoidFirst"/> is given it does not come first.</summary>
+        public static void Shuffle<T>(IList<T> list, T avoidFirst, System.Random rng = null)
+        {
+            rng = rng ?? new System.Random();
+            for (int i = list.Count - 1; i > 0; i--)
+            {
+                int j = rng.Next(i + 1);
+                (list[i], list[j]) = (list[j], list[i]);
+            }
+            if (list.Count > 1 && avoidFirst != null && EqualityComparer<T>.Default.Equals(list[0], avoidFirst))
+                (list[0], list[list.Count - 1]) = (list[list.Count - 1], list[0]);
+        }
 
         // C major family: Cmaj7 - Am7 - Fmaj7 - G6, 8 s each
         static readonly float[][] Chords =

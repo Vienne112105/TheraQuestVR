@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -36,14 +37,14 @@ namespace TheraQuest
             public Func<bool> enabled = () => true;
         }
 
-        sealed class Row { public Image bg; public Text label, value; }
+        sealed class Row { public Image bg; public TextMeshProUGUI label, value; }
 
         const float Width = 1000f, RowH = 84f, RowGap = 12f, Top = 300f;
         const float BaseScale = 0.00115f, MaxHeight = 1000f;   // taller pages (Progress) shrink to stay in view
 
         Canvas canvas;
         UIKit.CardRef card;
-        Text title, subtitle, info, footer;
+        TextMeshProUGUI title, subtitle, info, footer;
         readonly List<Item> items = new List<Item>();
         readonly List<Row> rows = new List<Row>();
         Transform rowRoot;

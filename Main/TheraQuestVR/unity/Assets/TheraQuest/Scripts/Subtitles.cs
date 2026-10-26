@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -16,7 +17,7 @@ namespace TheraQuest
 
         Canvas canvas;
         Image bg;
-        Text text;
+        TextMeshProUGUI text;
         float timer;
 
         /// <param name="sound">sound cue shown in brackets before the line, or null</param>

@@ -49,9 +49,11 @@ namespace TheraQuest
         public Option[] characters = new Option[0];
         [Tooltip("Shown instead when no Humanoid character is assigned.")]
         public FigureVisualizer fallback;
-        [Tooltip("Optional looping idle animation (e.g. Mixamo \"Breathing Idle\", put in a CoachAnimations folder). " +
+        [Tooltip("Optional looping idle animation (e.g. Mixamo \"Breathing Idle\", put in a CoachAnimations folder; " +
+                 "empty uses Resources/CoachAnimations/Idle_Loop). " +
                  "While standing, every limb that isn't exercising plays it, so the coach breathes and shifts naturally.")]
         public AnimationClip idleClip;
+        public const string DefaultIdle = "CoachAnimations/Idle_Loop";
 
         [Header("Coach demo")]
         [Tooltip("Seconds to move from the start pose to the target, and the same to come back.")]
@@ -126,6 +128,8 @@ namespace TheraQuest
             if (femaleModel == null || maleModel == null)
                 OnValidate();
 #endif
+            // Bundled CC0 idle (Quaternius, see CREDITS.md); without it the hand-made breathing and sway are used.
+            if (idleClip == null) idleClip = Resources.Load<AnimationClip>(DefaultIdle);
             var allOptions = new List<Option>();
             if (femaleModel != null)
                 allOptions.Add(new Option { name = "Female Coach", model = femaleModel });
