@@ -66,7 +66,7 @@ namespace TheraQuest
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             var t = canvas.transform;
             card = UIKit.Card(t, new Vector2(Width, 900), UIKit.Cream, UIKit.Teal, "Card");
-            title = UIKit.Stroke(UIKit.Label(t, new Vector2(50, -40), new Vector2(Width - 100, 80), 70, UIKit.Orange, TextAnchor.UpperLeft, FontStyle.Bold), UIKit.Outline, 3f);
+            title = UIKit.Stroke(UIKit.Label(t, new Vector2(50, -40), new Vector2(Width - 100, 80), 70, UIKit.Orange, TextAnchor.UpperLeft, FontStyle.Bold), 3f);
             subtitle = UIKit.Label(t, new Vector2(52, -124), new Vector2(Width - 100, 40), 30, UIKit.Muted);
             info = UIKit.Label(t, new Vector2(52, -170), new Vector2(Width - 100, 120), 28, UIKit.Ink);
             rowRoot = new GameObject("Rows", typeof(RectTransform)).transform;

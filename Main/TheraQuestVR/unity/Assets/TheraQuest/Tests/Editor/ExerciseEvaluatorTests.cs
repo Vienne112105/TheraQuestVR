@@ -502,4 +502,27 @@ namespace TheraQuest.Tests
             Assert.AreEqual(0, GamificationManager.Stars(92f, false));
         }
     }
+
+    /// <summary>Game fonts and outline colours (UIKit).</summary>
+    public class UIKitStyleTests
+    {
+        [Test]
+        public void FontsLoadAndAreChosenBySizeAndWeight()
+        {
+            Assert.AreEqual("LuckiestGuy-Regular", UIKit.FontFor(72, FontStyle.Bold).name);
+            Assert.AreEqual("LuckiestGuy-Regular", UIKit.FontFor(UIKit.DisplaySize, FontStyle.Normal).name);
+            Assert.AreEqual("Nunito-ExtraBold", UIKit.FontFor(30, FontStyle.Bold).name);
+            Assert.AreEqual("Nunito-SemiBold", UIKit.FontFor(30, FontStyle.Normal).name);
+        }
+
+        [Test]
+        public void OutlineIsALighterShadeOfTheTextColour()
+        {
+            var light = UIKit.Lighter(UIKit.Orange);
+            Assert.Greater(light.r + light.g + light.b, UIKit.Orange.r + UIKit.Orange.g + UIKit.Orange.b);
+            Assert.AreEqual(UIKit.Orange.a, light.a);
+            Assert.AreEqual(Color.white, UIKit.Lighter(Color.black, 1f));
+            Assert.AreEqual(UIKit.Orange, UIKit.Lighter(UIKit.Orange, 0f));
+        }
+    }
 }

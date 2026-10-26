@@ -38,7 +38,7 @@ namespace TheraQuest
         public const string HexInk = "#2B2D42", HexMuted = "#6E788C", HexGood = "#3BB273", HexWarn = "#E08600",
                             HexBad = "#E5484D", HexTeal = "#1FA597", HexGold = "#E0A800", HexPurple = "#7B61FF";
 
-        static Font font;
+        static Font font, boldFont, displayFont, builtinFont;
         static Sprite rounded;
         static Material onTop;
 
@@ -69,7 +69,35 @@ namespace TheraQuest
             if (parent != null && parent.GetComponentInParent<DrawOnTop>(true) != null) g.material = OnTopMaterial;
         }
 
-        public static Font Font => font != null ? font : (font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
+        // Fonts (chosen by the human 2026-10-26, option C): Luckiest Guy for big headings, numbers and rewards,
+        // Nunito for everything else. Both are open-licensed; see Resources/Fonts and CREDITS.md.
+        /// <summary>Text at least this big uses the display font.</summary>
+        public const int DisplaySize = 44;
+
+        /// <summary>Body text (Nunito SemiBold).</summary>
+        public static Font Font => font != null ? font : (font = LoadFont("Fonts/Nunito-SemiBold"));
+        /// <summary>Bold body text (Nunito ExtraBold), so bold isn't faked by stretching the regular weight.</summary>
+        public static Font BoldFont => boldFont != null ? boldFont : (boldFont = LoadFont("Fonts/Nunito-ExtraBold"));
+        /// <summary>Big headings, numbers and rewards (Luckiest Guy).</summary>
+        public static Font DisplayFont => displayFont != null ? displayFont : (displayFont = LoadFont("Fonts/LuckiestGuy-Regular"));
+
+        static Font Builtin => builtinFont != null ? builtinFont : (builtinFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
+
+        /// <summary>A font from Resources, or Unity's built-in font when it is missing (text never disappears).</summary>
+        static Font LoadFont(string path)
+        {
+            var f = Resources.Load<Font>(path);
+            if (f == null) Debug.LogWarning($"[TheraQuest] Font {path} not found; using the built-in font.");
+            return f != null ? f : Builtin;
+        }
+
+        /// <summary>The font a label of this size and style uses.</summary>
+        public static Font FontFor(int fontSize, FontStyle style) =>
+            fontSize >= DisplaySize ? DisplayFont : style == FontStyle.Bold || style == FontStyle.BoldAndItalic ? BoldFont : Font;
+
+        /// <summary>A lighter shade of a colour, e.g. the outline of coloured text.</summary>
+        public static Color Lighter(Color c, float amount = 0.55f) =>
+            new Color(c.r + (1f - c.r) * amount, c.g + (1f - c.g) * amount, c.b + (1f - c.b) * amount, c.a);
 
         /// <summary>9-sliced rounded rectangle, 36 canvas units corner radius. Small boxes become pills and circles.</summary>
         public static Sprite Rounded => rounded != null ? rounded : (rounded = MakeRounded(96, 36));
@@ -172,11 +200,12 @@ namespace TheraQuest
             rt.anchoredPosition = pos;
             rt.sizeDelta = size;
             var t = go.GetComponent<Text>();
-            t.font = Font;
+            t.font = FontFor(fontSize, style);
             t.fontSize = fontSize;
             t.color = color;
             t.alignment = align;
-            t.fontStyle = style;
+            // The display and bold fonts are already heavy: don't fake-bold them again (the built-in fallback still needs it)
+            t.fontStyle = t.font != Builtin && style == FontStyle.Bold ? FontStyle.Normal : style;
             t.horizontalOverflow = HorizontalWrapMode.Wrap;
             t.verticalOverflow = VerticalWrapMode.Overflow;
             t.supportRichText = true;
@@ -194,7 +223,10 @@ namespace TheraQuest
             return t;
         }
 
-        /// <summary>Cartoon stroke around text (thick outline).</summary>
+        /// <summary>Cartoon stroke in a lighter shade of the text's own colour (human request 2026-10-26).</summary>
+        public static T Stroke<T>(T graphic, float width = 3f) where T : Graphic => Stroke(graphic, Lighter(graphic.color), width);
+
+        /// <summary>Cartoon stroke around text (thick outline) in a given colour.</summary>
         public static T Stroke<T>(T graphic, Color color, float width = 3f) where T : Graphic
         {
             var o = graphic.gameObject.AddComponent<UnityEngine.UI.Outline>();

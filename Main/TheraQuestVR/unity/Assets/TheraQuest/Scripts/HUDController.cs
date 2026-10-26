@@ -199,7 +199,7 @@ namespace TheraQuest
             stopLine = Box(card, new Vector2(28, -334), new Vector2(8, MeterH + 16), UIKit.Red, "Stop line", false);
             stopTxt = Label(card, new Vector2(0, -422), new Vector2(90, 26), 20, UIKit.Red, TextAnchor.UpperCenter, FontStyle.Bold);
             stopTxt.text = "STOP";
-            starTxt = UIKit.Stroke(Label(card, new Vector2(0, -300), new Vector2(80, 70), 60, UIKit.Yellow, TextAnchor.MiddleCenter, FontStyle.Bold), UIKit.Outline, 3f);
+            starTxt = UIKit.Stroke(Label(card, new Vector2(0, -300), new Vector2(80, 70), 60, UIKit.Yellow, TextAnchor.MiddleCenter, FontStyle.Bold), 3f);
             starTxt.text = "★";
 
             // Hold / rest bar
@@ -280,7 +280,7 @@ namespace TheraQuest
             // Text starts below the strip on top of the card
             feedbackTxt = Label(f, new Vector2(128, -34), new Vector2(1040, 100), 42, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
 
-            popTxt = UIKit.Stroke(Label(c, new Vector2(0, -170), new Vector2(1200, 110), 84, UIKit.Yellow, TextAnchor.MiddleCenter, FontStyle.Bold), UIKit.Outline, 4f);
+            popTxt = UIKit.Stroke(Label(c, new Vector2(0, -170), new Vector2(1200, 110), 84, UIKit.Yellow, TextAnchor.MiddleCenter, FontStyle.Bold), 4f);
             UIKit.Bouncy(popTxt);
             popStart = popTxt.rectTransform.anchoredPosition;
             popTxt.text = "";
@@ -292,8 +292,8 @@ namespace TheraQuest
             c.sortingOrder = 10;
             summary = c.gameObject;
             var card = UIKit.Card(c.transform, new Vector2(900, 640), UIKit.Cream, UIKit.Yellow).fill.transform;
-            sumTitle = UIKit.Stroke(Label(card, new Vector2(0, -36), new Vector2(884, 90), 72, UIKit.Orange, TextAnchor.UpperCenter, FontStyle.Bold), UIKit.Outline, 3f);
-            sumStars = UIKit.Stroke(Label(card, new Vector2(0, -130), new Vector2(884, 140), 124, UIKit.Yellow, TextAnchor.UpperCenter, FontStyle.Bold), UIKit.Outline, 4f);
+            sumTitle = UIKit.Stroke(Label(card, new Vector2(0, -36), new Vector2(884, 90), 72, UIKit.Orange, TextAnchor.UpperCenter, FontStyle.Bold), 3f);
+            sumStars = UIKit.Stroke(Label(card, new Vector2(0, -130), new Vector2(884, 140), 124, UIKit.Yellow, TextAnchor.UpperCenter, FontStyle.Bold), 4f);
             UIKit.Bouncy(sumStars);
             sumBody = Label(card, new Vector2(60, -280), new Vector2(764, 160), 34, UIKit.Ink, TextAnchor.UpperCenter);
             // XP row and badge reveal along the bottom of the card
@@ -556,6 +556,8 @@ namespace TheraQuest
         {
             popTxt.text = text;
             popTxt.color = good ? UIKit.Yellow : new Color(1f, 0.62f, 0.6f);
+            var outline = popTxt.GetComponent<Outline>();
+            if (outline != null) outline.effectColor = UIKit.Lighter(popTxt.color);
             popTimer = 1f;
             UIKit.Bouncy(popTxt).Punch(0.35f);
         }
