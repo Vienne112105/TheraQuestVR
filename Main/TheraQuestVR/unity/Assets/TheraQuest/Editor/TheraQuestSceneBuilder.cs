@@ -75,13 +75,6 @@ namespace TheraQuest.EditorTools
                 if (opt.name.Contains("Female") && coach.femaleModel == null) coach.femaleModel = opt.model;
                 else if (opt.name.Contains("Male") && coach.maleModel == null) coach.maleModel = opt.model;
             }
-            // Little Guys are already cartoon-proportioned: no bigger head and hands or shorter neck on top
-            if (coach.femaleModel != null && AssetDatabase.GetAssetPath(coach.femaleModel).StartsWith(LittleGuys))
-            {
-                coach.headScale = 1f;
-                coach.handScale = 1f;
-                coach.neckLength = 1f;
-            }
             coach.fallback = figure;
             coach.idleClip = FindIdleClip();
 

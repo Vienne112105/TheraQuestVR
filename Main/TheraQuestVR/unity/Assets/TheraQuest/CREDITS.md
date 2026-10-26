@@ -70,8 +70,8 @@ The icons were trimmed, scaled to fit a 128 px cell and recoloured white so the 
 |-------|--------|---------|
 | `Free Woman Tall.prefab`, `Free Man Tall.prefab` (and the rest of the pack, kept as imported) | "Little Guys - Free Sample" by Luceed Studio, Unity Asset Store, imported by the human through Package Manager > My Assets on 2026-10-27 | Standard Unity Asset Store EULA (no licence file in the pack) |
 
-The coach since 2026-10-27 (human request). The pack's own material uses a URP shader; the game draws the coach with
-its toon shader instead, using the pack's texture.
+The coach since 2026-10-27 (human request). The pack's own material uses a URP shader; this project renders with the
+Built-in pipeline, so the game draws the coach with a plain Standard material using the pack's texture.
 
 ## Coach animation (`Resources/CoachAnimations`)
 

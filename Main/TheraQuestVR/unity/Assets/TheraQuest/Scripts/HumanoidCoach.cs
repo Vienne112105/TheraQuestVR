@@ -69,18 +69,6 @@ namespace TheraQuest
         [Tooltip("Vertical foot grounding offset in metres. Adjust if shoes clip floor or float.")]
         [SerializeField, Range(-0.1f, 0.1f)] public float floorOffset = 0f;
 
-        [Header("Cartoon style")]
-        [Tooltip("Toon shading with an outline for the coach (Resources/Toon/CoachToon). Off: the model's own materials.")]
-        public bool toonStyle = true;
-        [Tooltip("Outline thickness in metres (eyes and eyebrows get none).")]
-        [Range(0f, 0.015f)] public float outlineWidth = 0.008f;
-        [Tooltip("Head size (1 = as modelled). Slightly bigger reads friendlier and clearer at a distance.")]
-        [Range(1f, 1.4f)] public float headScale = 1.15f;
-        [Tooltip("Hand size (1 = as modelled).")]
-        [Range(1f, 1.4f)] public float handScale = 1.12f;
-        [Tooltip("Neck length (1 = as modelled). A little shorter is more cartoony.")]
-        [Range(0.3f, 1f)] public float neckLength = 0.6f;
-
         [Header("Ghost (patient's live angle)")]
         [Tooltip("Ghost position relative to the coach. Zero = drawn over the coach, so you match your ghost to it.")]
         public Vector3 ghostOffset = Vector3.zero;
@@ -308,9 +296,7 @@ namespace TheraQuest
             b.coach = Figure.Create(b.root.transform, "Coach", coachGo, Vector3.zero, propMat, null, idleClip, coachHeight, floorOffset);
             b.ghost = Figure.Create(b.root.transform, "Ghost", ghostGo, ghostOffset, ghostMat, ghostMat, idleClip, coachHeight, floorOffset);
             // Same proportions on both, so the patient's ghost still lines up with the coach; toon shading on the coach only
-            if (b.coach != null) b.coach.Stylise(headScale, handScale, neckLength);
-            if (b.ghost != null) b.ghost.Stylise(headScale, handScale, neckLength);
-            if (b.coach != null && toonStyle) ApplyToon(coachGo);
+            if (b.coach != null) UsePlainMaterials(coachGo);
             if (b.coach == null || b.ghost == null)
             {
                 Debug.LogWarning($"[TheraQuest] Could not resolve skeleton for {model.name}. Skipping it.");
@@ -575,50 +561,47 @@ namespace TheraQuest
             exerciseMat.localScale = Vector3.Lerp(exerciseMat.localScale, matScale, k);
         }
 
-        // One toon material per original colour, shared by every coach (human request 2026-10-27: cartoon look)
-        static readonly Dictionary<Material, Material> toonMats = new Dictionary<Material, Material>();
-        static Material toonTemplate;
-        static bool toonLoaded;
+        // Plain stand-ins for coach materials this render pipeline can't draw (human request 2026-10-27: no cartoon
+        // stylisation, which replaced DEC-017's toon shader)
+        static readonly Dictionary<Material, Material> plainMats = new Dictionary<Material, Material>();
 
         /// <summary>
-        /// Swaps the coach's materials for toon-shaded copies with the same colours and an outline in a darker shade.
-        /// Without Resources/Toon/CoachToon the model keeps its own materials.
+        /// Keeps the coach's own materials where they work. A material made for another render pipeline (the Little
+        /// Guys pack ships URP materials; this project renders with the Built-in pipeline) would draw pink, so it is
+        /// swapped for a plain Standard material with the same texture and colour: no outline, no cel shading.
         /// </summary>
-        void ApplyToon(GameObject model)
+        void UsePlainMaterials(GameObject model)
         {
-            if (!toonLoaded) { toonLoaded = true; toonTemplate = Resources.Load<Material>("Toon/CoachToon"); }
-            if (toonTemplate == null) return;
+            var standard = Shader.Find("Standard");
+            if (standard == null) return;
             foreach (var r in model.GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
+                bool changed = false;
                 for (int i = 0; i < mats.Length; i++)
                 {
                     var src = mats[i];
-                    if (src == null) continue;
-                    if (!toonMats.TryGetValue(src, out var toon) || toon == null)
+                    if (src == null || src.shader == null || src.shader.isSupported && !IsForOtherPipeline(src.shader)) continue;
+                    if (!plainMats.TryGetValue(src, out var plain) || plain == null)
                     {
-                        toon = new Material(toonTemplate) { name = src.name + " (toon)" };
-                        var c = src.HasProperty("_BaseColor") ? src.GetColor("_BaseColor") : src.HasProperty("_Color") ? src.color : Color.white;
-                        toon.SetColor("_Color", c);
-                        // Atlas-textured models (Little Guys) take their colours from the texture
+                        plain = new Material(standard) { name = src.name + " (plain)" };
+                        plain.color = src.HasProperty("_BaseColor") ? src.GetColor("_BaseColor") : src.HasProperty("_Color") ? src.color : Color.white;
                         var tex = src.HasProperty("_BaseMap") ? src.GetTexture("_BaseMap") : src.HasProperty("_MainTex") ? src.GetTexture("_MainTex") : null;
-                        if (tex != null) toon.SetTexture("_MainTex", tex);
-                        // Coloured line art: each part outlined in a darker shade of its own colour (a single dark
-                        // line colour drew streaks between layered hair strands)
-                        var line = UIKit.Darker(c, 0.6f);
-                        line.a = 1f;
-                        toon.SetColor("_OutlineColor", line);
-                        // Small details (eyes, brows) get no outline (it would turn them into blobs); hair a thinner one
-                        bool detail = src.name.IndexOf("Eye", System.StringComparison.OrdinalIgnoreCase) >= 0;
-                        bool hair = src.name.IndexOf("Hair", System.StringComparison.OrdinalIgnoreCase) >= 0;
-                        toon.SetFloat("_OutlineWidth", detail ? 0f : hair ? outlineWidth * 0.5f : outlineWidth);
-                        toonMats[src] = toon;
+                        if (tex != null) plain.mainTexture = tex;
+                        plain.SetFloat("_Glossiness", 0.15f);   // soft cloth and skin, not shiny plastic
+                        plainMats[src] = plain;
                     }
-                    mats[i] = toon;
+                    mats[i] = plain;
+                    changed = true;
                 }
-                r.sharedMaterials = mats;
+                if (changed) r.sharedMaterials = mats;
             }
         }
+
+        /// <summary>A URP or HDRP shader while the Built-in pipeline is active (Unity still reports it as supported).</summary>
+        static bool IsForOtherPipeline(Shader s) =>
+            UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null &&
+            (s.name.StartsWith("Universal Render Pipeline") || s.name.StartsWith("HDRP") || s.name.Contains("URP"));
 
         void PlaceMarker(Vector3 from, Vector3 to)
         {
@@ -923,17 +906,6 @@ namespace TheraQuest
                 pillowSide.localPosition = new Vector3(-s * Mathf.Abs(pp.x), pp.y, pp.z);
 
                 slot.localPosition = offset;
-            }
-
-            /// <summary>
-            /// Slightly stylised proportions (cartoon look): bigger head and hands, shorter neck. Bone scale and the
-            /// head's offset from the neck are not animated (poses and the idle clip only turn bones), so this holds.
-            /// </summary>
-            public void Stylise(float headScale, float handScale, float neckLength)
-            {
-                head.localScale *= headScale;
-                head.localPosition *= neckLength;
-                foreach (var h in hand) if (h != null) h.localScale *= handScale;
             }
 
             /// <summary>World box around the figure's body (head, hands, feet) and the chair or bed it is using.</summary>
