@@ -292,7 +292,7 @@ namespace TheraQuest
             c.sortingOrder = 10;
             summary = c.gameObject;
             var card = UIKit.Card(c.transform, new Vector2(900, 640), UIKit.Cream, UIKit.Yellow).fill.transform;
-            sumTitle = UIKit.Stroke(Label(card, new Vector2(0, -36), new Vector2(884, 90), 72, UIKit.Orange, TextAnchor.UpperCenter, FontStyle.Bold), 3f);
+            sumTitle = UIKit.Stroke(Label(card, new Vector2(0, -50), new Vector2(884, 90), 72, UIKit.Orange, TextAnchor.UpperCenter, FontStyle.Bold), 3f);
             sumStars = UIKit.Stroke(Label(card, new Vector2(0, -130), new Vector2(884, 140), 124, UIKit.Yellow, TextAnchor.UpperCenter, FontStyle.Bold), 4f);
             UIKit.Bouncy(sumStars);
             sumBody = Label(card, new Vector2(60, -280), new Vector2(764, 160), 34, UIKit.Ink, TextAnchor.UpperCenter);
