@@ -7,7 +7,7 @@ Renders an immersive 3D physical therapy clinic environment in Unity 6, handles 
 `stable`
 
 ## Responsibilities
-- Construct procedural/modular clinic environment (walls, floor, therapy bed, window, lighting).
+- Construct procedural/modular clinic environment (walls, floor, treatment table, windows, lighting; the coach's yoga mat).
 - Provide OpenXR VR head tracking and controller input mappings for Meta Quest (via Quest Link), with automated fallback to keyboard/mouse desktop controls.
 - Offer comfortable locomotion: snap turning (30°), smooth turning, walking (WASD/thumbstick), and instant recentering to the exercise spot (R key or Y button).
 - Render dual-mode HUD:
