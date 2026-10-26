@@ -327,6 +327,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 
 ### M5.6 — Audio & Visual Assets
 - **Status:** planned
+- **Progress (2026-10-26):** game fonts done, chosen by the human from in-game previews (option C): Luckiest Guy for text 44 px and up, Nunito SemiBold / ExtraBold for the rest, loaded from `Resources/Fonts` in `UIKit` with the built-in font as fallback; outlined text (titles, stars, pop-ups) now has an outline in a lighter shade of its own colour instead of dark ink (subtitles keep a dark outline for readability over the room). Credits in `Assets/TheraQuest/CREDITS.md`. Unity EditMode tests 43 pass. Not yet seen in Play mode after the change. Still open: sounds, music, badge icons, coach idle animation, TextMeshPro decision.
 - **Objective:** Replace placeholder sounds, art and text rendering.
 - **Deliverables:** real sound effects (level-up, badge, warning, click, hold complete); a music track; one icon per badge; a coach idle animation; TextMeshPro for HUD and menu text; assets only from CC0/licensed sources or supplied by the human, with a credits file recording source and licence; generated chimes kept as a fallback.
 - **Completion criteria:** every asset is credited; the game runs with assets present and with them missing; human Play-mode check (legibility, volume).
