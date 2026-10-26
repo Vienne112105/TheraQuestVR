@@ -64,6 +64,15 @@ The icons were trimmed, scaled to fit a 128 px cell and recoloured white so the 
 |------|----------|--------|---------|
 | `Headset.png` | VR headset logo beside the game name on the main menu | the `vr-cardboard` glyph (U+F729) of Font Awesome Free 6.7.2 `fa-solid-900.ttf` by Fonticons, Inc., github.com/FortAwesome/Font-Awesome (6.x branch, `webfonts/`), rendered to a 256 px white PNG the game tints | SIL Open Font License 1.1, which Font Awesome applies to its font files (`FontAwesome-LICENSE.txt`; the same icon as SVG is CC BY 4.0). Downloaded 2026-10-26 |
 
+## Coach models (`Assets/LuceedStudio`)
+
+| Files | Source | Licence |
+|-------|--------|---------|
+| `Free Woman Tall.prefab`, `Free Man Tall.prefab` (and the rest of the pack, kept as imported) | "Little Guys - Free Sample" by Luceed Studio, Unity Asset Store, imported by the human through Package Manager > My Assets on 2026-10-27 | Standard Unity Asset Store EULA (no licence file in the pack) |
+
+The coach since 2026-10-27 (human request). The pack's own material uses a URP shader; the game draws the coach with
+its toon shader instead, using the pack's texture.
+
 ## Coach animation (`Resources/CoachAnimations`)
 
 | File | Source | Licence |
@@ -75,5 +84,5 @@ Imported as a Humanoid clip (loop on, root baked in place) and saved on its own;
 ## Not yet recorded
 
 Assets that were in the project before M5.6 and whose source the human still has to confirm:
-the five rep sounds above and the coach models in `Coaches/FBX-Female` and `Coaches/FBX-male`
-(`CoachModelImporter` mentions Quaternius Ultimate Modular Men / Women, CC0, and Mixamo as likely sources).
+the five rep sounds above and the older coach models in `Coaches/FBX-Female` and `Coaches/FBX-male`, no longer
+used by the scene since Little Guys (`CoachModelImporter` mentions Quaternius Ultimate Modular Men / Women, CC0, and Mixamo as likely sources).

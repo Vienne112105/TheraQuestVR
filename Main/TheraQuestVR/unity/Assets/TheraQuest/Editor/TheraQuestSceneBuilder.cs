@@ -75,6 +75,13 @@ namespace TheraQuest.EditorTools
                 if (opt.name.Contains("Female") && coach.femaleModel == null) coach.femaleModel = opt.model;
                 else if (opt.name.Contains("Male") && coach.maleModel == null) coach.maleModel = opt.model;
             }
+            // Little Guys are already cartoon-proportioned: no bigger head and hands or shorter neck on top
+            if (coach.femaleModel != null && AssetDatabase.GetAssetPath(coach.femaleModel).StartsWith(LittleGuys))
+            {
+                coach.headScale = 1f;
+                coach.handScale = 1f;
+                coach.neckLength = 1f;
+            }
             coach.fallback = figure;
             coach.idleClip = FindIdleClip();
 
@@ -100,9 +107,27 @@ namespace TheraQuest.EditorTools
                 : ". Add a Humanoid character to Humanoid Coach > Characters, or press Play to use the primitive figure."));
         }
 
-        /// <summary>Every Humanoid model under a Coaches folder, categorized into Female Coach and Male Coach.</summary>
+        // Little Guys - Free Sample (Luceed Studio, Asset Store): the coach since 2026-10-27 (human request).
+        // The Tall versions have longer limbs, so the exercise is easier to read.
+        const string LittleGuys = "Assets/LuceedStudio/Character Lab/Little Guys/Little Guys - Free Sample/";
+        static readonly string LittleGuysFemale = LittleGuys + "Woman/Free Woman/Free Woman Tall.prefab";
+        static readonly string LittleGuysMale = LittleGuys + "Man/Free Man/Free Man Tall.prefab";
+
+        /// <summary>
+        /// The Little Guys coaches when imported; otherwise every Humanoid model under a Coaches folder,
+        /// categorized into Female Coach and Male Coach.
+        /// </summary>
         static TheraQuest.HumanoidCoach.Option[] FindCoachAvatars()
         {
+            var lgFemale = AssetDatabase.LoadAssetAtPath<GameObject>(LittleGuysFemale);
+            var lgMale = AssetDatabase.LoadAssetAtPath<GameObject>(LittleGuysMale);
+            if (IsHumanoid(lgFemale) && IsHumanoid(lgMale))
+                return new[]
+                {
+                    new TheraQuest.HumanoidCoach.Option { name = "Female Coach", model = lgFemale },
+                    new TheraQuest.HumanoidCoach.Option { name = "Male Coach", model = lgMale },
+                };
+
             var list = new System.Collections.Generic.List<TheraQuest.HumanoidCoach.Option>();
             var femaleModels = new System.Collections.Generic.List<GameObject>();
             var maleModels = new System.Collections.Generic.List<GameObject>();

@@ -34,6 +34,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-015 | accepted | 2026-10-26 | Game Text Uses TextMeshPro; Game Assets Load from Resources with Generated Fallbacks |
 | DEC-016 | accepted | 2026-10-26 | Five-Colour Game Palette; Red Only for Safety Warnings |
 | DEC-017 | accepted | 2026-10-27 | Cartoon Coach: Toon Shading, Outlines and Stylised Proportions |
+| DEC-018 | accepted | 2026-10-27 | Little Guys Coach Models |
 
 ---
 
@@ -176,3 +177,10 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Reason:** Asked to make the coaches either more realistic or more cartoony, the human chose cartoony for both genders. A stylised coach avoids the uncanny look of near-realistic people up close in VR, renders cheaply on headsets, and matches the game's XP, badge and palette style; realism would have needed new high-detail models.
 - **Impact:** Every coach (male and female) uses the `TheraQuest/Toon Outline` shader (`Assets/TheraQuest/Shaders`, template `Resources/Toon/CoachToon`): two-tone cel shading with a cool shadow tint, a soft rim light, and an outline in a darker shade of each part's own colour (none on eyes and brows, thinner on hair). Head and hands are slightly larger and the neck shorter, on both the coach and its see-through guide so the guide still lines up. All values are inspector fields on `HumanoidCoach` (`toonStyle`, `outlineWidth`, `headScale`, `handScale`, `neckLength`); turning `toonStyle` off restores the models' own materials. The shader is written for the Built-in render pipeline, which is what the project renders with today.
 - **Supersedes:** none
+
+### DEC-018: Little Guys Coach Models
+- **Status:** accepted
+- **Date:** 2026-10-27
+- **Reason:** The human asked to use "Little Guys - Free Sample" (Luceed Studio, Unity Asset Store) as the coach model. It ships with valid Humanoid avatars and a full skeleton, so the existing bone-driven coach posing works unchanged, and its chunky cartoon look fits DEC-017.
+- **Impact:** The scene's female and male coach are `Free Woman Tall` and `Free Man Tall` (the Tall versions have longer limbs, so the exercise reads better); `TheraQuestSceneBuilder` picks them when the pack is present, else the older models in `Coaches/`. The pack's material is URP, so the coach keeps the DEC-017 toon shader, which now also takes the model's texture (`_MainTex`, white by default, so untextured coaches look as before) and outlines each part in a darker shade of the texture. The head, hand and neck changes from DEC-017 are set to 1 for these models, which are already cartoon-proportioned. Credited in `CREDITS.md` (Asset Store EULA).
+- **Supersedes:** none (refines DEC-017)

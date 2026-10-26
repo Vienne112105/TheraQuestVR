@@ -600,6 +600,9 @@ namespace TheraQuest
                         toon = new Material(toonTemplate) { name = src.name + " (toon)" };
                         var c = src.HasProperty("_BaseColor") ? src.GetColor("_BaseColor") : src.HasProperty("_Color") ? src.color : Color.white;
                         toon.SetColor("_Color", c);
+                        // Atlas-textured models (Little Guys) take their colours from the texture
+                        var tex = src.HasProperty("_BaseMap") ? src.GetTexture("_BaseMap") : src.HasProperty("_MainTex") ? src.GetTexture("_MainTex") : null;
+                        if (tex != null) toon.SetTexture("_MainTex", tex);
                         // Coloured line art: each part outlined in a darker shade of its own colour (a single dark
                         // line colour drew streaks between layered hair strands)
                         var line = UIKit.Darker(c, 0.6f);

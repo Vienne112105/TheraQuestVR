@@ -6,6 +6,7 @@ Shader "TheraQuest/Toon Outline"
     Properties
     {
         _Color ("Colour", Color) = (1, 1, 1, 1)
+        _MainTex ("Texture (white = flat colour)", 2D) = "white" {}
         _ShadeTint ("Shadow tint", Color) = (0.52, 0.58, 0.74, 1)
         _ShadeStep ("Light / shadow edge", Range(-1, 1)) = 0.25
         _ShadeSoft ("Edge softness", Range(0.001, 0.3)) = 0.04
@@ -25,8 +26,9 @@ Shader "TheraQuest/Toon Outline"
 
         fixed4 _Color, _ShadeTint, _RimColor;
         half _ShadeStep, _ShadeSoft, _RimPower;
+        sampler2D _MainTex;
 
-        struct Input { float3 viewDir; };
+        struct Input { float2 uv_MainTex; float3 viewDir; };
 
         half4 LightingToon(SurfaceOutput s, half3 lightDir, half atten)
         {
@@ -44,7 +46,8 @@ Shader "TheraQuest/Toon Outline"
 
         void surf(Input IN, inout SurfaceOutput o)
         {
-            o.Albedo = _Color.rgb;
+            // Coaches coloured from a texture atlas (Little Guys) use it; the others keep a flat colour
+            o.Albedo = _Color.rgb * tex2D(_MainTex, IN.uv_MainTex).rgb;
             o.Alpha = 1;
             half rim = pow(1 - saturate(dot(normalize(IN.viewDir), o.Normal)), _RimPower);
             o.Emission = _RimColor.rgb * _RimColor.a * rim;
@@ -66,17 +69,21 @@ Shader "TheraQuest/Toon Outline"
 
             fixed4 _OutlineColor;
             float _OutlineWidth;
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
 
             struct appdata
             {
                 float4 vertex : POSITION;
                 float3 normal : NORMAL;
+                float2 uv : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             struct v2f
             {
                 float4 pos : SV_POSITION;
+                float2 uv : TEXCOORD1;
                 UNITY_FOG_COORDS(0)
                 UNITY_VERTEX_OUTPUT_STEREO
             };
@@ -92,13 +99,15 @@ Shader "TheraQuest/Toon Outline"
                 float3 world = mul(unity_ObjectToWorld, v.vertex).xyz;
                 world += normalize(UnityObjectToWorldNormal(v.normal)) * _OutlineWidth;
                 o.pos = UnityWorldToClipPos(world);
+                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 UNITY_TRANSFER_FOG(o, o.pos);
                 return o;
             }
 
             fixed4 frag(v2f i) : SV_Target
             {
-                fixed4 c = _OutlineColor;
+                // A darker shade of the texture's colour under it, so a textured coach keeps coloured line art
+                fixed4 c = _OutlineColor * fixed4(tex2D(_MainTex, i.uv).rgb, 1);
                 UNITY_APPLY_FOG(i.fogCoord, c);
                 return c;
             }
