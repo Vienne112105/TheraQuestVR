@@ -5,8 +5,8 @@ using UnityEngine.Rendering;
 namespace TheraQuest
 {
     /// <summary>
-    /// Friendly-looking exercise furniture built from primitives (no assets): a padded chair with wooden legs
-    /// and a yoga mat. Colours stand out from the floor so the
+    /// Exercise furniture: the seated-exercise chair (a Kenney model, primitives as a fallback) and the yoga mat,
+    /// plus loading of the room's decoration models. Colours stand out from the floor so the
     /// patient can see what the coach is sitting or lying on. No colliders (the player walks through the coach area).
     /// </summary>
     public static class PropBuilder
@@ -36,8 +36,57 @@ namespace TheraQuest
             return go.transform;
         }
 
-        /// <summary>Padded chair. Seat top at seatTop, seat spanning zBack..zFront (backrest at zBack), centred on x = 0.</summary>
+        /// <summary>
+        /// A 3D model from Resources (room decoration or exercise prop, see CREDITS.md), turned by yaw, scaled, and
+        /// moved so the middle of its base sits on floorPos (in parent space). Returns null when the model is missing.
+        /// </summary>
+        public static Transform Model(string resource, Transform parent, Vector3 floorPos, float yaw, Vector3 scale, bool solid = false)
+        {
+            var prefab = Resources.Load<GameObject>(resource);
+            if (prefab == null) return null;
+            var holder = new GameObject(prefab.name).transform;
+            holder.SetParent(parent, false);
+            var go = Object.Instantiate(prefab, holder, false);
+            go.transform.localRotation = Quaternion.Euler(0f, yaw, 0f) * go.transform.localRotation;
+            go.transform.localScale = Vector3.Scale(go.transform.localScale, scale);
+            var rs = go.GetComponentsInChildren<Renderer>();
+            if (rs.Length > 0)
+            {
+                var b = rs[0].bounds;
+                foreach (var r in rs) { b.Encapsulate(r.bounds); r.shadowCastingMode = ShadowCastingMode.On; }
+                go.transform.position += holder.position - new Vector3(b.center.x, b.min.y, b.center.z);
+                if (solid)
+                {
+                    var box = holder.gameObject.AddComponent<BoxCollider>();   // the player walks around it
+                    box.center = new Vector3(0f, b.size.y / 2f, 0f);
+                    box.size = b.size;
+                }
+            }
+            holder.localPosition = floorPos;
+            return holder;
+        }
+
+        /// <summary>Kenney Furniture Kit models are about five times life size.</summary>
+        public const float KenneyScale = 0.2f;
+
+        /// <summary>
+        /// The seated-exercise chair: Kenney's cushioned wooden chair (CC0), seat top at seatTop, seat spanning
+        /// zBack..zFront (backrest at zBack), centred on x = 0. Falls back to a chair made of primitives.
+        /// </summary>
         public static void Chair(Transform parent, float seatTop, float zBack, float zFront)
+        {
+            // Measured on the model: the seat top is at 52% of its height and the backrest fills the last tenth of its
+            // depth on +Z (the chair faces -Z), so it is turned to face +Z like the coach and stretched to fit
+            const float seatFraction = 0.52f, modelUnits = 2f, modelHeight = 4.6f;
+            float sy = seatTop / (seatFraction * modelHeight);
+            float sz = (zFront - zBack) / (0.9f * modelUnits);
+            var chair = Model("Room/Furniture/chairCushion", parent, new Vector3(0f, 0f, (zBack + zFront) / 2f - 0.05f * (zFront - zBack)), 180f,
+                              new Vector3(0.5f / modelUnits, sy, sz));
+            if (chair != null) return;
+            PrimitiveChair(parent, seatTop, zBack, zFront);
+        }
+
+        static void PrimitiveChair(Transform parent, float seatTop, float zBack, float zFront)
         {
             float depth = zFront - zBack, mid = (zBack + zFront) / 2f, w = 0.52f;
             Part(PrimitiveType.Cube, parent, new Vector3(0, seatTop - 0.11f, mid), new Vector3(w, 0.04f, depth), Wood, "Seat board");

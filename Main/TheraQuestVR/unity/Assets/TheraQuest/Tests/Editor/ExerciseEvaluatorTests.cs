@@ -611,6 +611,14 @@ namespace TheraQuest.Tests
         }
 
         [Test]
+        public void RoomDecorationAndChairModelsAreInResources()
+        {
+            foreach (var m in new[] { "Room/Furniture/chairCushion", "Room/Furniture/pottedPlant", "Room/Furniture/lampSquareCeiling",
+                                      "Room/Gym/treadmill", "Room/Gym/exercise_ball", "Room/Gym/dumbbell_rack" })
+                Assert.IsNotNull(Resources.Load<GameObject>(m), m);
+        }
+
+        [Test]
         public void LofiTracksAndHoldSoundAreInResources()
         {
             Assert.AreEqual(9, Resources.LoadAll<AudioClip>(MusicPlayer.PlaylistFolder).Length);

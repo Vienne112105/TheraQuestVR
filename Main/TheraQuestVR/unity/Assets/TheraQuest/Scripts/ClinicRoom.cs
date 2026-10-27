@@ -4,9 +4,9 @@ using UnityEngine;
 namespace TheraQuest
 {
     /// <summary>
-    /// Furnishes the clinic around the exercise station at startup, from primitives (no 3D assets):
-    /// side and front walls, windows, treatment table, parallel bars, exercise balls, dumbbell rack,
-    /// step box, plants, wall posters, warm lights, and a teal marker on the exercise spot.
+    /// Furnishes the clinic around the exercise station at startup: walls, windows, posters, warm lights and a teal
+    /// marker on the exercise spot from primitives, and the equipment and furniture as 3D models from Resources/Room
+    /// (Low Poly Gym Pack by reodesuxz, Kenney Furniture Kit; see CREDITS.md).
     /// Works with scenes made by an older TheraQuest > Create Scene (it adds only what's missing).
     /// Props keep their colliders, so PlayerMover walks around them.
     /// The area in front of the station (coach and HUD panels) is kept clear.
@@ -21,7 +21,6 @@ namespace TheraQuest
         static readonly Color Wall = new Color(0.82f, 0.88f, 0.86f);
         static readonly Color Trim = new Color(0.04f, 0.54f, 0.49f);
         static readonly Color Dark = new Color(0.20f, 0.26f, 0.28f);
-        static readonly Color Wood = new Color(0.55f, 0.40f, 0.27f);
         static readonly Color Sky = new Color(0.62f, 0.82f, 0.95f);
 
         void Start()
@@ -58,39 +57,50 @@ namespace TheraQuest
             Decor("Exercise spot", new Vector3(0, 0.006f, 0f), new Vector3(0.9f, 0.004f, 0.9f), Trim, PrimitiveType.Cylinder);
             Sign(new Vector3(0, 0.02f, 0.62f), Quaternion.Euler(90, 0, 0), new Vector2(700, 120), "EXERCISE SPOT", 64);
 
-            // Treatment table (left side)
-            Block("Table top", new Vector3(-3.7f, 0.68f, 1.4f), new Vector3(0.8f, 0.12f, 1.9f), Mat(Trim));
-            Block("Table base", new Vector3(-3.7f, 0.31f, 1.4f), new Vector3(0.6f, 0.62f, 1.6f), Mat(Dark));
-            Decor("Pillow", new Vector3(-3.7f, 0.78f, 0.65f), new Vector3(0.5f, 0.08f, 0.3f), Color.white);
+            // Room decorations are 3D models (human request 2026-10-27, TASK-014): gym equipment from the Low Poly Gym
+            // Pack (reodesuxz) and furniture from Kenney's Furniture Kit (CC0); see CREDITS.md. The coach's area in front
+            // of the station and the HUD panels stay clear, everything stands along the walls.
+            Vector3 one = Vector3.one, kenney = Vector3.one * PropBuilder.KenneyScale;
 
-            // Exercise balls
-            Ball(new Vector3(-3.3f, 0.33f, 3.9f), 0.65f, new Color(0.93f, 0.45f, 0.38f));
-            Ball(new Vector3(-2.5f, 0.28f, 4.6f), 0.55f, new Color(0.35f, 0.55f, 0.90f));
-            Ball(new Vector3(-4.1f, 0.25f, 4.7f), 0.5f, new Color(0.96f, 0.77f, 0.32f));
+            // Cardio corner (left wall, under the windows)
+            Prop("Room/Gym/treadmill", new Vector3(-4.35f, 0, 2.7f), 0f, one, true);
+            Prop("Room/Gym/exercise_bike", new Vector3(-4.35f, 0, 0.3f), 0f, one, true);
 
-            // Parallel bars (right side)
-            Decor("Bars platform", new Vector3(3.55f, 0.02f, 1.4f), new Vector3(1.2f, 0.04f, 2.9f), Wood);
-            foreach (float x in new[] { 3.2f, 3.9f })
-            {
-                foreach (float z in new[] { 0.1f, 2.7f })
-                    Block("Bar post", new Vector3(x, 0.47f, z), new Vector3(0.06f, 0.47f, 0.06f), Mat(Dark), PrimitiveType.Cylinder);
-                var rail = Block("Bar rail", new Vector3(x, 0.95f, 1.4f), new Vector3(0.05f, 1.3f, 0.05f), Mat(new Color(0.85f, 0.87f, 0.88f)), PrimitiveType.Cylinder);
-                rail.transform.rotation = Quaternion.Euler(90, 0, 0);
-            }
+            // Mat and ball corner (back left)
+            Prop("Room/Gym/wall_mirror", new Vector3(-2.6f, 0.55f, 5.42f), 180f, one);
+            Prop("Room/Gym/exercise_ball", new Vector3(-3.5f, 0, 4.6f), 0f, one, true);
+            Prop("Room/Gym/exercise_ball", new Vector3(-2.8f, 0, 4.95f), 40f, one * 0.85f, true);
+            Prop("Room/Gym/medicine_ball", new Vector3(-1.95f, 0, 5.05f), 0f, one, true);
+            for (int i = 0; i < 3; i++)
+                Prop("Room/Gym/yoga_mat_rolled", new Vector3(-4.45f, 0.16f * i, 4.85f), 90f, one);
+            Prop("Room/Gym/foam_roller", new Vector3(-4.0f, 0, 4.0f), 90f, one);
 
-            // Dumbbell rack and step box (back right)
-            Block("Dumbbell rack", new Vector3(3.9f, 0.4f, 4.7f), new Vector3(1.1f, 0.8f, 0.45f), Mat(Dark));
-            var colors = new[] { Trim, new Color(0.93f, 0.45f, 0.38f), new Color(0.35f, 0.55f, 0.90f), new Color(0.96f, 0.77f, 0.32f) };
-            for (int i = 0; i < 4; i++)
-            {
-                var d = Decor("Dumbbell", new Vector3(3.5f + i * 0.27f, 0.86f, 4.7f), new Vector3(0.09f, 0.14f, 0.09f), colors[i], PrimitiveType.Cylinder);
-                d.transform.rotation = Quaternion.Euler(90, 0, 0);
-            }
-            Block("Step box", new Vector3(2.3f, 0.1f, 4.6f), new Vector3(0.8f, 0.2f, 0.5f), Mat(Trim));
+            // Weights (back right)
+            Prop("Room/Gym/dumbbell_rack", new Vector3(2.9f, 0, 5.15f), 180f, one, true);
+            Prop("Room/Gym/weight_tree", new Vector3(4.45f, 0, 4.9f), 0f, one, true);
+            Prop("Room/Gym/kettlebell", new Vector3(1.75f, 0, 5.1f), 20f, one, true);
+            Prop("Room/Gym/kettlebell", new Vector3(1.4f, 0, 5.2f), -30f, one * 0.8f, true);
+
+            // Bench with small gear (right wall, under the posters)
+            Prop("Room/Gym/gym_towel_bench", new Vector3(4.6f, 0, 1.4f), 90f, one, true);
+            Prop("Room/Gym/resistance_band", new Vector3(4.6f, 0.54f, 0.9f), 30f, one);
+            Prop("Room/Gym/water_bottle", new Vector3(4.6f, 0.54f, 1.85f), 0f, one);
+
+            // Waiting area behind the player (front wall)
+            Prop("Room/Furniture/benchCushion", new Vector3(-2.6f, 0, -2.6f), 0f, kenney, true);
+            Prop("Room/Furniture/benchCushion", new Vector3(-1.75f, 0, -2.6f), 0f, kenney, true);
+            Prop("Room/Furniture/coatRackStanding", new Vector3(-3.6f, 0, -2.6f), 0f, kenney, true);
+            Prop("Room/Furniture/lampRoundFloor", new Vector3(-4.5f, 0, -1.6f), 0f, kenney, true);
+            Prop("Room/Furniture/bookcaseOpen", new Vector3(2.7f, 0, -2.75f), 0f, kenney, true);
+            Prop("Room/Furniture/books", new Vector3(2.55f, 0.9f, -2.75f), 0f, kenney);
+            Prop("Room/Furniture/sideTable", new Vector3(1.5f, 0, -2.65f), 0f, kenney, true);
+            Prop("Room/Furniture/radio", new Vector3(1.35f, 0.77f, -2.7f), 0f, one * 0.12f);
+            Prop("Room/Furniture/plantSmall2", new Vector3(1.75f, 0.77f, -2.65f), 0f, kenney);
+            Prop("Room/Furniture/trashcan", new Vector3(4.5f, 0, -1.4f), 0f, one * 0.12f, true);
 
             // Plants in the corners
-            foreach (var p in new[] { new Vector3(-4.4f, 0, 5.0f), new Vector3(4.4f, 0, -2.4f), new Vector3(-4.4f, 0, -2.4f), new Vector3(1.8f, 0, 5.0f) })
-                Plant(p);
+            foreach (var p in new[] { new Vector3(-4.45f, 0, -2.5f), new Vector3(4.45f, 0, -2.5f), new Vector3(1.0f, 0, 5.05f), new Vector3(4.45f, 0, 3.3f) })
+                Prop("Room/Furniture/pottedPlant", p, Random.Range(0f, 360f), kenney, true);
 
             // Posters
             Poster(new Vector3(-4.93f, 1.9f, 2.9f), -90f, new Vector2(1000, 300), "TheraQuest Clinic", "Every rep brings you\ncloser to your goals", 54);
@@ -138,19 +148,22 @@ namespace TheraQuest
             return go;
         }
 
-        void Ball(Vector3 pos, float size, Color c) => Block("Exercise ball", pos, Vector3.one * size, Mat(c), PrimitiveType.Sphere);
-
-        void Plant(Vector3 at)
-        {
-            Block("Plant pot", at + new Vector3(0, 0.22f, 0), new Vector3(0.42f, 0.22f, 0.42f), Mat(new Color(0.72f, 0.42f, 0.30f)), PrimitiveType.Cylinder);
-            var leaf = new Color(0.25f, 0.55f, 0.32f);
-            Decor("Leaves", at + new Vector3(0, 0.75f, 0), new Vector3(0.75f, 0.7f, 0.75f), leaf, PrimitiveType.Sphere);
-            Decor("Leaves", at + new Vector3(0.12f, 1.1f, -0.05f), new Vector3(0.5f, 0.5f, 0.5f), leaf * 1.15f, PrimitiveType.Sphere);
-        }
+        /// <summary>A decoration model (see PropBuilder.Model); missing models are skipped.</summary>
+        void Prop(string resource, Vector3 floorPos, float yaw, Vector3 scale, bool solid = false) =>
+            PropBuilder.Model(resource, root, floorPos, yaw, scale, solid);
 
         void Lamp(Vector3 pos)
         {
-            Decor("Lamp", pos + Vector3.up * 0.25f, new Vector3(0.5f, 0.04f, 0.5f), new Color(1f, 0.96f, 0.86f), PrimitiveType.Cylinder);
+            // Ceiling lamp model hanging from the ceiling, with a warm light just below it
+            var lamp = PropBuilder.Model("Room/Furniture/lampSquareCeiling", root, new Vector3(pos.x, 0f, pos.z), 0f,
+                                         Vector3.one * PropBuilder.KenneyScale);
+            if (lamp != null)
+            {
+                var top = 0f;
+                foreach (var r in lamp.GetComponentsInChildren<Renderer>()) top = Mathf.Max(top, r.bounds.max.y);
+                lamp.position += Vector3.up * (Height - top);
+            }
+            else Decor("Lamp", pos + Vector3.up * 0.25f, new Vector3(0.5f, 0.04f, 0.5f), new Color(1f, 0.96f, 0.86f), PrimitiveType.Cylinder);
             var light = new GameObject("Lamp light").AddComponent<Light>();
             light.transform.SetParent(root, false);
             light.transform.position = pos;

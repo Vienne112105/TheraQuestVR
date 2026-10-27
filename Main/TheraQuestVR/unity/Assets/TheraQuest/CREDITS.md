@@ -75,6 +75,15 @@ Built-in pipeline, so the game draws the coach with a plain Standard material us
 `Resources/CoachAvatars/Free Woman Tall.asset` and `Free Man Tall.asset` are Humanoid avatars made in this project
 from the pack's models straightened to a T-pose (`TheraQuest > Build Coach T-Pose Avatars`), so the idle clips play upright.
 
+## Room decorations and exercise props (`Resources/Room`)
+
+Chosen by the human from previews on 2026-10-27; built into the room by `ClinicRoom` and `PropBuilder` at runtime.
+
+| Files | Source | Licence |
+|-------|--------|---------|
+| `Gym/`: `treadmill`, `exercise_bike`, `wall_mirror`, `exercise_ball`, `medicine_ball`, `yoga_mat_rolled`, `foam_roller`, `dumbbell_rack`, `weight_tree`, `kettlebell`, `gym_towel_bench`, `resistance_band`, `water_bottle` (FBX) | "Low Poly Gym Pack" v1.0 by reodesuxz, reodesuxz.itch.io/low-poly-gym-pack (free download, `LowPolyGymPack_v1.0.zip`, downloaded by the human 2026-10-27) | Pack licence (`Gym/LowPolyGymPack-LICENSE.txt`): free for personal and commercial projects, no attribution required; the files must not be resold or redistributed as standalone assets, so keep this repository private or strip them before sharing it |
+| `Furniture/`: `chairCushion` (the seated-exercise chair), `benchCushion`, `pottedPlant`, `plantSmall2`, `lampRoundFloor`, `lampSquareCeiling`, `bookcaseOpen`, `books`, `sideTable`, `coatRackStanding`, `trashcan`, `radio` (FBX) | Kenney "Furniture Kit" 2.0, kenney.nl/assets/furniture-kit (`kenney_furniture-kit.zip`, downloaded 2026-10-27) | CC0 1.0 (`Furniture/Kenney-FurnitureKit-License.txt`) |
+
 ## Coach animation (`Resources/CoachAnimations`)
 
 | File | Source | Licence |
