@@ -28,9 +28,10 @@ Durable ad-hoc queue for non-milestone work (bugs, ideas). AI-owned. See `AGENTS
 - [TASK-011] (low) One script that runs all test suites (server, tracker, evaluation, Unity EditMode in batch mode) and reports the results.
 - [TASK-012] Add ankle exercises to the webcam tracker and the exercise `LIBRARY` (e.g. seated ankle dorsiflexion/plantarflexion, standing heel raise), so the ankle protocols (ankle ORIF, lateral ankle sprain) can measure ankle work in VR instead of listing it as done without the camera. Requested by the human 2026-10-26.
 - [TASK-013] (research) The MGB and BWH protocol documents are copyrighted ("all rights reserved"); the built-in protocols are short paraphrases with citations. Before publishing the thesis or distributing the app, confirm this use is acceptable or ask the institutions for permission.
-- [TASK-014] Replace the clinic room's primitive decorations (tables, balls, bars, rack, plants, lamps, windows) and the exercise props (the seated-exercise chair; the yoga mat is built at runtime) with real 3D assets, licensed and credited like M5.6. Requested by the human 2026-10-27 as the next step after the coach fixes; the bed is already gone (lying exercises use the mat). (ref: DEC-018)
 
 ## Done
+
+- [TASK-014] Room decorations and the seated-exercise chair are 3D models (2026-10-27): Low Poly Gym Pack (reodesuxz) and Kenney Furniture Kit (CC0), chosen by the human; walls, windows, posters and the exercise-spot marker stay built from primitives. (ref: DEC-019)
 
 <!-- Completed items -->
 

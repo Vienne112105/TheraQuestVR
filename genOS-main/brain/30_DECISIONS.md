@@ -35,6 +35,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-016 | accepted | 2026-10-26 | Five-Colour Game Palette; Red Only for Safety Warnings |
 | DEC-017 | superseded | 2026-10-27 | Cartoon Coach: Toon Shading, Outlines and Stylised Proportions |
 | DEC-018 | accepted | 2026-10-27 | Little Guys Coach Models |
+| DEC-019 | accepted | 2026-10-27 | Clinic Room Decorations and Exercise Chair Are 3D Model Assets |
 
 ---
 
@@ -184,3 +185,10 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Reason:** The human asked to use "Little Guys - Free Sample" (Luceed Studio, Unity Asset Store) as the coach model. It ships with valid Humanoid avatars and a full skeleton, so the existing bone-driven coach posing works unchanged, and its chunky cartoon look fits DEC-017.
 - **Impact:** The scene's female and male coach are `Free Woman Tall` and `Free Man Tall` (the Tall versions have longer limbs, so the exercise reads better); `TheraQuestSceneBuilder` picks them when the pack is present, else the older models in `Coaches/`. The pack's material is URP and this project renders with the Built-in pipeline, so `HumanoidCoach` draws it with a plain Standard material that keeps the pack's texture (no outline, no cel shading, no proportion changes: the human asked to remove the DEC-017 stylisation on 2026-10-27). Credited in `CREDITS.md` (Asset Store EULA). Follow-up 2026-10-27 (human): the old Quaternius coach models were deleted; the pack's avatars come from a curved-spine bind pose, so `CoachAvatarBuilder` makes upright T-pose avatars (`Resources/CoachAvatars`) that `HumanoidCoach` uses for the idle clips, and the coach keeps its chest facing forward whatever a clip does; the coach stands 0.6 m further back (`standBack`) on a runtime yoga mat, and lying exercises happen on the mat, with no bed.
 - **Supersedes:** DEC-017
+
+### DEC-019: Clinic Room Decorations and Exercise Chair Are 3D Model Assets
+- **Status:** accepted
+- **Date:** 2026-10-27
+- **Reason:** The human asked to replace the primitive room decorations and the exercise props with real assets (TASK-014) and picked, from previews, the "Low Poly Gym Pack" by reodesuxz (itch.io, free for commercial use, no redistribution of the files) for the equipment and Kenney's "Furniture Kit" (CC0) for the furniture.
+- **Impact:** Models live in `Assets/TheraQuest/Resources/Room/Gym` and `Room/Furniture` with their licence files, and `ClinicRoom` places them at runtime along the walls (the scene file is not changed); the coach area and HUD stay clear. The seated-exercise chair is Kenney's `chairCushion`, scaled by `PropBuilder.Chair` to each coach (primitives as fallback). Walls, windows, posters, the exercise-spot marker and the coach's yoga mat stay built in code. The parallel bars and treatment table are gone (the gym pack has none). Because the gym pack forbids redistributing its files, the repository must stay private or those files be removed before it is shared.
+- **Supersedes:** none
