@@ -64,10 +64,12 @@ namespace TheraQuest
 
             // Cardio corner (left wall, under the windows)
             Prop("Room/Gym/treadmill", new Vector3(-4.35f, 0, 2.7f), 0f, one, true);
-            Prop("Room/Gym/exercise_bike", new Vector3(-4.35f, 0, 0.3f), 0f, one, true);
+            // (the pack's exercise bike and kettlebell have floating parts: human report 2026-10-28, "unfinished")
+            Prop("Room/Gym/rowing_machine", new Vector3(-4.35f, 0, 0.45f), 0f, one, true);
 
             // Mat and ball corner (back left)
-            Prop("Room/Gym/wall_mirror", new Vector3(-2.6f, 0.55f, 5.42f), 180f, one);
+            var mirror = Prop("Room/Gym/wall_mirror", new Vector3(-2.6f, 0.55f, 5.42f), 180f, one);
+            if (mirror != null) Glass(mirror, "metal2");
             Prop("Room/Gym/exercise_ball", new Vector3(-3.5f, 0, 4.6f), 0f, one, true);
             Prop("Room/Gym/exercise_ball", new Vector3(-2.8f, 0, 4.95f), 40f, one * 0.85f, true);
             Prop("Room/Gym/medicine_ball", new Vector3(-1.95f, 0, 5.05f), 0f, one, true);
@@ -78,8 +80,9 @@ namespace TheraQuest
             // Weights (back right)
             Prop("Room/Gym/dumbbell_rack", new Vector3(2.9f, 0, 5.15f), 180f, one, true);
             Prop("Room/Gym/weight_tree", new Vector3(4.45f, 0, 4.9f), 0f, one, true);
-            Prop("Room/Gym/kettlebell", new Vector3(1.75f, 0, 5.1f), 20f, one, true);
-            Prop("Room/Gym/kettlebell", new Vector3(1.4f, 0, 5.2f), -30f, one * 0.8f, true);
+            Prop("Room/Gym/weight_plate_stack", new Vector3(1.6f, 0, 5.05f), 0f, one, true);
+            Prop("Room/Gym/dumbbell", new Vector3(2.05f, 0, 4.75f), 70f, one);
+            Prop("Room/Gym/dumbbell", new Vector3(2.3f, 0, 4.7f), 80f, one);
 
             // Bench with small gear (right wall, under the posters)
             Prop("Room/Gym/gym_towel_bench", new Vector3(4.6f, 0, 1.4f), 90f, one, true);
@@ -87,9 +90,8 @@ namespace TheraQuest
             Prop("Room/Gym/water_bottle", new Vector3(4.6f, 0.54f, 1.85f), 0f, one);
 
             // Waiting area behind the player (front wall)
-            Prop("Room/Furniture/benchCushion", new Vector3(-2.6f, 0, -2.6f), 0f, kenney, true);
-            Prop("Room/Furniture/benchCushion", new Vector3(-1.75f, 0, -2.6f), 0f, kenney, true);
-            Prop("Room/Furniture/coatRackStanding", new Vector3(-3.6f, 0, -2.6f), 0f, kenney, true);
+            Prop("Room/Furniture/loungeSofa", new Vector3(-2.15f, 0, -2.5f), 180f, kenney, true);
+            Prop("Room/Furniture/coatRackStanding", new Vector3(-0.75f, 0, -2.65f), 0f, kenney, true);
             Prop("Room/Furniture/lampRoundFloor", new Vector3(-4.5f, 0, -1.6f), 0f, kenney, true);
             Prop("Room/Furniture/bookcaseOpen", new Vector3(2.7f, 0, -2.75f), 0f, kenney, true);
             Prop("Room/Furniture/books", new Vector3(2.55f, 0.9f, -2.75f), 0f, kenney);
@@ -149,8 +151,22 @@ namespace TheraQuest
         }
 
         /// <summary>A decoration model (see PropBuilder.Model); missing models are skipped.</summary>
-        void Prop(string resource, Vector3 floorPos, float yaw, Vector3 scale, bool solid = false) =>
+        Transform Prop(string resource, Vector3 floorPos, float yaw, Vector3 scale, bool solid = false) =>
             PropBuilder.Model(resource, root, floorPos, yaw, scale, solid);
+
+        /// <summary>Gives the model's flat grey "mirror" material a light, glossy glass look so it reads as a mirror.</summary>
+        void Glass(Transform model, string materialName)
+        {
+            var glass = FigureVisualizer.MakeMat(new Color(0.78f, 0.88f, 0.94f), false);
+            if (glass.HasProperty("_Glossiness")) glass.SetFloat("_Glossiness", 0.95f);
+            if (glass.HasProperty("_Metallic")) glass.SetFloat("_Metallic", 0.6f);
+            foreach (var r in model.GetComponentsInChildren<Renderer>())
+            {
+                var ms = r.sharedMaterials;
+                for (int i = 0; i < ms.Length; i++) if (ms[i] != null && ms[i].name.StartsWith(materialName)) ms[i] = glass;
+                r.sharedMaterials = ms;
+            }
+        }
 
         void Lamp(Vector3 pos)
         {

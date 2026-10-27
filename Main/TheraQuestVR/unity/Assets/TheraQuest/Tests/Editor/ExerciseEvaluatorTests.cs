@@ -614,7 +614,8 @@ namespace TheraQuest.Tests
         public void RoomDecorationAndChairModelsAreInResources()
         {
             foreach (var m in new[] { "Room/Furniture/chairCushion", "Room/Furniture/pottedPlant", "Room/Furniture/lampSquareCeiling",
-                                      "Room/Gym/treadmill", "Room/Gym/exercise_ball", "Room/Gym/dumbbell_rack" })
+                                      "Room/Gym/treadmill", "Room/Gym/exercise_ball", "Room/Gym/dumbbell_rack",
+                                      "Room/Gym/rowing_machine", "Room/Furniture/loungeSofa" })
                 Assert.IsNotNull(Resources.Load<GameObject>(m), m);
         }
 

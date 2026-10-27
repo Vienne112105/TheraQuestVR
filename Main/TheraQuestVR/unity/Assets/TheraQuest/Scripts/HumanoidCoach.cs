@@ -378,6 +378,7 @@ namespace TheraQuest
                 return;
             }
             bool exerciseLayout = sessionRunning || isSessionActive;
+            faceTone = tone;
             if (exerciseLayout && (idleLayout || ex.code != currentCode || ex.side != currentSide)) Configure(ex);
             else if (!exerciseLayout && !idleLayout) ConfigureIdle();
             current = ex;
@@ -491,6 +492,7 @@ namespace TheraQuest
             var b = built[selected];
 
             FitMat(b, dt);
+            UpdateFace(b);
             // Gestures while speaking, eased in and out (standing only: the clip drives no other posture)
             float talkTarget = Time.unscaledTime < talkUntil ? 1f : 0f;
             talkWeight = Mathf.MoveTowards(talkWeight, talkTarget, Time.unscaledDeltaTime * 2.5f);
@@ -633,6 +635,33 @@ namespace TheraQuest
             UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null &&
             (s.name.StartsWith("Universal Render Pipeline") || s.name.StartsWith("HDRP") || s.name.Contains("URP"));
 
+        // Face (human request 2026-10-28): blinks every few seconds, a soft smile (the Smile shape also narrows the eyes), the mouth moves while it speaks,
+        // a big smile on good reps and a concerned look on a warning
+        float nextBlink = 2f, blinkStart = -10f, smileNow = 15f, surpriseNow;
+        Tone faceTone = Tone.Neutral;
+
+        void UpdateFace(Built b)
+        {
+            float t = Time.unscaledTime, dt = Time.unscaledDeltaTime;
+            if (t >= nextBlink)
+            {
+                blinkStart = t;
+                nextBlink = t + Random.Range(2.2f, 5f);
+                if (Random.value < 0.15f) nextBlink = t + 0.35f;   // now and then a double blink
+            }
+            float bt = (t - blinkStart) / 0.16f;                    // closes and opens in about a sixth of a second
+            float blink = bt >= 0f && bt <= 1f ? Mathf.Sin(bt * Mathf.PI) * 100f : 0f;
+
+            bool active = isSessionActive && current != null;
+            float smileTarget = !active || faceTone == Tone.Neutral ? 15f : faceTone == Tone.Good ? 60f : faceTone == Tone.Warn ? 10f : 0f;
+            float surpriseTarget = active && faceTone == Tone.Bad ? 45f : 0f;
+            smileNow = Mathf.MoveTowards(smileNow, smileTarget, dt * 160f);
+            surpriseNow = Mathf.MoveTowards(surpriseNow, surpriseTarget, dt * 200f);
+            // Talking: the mouth opens and closes at a speaking rhythm with a little irregularity
+            float talk = talkWeight * Mathf.Clamp01(0.55f + 0.45f * Mathf.Sin(t * 13f) * Mathf.Sin(t * 5.3f + 1f)) * 45f;
+            b.coach.SetFace(blink, smileNow, talk, surpriseNow);
+        }
+
         void PlaceMarker(Vector3 from, Vector3 to)
         {
             var d = to - from;
@@ -667,7 +696,7 @@ namespace TheraQuest
         /// <summary>One posed copy of the character: slot (view yaw) > pivot (lying) > character.</summary>
         sealed class Figure
         {
-            const float MatTop = 0.008f;   // lying exercises happen on the yoga mat on the floor (no bed)
+            const float MatTop = 0.01f;    // top of the yoga mat: the coach stands, sits and lies on it (no bed)
 
             public bool showProps = true;
             Vector3 offset;
@@ -677,6 +706,15 @@ namespace TheraQuest
             readonly Transform[] upperLeg = new Transform[2], lowerLeg = new Transform[2], foot = new Transform[2];
             Transform[] posed;
             Quaternion[] rest, last;
+            // The model's own torso, neck, head and leg shape (bind pose), kept under the idle clips (human request 2026-10-28:
+            // retain the model's original structure; the clips only move the arms)
+            Transform[] torso;
+            Quaternion[] torsoRest;
+            float ankleRest;      // ankle height (pivot space) when the soles rest on the mat
+            float backLift = 0.1f, sideLift = 0.2f;   // pivot height above the mat lying on the back / side (measured)
+            // Face blend shapes (Little Guys: Blink, Smile, SmileTeeth, Surprise, ...), -1 when the model has none
+            SkinnedMeshRenderer face;
+            int shapeBlink = -1, shapeSmile = -1, shapeTeeth = -1, shapeSurprise = -1;
             readonly Vector3[] toeLocal = new Vector3[2];
             readonly bool[] legPosed = new bool[2];
             Vector3 hipsRestLocal, hipsRestPivot, hipsLast;
@@ -846,6 +884,34 @@ namespace TheraQuest
                 float groundAnkleY = Mathf.Min(f.pivot.InverseTransformPoint(f.foot[0].position).y, f.pivot.InverseTransformPoint(f.foot[1].position).y);
                 var hipPos = f.pivot.InverseTransformPoint(f.hips.position);
                 root.localPosition = new Vector3(-hipPos.x, (ankleFloorOffset - groundAnkleY) + groundAdjust, -hipPos.z);
+                // Stand on top of the mat: measure the real bottom of the shoes (the mesh as posed) and lift or lower the
+                // model so its soles rest on the mat, whatever its foot and shoe shape (human request 2026-10-28)
+                float sole = LowestPoint(go.transform, f.pivot);
+                if (!float.IsNaN(sole)) root.localPosition += Vector3.up * (MatTop - sole);
+
+                var torsoBones = new List<Transform>();
+                foreach (var hb in new[] { HumanBodyBones.Hips, HumanBodyBones.Spine, HumanBodyBones.Chest, HumanBodyBones.UpperChest, HumanBodyBones.Neck, HumanBodyBones.Head,
+                                          HumanBodyBones.LeftUpperLeg, HumanBodyBones.RightUpperLeg, HumanBodyBones.LeftLowerLeg, HumanBodyBones.RightLowerLeg,
+                                          HumanBodyBones.LeftFoot, HumanBodyBones.RightFoot, HumanBodyBones.LeftToes, HumanBodyBones.RightToes })
+                {
+                    var t = SafeGetBone(anim, hb);
+                    if (t != null && !torsoBones.Contains(t)) torsoBones.Add(t);
+                }
+                f.torso = torsoBones.ToArray();
+                f.torsoRest = new Quaternion[f.torso.Length];
+                for (int i = 0; i < f.torso.Length; i++) f.torsoRest[i] = f.torso[i].localRotation;
+
+                foreach (var smr in go.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                {
+                    var mesh = smr.sharedMesh;
+                    if (mesh == null || mesh.GetBlendShapeIndex("Blink") < 0) continue;
+                    f.face = smr;
+                    f.shapeBlink = mesh.GetBlendShapeIndex("Blink");
+                    f.shapeSmile = mesh.GetBlendShapeIndex("Smile");
+                    f.shapeTeeth = mesh.GetBlendShapeIndex("SmileTeeth");
+                    f.shapeSurprise = mesh.GetBlendShapeIndex("Surprise");
+                    break;
+                }
 
                 f.posed = new[] { f.hips, f.spine, f.upperArm[0], f.upperArm[1], f.lowerArm[0], f.lowerArm[1],
                                   f.upperLeg[0], f.upperLeg[1], f.lowerLeg[0], f.lowerLeg[1], f.head, f.foot[0], f.foot[1] };
@@ -855,6 +921,7 @@ namespace TheraQuest
                 // Which way the toes point, in each foot's own space (the rest pose faces +Z)
                 for (int i = 0; i < 2; i++) f.toeLocal[i] = f.foot[i].InverseTransformDirection(f.pivot.forward);
                 f.hipsRestLocal = f.hips.localPosition;
+                f.ankleRest = Mathf.Min(f.pivot.InverseTransformPoint(f.foot[0].position).y, f.pivot.InverseTransformPoint(f.foot[1].position).y);
                 f.hipsRestPivot = f.pivot.InverseTransformPoint(f.hips.position);
                 f.thigh = (f.Length(f.upperLeg[0], f.lowerLeg[0]) + f.Length(f.upperLeg[1], f.lowerLeg[1])) / 2f;
                 f.shin = (f.Length(f.lowerLeg[0], f.foot[0]) + f.Length(f.lowerLeg[1], f.foot[1])) / 2f;
@@ -888,7 +955,60 @@ namespace TheraQuest
                 float seatTop = Mathf.Max(0.2f, f.hipsRestPivot.y - f.thigh - 0.08f);
                 PropBuilder.Chair(f.chair, seatTop, -f.thigh - 0.17f, -0.02f);
                 f.chair.gameObject.SetActive(false);
+
+                // Calibrate the standing pose (soft knees, flat feet), not the bind pose: the shoe soles must touch the
+                // top of the mat, so the ankle height the standing pose keeps is set from the posed mesh
+                f.Pose(Motion.ShoulderAbd, Posture.Standing, 0f, 1, 0f, 0f);
+                float standingSole = LowestPoint(go.transform, f.pivot);
+                if (!float.IsNaN(standingSole)) f.ankleRest += MatTop - standingSole;
+                // Same for lying on the back and on the side: the lowest point (hair, hips, shoulder) rests on the mat
+                f.Configure(Posture.Lying, 0f, 1);
+                f.Pose(Motion.SupineFlex, Posture.Lying, 0f, 1, 0f, 0f);
+                float back = LowestPoint(go.transform, f.slot);
+                if (!float.IsNaN(back)) f.backLift += MatTop - back;
+                f.Configure(Posture.SideLying, 0f, 1);
+                f.Pose(Motion.HipAbd, Posture.SideLying, 0f, 1, 0f, 0f);
+                float flank = LowestPoint(go.transform, f.slot);
+                if (!float.IsNaN(flank)) f.sideLift += MatTop - flank;
+                f.Configure(Posture.Standing, 0f, 1);
                 return f;
+            }
+
+            /// <summary>Lowest point of the model's meshes as currently posed, in the given space (NaN without meshes).</summary>
+            static float LowestPoint(Transform model, Transform space)
+            {
+                float low = float.PositiveInfinity;
+                var baked = new Mesh();
+                foreach (var r in model.GetComponentsInChildren<Renderer>(true))
+                {
+                    Vector3[] verts;
+                    if (r is SkinnedMeshRenderer smr) { smr.BakeMesh(baked, true); verts = baked.vertices; }
+                    else if (r.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh != null) verts = mf.sharedMesh.vertices;
+                    else continue;
+                    foreach (var v in verts) low = Mathf.Min(low, space.InverseTransformPoint(r.transform.TransformPoint(v)).y);
+                }
+                Object.Destroy(baked);
+                return float.IsPositiveInfinity(low) ? float.NaN : low;
+            }
+
+            /// <summary>Face blend shapes, 0-100 each; does nothing on a model without them.</summary>
+            public void SetFace(float blink, float smile, float teeth, float surprise)
+            {
+                if (face == null) return;
+                Shape(shapeBlink, blink);
+                Shape(shapeSmile, smile);
+                Shape(shapeTeeth, teeth);
+                Shape(shapeSurprise, surprise);
+            }
+
+            // Shapes reach full strength at their last frame's weight: 1 on the Little Guys (made in Blender), 100 on
+            // others. Unity extrapolates past it, so 0-100 is scaled to that weight (100 on a 0-1 shape blew the face apart)
+            void Shape(int index, float percent)
+            {
+                if (index < 0) return;
+                var mesh = face.sharedMesh;
+                float full = mesh.GetBlendShapeFrameWeight(index, mesh.GetBlendShapeFrameCount(index) - 1);
+                face.SetBlendShapeWeight(index, Mathf.Clamp(percent, 0f, 100f) / 100f * full);
             }
 
             float Length(Transform a, Transform b) => pivot.InverseTransformVector(b.position - a.position).magnitude;
@@ -928,8 +1048,8 @@ namespace TheraQuest
                 // Lying on the back on the mat: face up, head toward -Z, hips just above the floor.
                 // Side-lying: rolled onto the other side so the moving leg (s) is on top.
                 pivot.localRotation = lying ? Quaternion.Euler(-90f, 0f, 0f) : sideLying ? Quaternion.Euler(0f, 0f, 90f * s) : Quaternion.identity;
-                pivot.localPosition = lying ? new Vector3(0f, MatTop + 0.1f, hipsRestPivot.y)
-                                    : sideLying ? new Vector3(s * hipsRestPivot.y, MatTop + 0.2f, 0f) : Vector3.zero;
+                pivot.localPosition = lying ? new Vector3(0f, MatTop + backLift, hipsRestPivot.y)
+                                    : sideLying ? new Vector3(s * hipsRestPivot.y, MatTop + sideLift, 0f) : Vector3.zero;
                 chair.gameObject.SetActive(showProps && p == Posture.Seated);
 
                 slot.localPosition = offset;
@@ -941,6 +1061,9 @@ namespace TheraQuest
                 var area = new Bounds(hips.position, Vector3.zero);
                 foreach (var t in new[] { head, hand[0], hand[1], lowerLeg[0], lowerLeg[1], foot[0], foot[1] })
                     if (t != null) area.Encapsulate(t.position);
+                // Lying down the whole body, big head and hair included, must fit on the mat (the bones stop short of it)
+                if (pivot.localRotation != Quaternion.identity)
+                    foreach (var r in pivot.GetComponentsInChildren<SkinnedMeshRenderer>()) area.Encapsulate(r.bounds);
                 foreach (var prop in new[] { chair })
                     if (prop != null && prop.gameObject.activeInHierarchy)
                         foreach (var r in prop.GetComponentsInChildren<Renderer>()) area.Encapsulate(r.bounds);
@@ -989,15 +1112,23 @@ namespace TheraQuest
                 bool useAnim = animated && p == Posture.Standing;
                 if (!useAnim)
                 {
+                    // Also the chest and neck: the idle clip keeps playing and would lift the head off the mat
+                    for (int i = 0; i < torso.Length; i++) torso[i].localRotation = torsoRest[i];
                     for (int i = 0; i < posed.Length; i++) posed[i].localRotation = rest[i];
                     hips.localPosition = hipsRestLocal;
                 }
-                if (useAnim) FaceForward();
+                if (useAnim)
+                {
+                    // The clip moves the arms; the hips, spine, neck, head and legs keep the model's own shape (a clip made
+                    // for another rig twists the legs, which tilts the soles off the mat)
+                    for (int i = 0; i < torso.Length; i++) torso[i].localRotation = torsoRest[i];
+                    hips.localPosition = hipsRestLocal;
+                }
                 legPosed[0] = legPosed[1] = false;
                 a = Mathf.Clamp(a, 0f, 180f);
                 int o = -s;
                 bool lying = p == Posture.Lying || p == Posture.SideLying;
-                if (!lying && !useAnim)
+                if (!lying)
                 {
                     if (breath != 0f) Lean(breath);
                     if (sway != 0f) spine.rotation = Quaternion.AngleAxis(sway, pivot.forward) * spine.rotation;
@@ -1060,6 +1191,13 @@ namespace TheraQuest
                 if (lying)
                     for (int side = -1; side <= 1; side += 2)
                         if (!legPosed[I(side)]) Leg(side, 0f, 0f);
+
+                // Standing: keep the supporting foot's sole on top of the mat whatever the knees do
+                if (p == Posture.Standing)
+                {
+                    float ankle = Mathf.Min(pivot.InverseTransformPoint(foot[0].position).y, pivot.InverseTransformPoint(foot[1].position).y);
+                    hips.position += pivot.up * (ankleRest - ankle);
+                }
 
                 // Arms last, so they hang down even when the trunk leans. Resting arms keep a soft elbow
                 // (straight along the body when lying down); some exercises move the other arm naturally.
@@ -1126,19 +1264,6 @@ namespace TheraQuest
                 return (Out(s, armOut + 3f + sway * 0.4f) + Vector3.forward * 0.24f).normalized;
             }
 
-            /// <summary>
-            /// Turns the animated body about the vertical so its chest faces the way the coach faces. Idle clips made
-            /// for other rigs can turn the body (the CC0 talking idle faced away: human report 2026-10-27).
-            /// </summary>
-            void FaceForward()
-            {
-                var up = pivot.up;
-                var facing = Vector3.ProjectOnPlane(Vector3.Cross(upperArm[1].position - upperArm[0].position, up), up);
-                if (facing.sqrMagnitude < 1e-6f) return;
-                float turn = Vector3.SignedAngle(facing, pivot.forward, up);
-                hips.rotation = Quaternion.AngleAxis(turn, up) * hips.rotation;
-            }
-
             void Shift(float dy, float dz) => hips.position = pivot.TransformPoint(hipsRestPivot + new Vector3(0f, dy, dz));
             void Lean(float deg) => spine.rotation = Quaternion.AngleAxis(deg, pivot.right) * spine.rotation;
 
@@ -1162,6 +1287,8 @@ namespace TheraQuest
                 var fwd = Vector3.forward - Vector3.Dot(Vector3.forward, shin) * shin;
                 var up = Vector3.up - Vector3.Dot(Vector3.up, shin) * shin;
                 var toes = (fwd + up * Mathf.Clamp01(0.6f - fwd.magnitude)).normalized;
+                // A foot under its knee carries weight: flat on the mat, so the toes don't dip into it
+                toes = Vector3.Slerp(toes, Vector3.forward, Mathf.InverseLerp(-0.8f, -0.95f, shin.y));
                 var f = foot[I(s)];
                 var cur = f.TransformDirection(toeLocal[I(s)]);
                 if (toes.sqrMagnitude > 1e-6f && cur.sqrMagnitude > 1e-6f)
