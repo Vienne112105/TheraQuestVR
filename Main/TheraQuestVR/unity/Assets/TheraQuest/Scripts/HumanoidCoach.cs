@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
@@ -635,8 +636,8 @@ namespace TheraQuest
             UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null &&
             (s.name.StartsWith("Universal Render Pipeline") || s.name.StartsWith("HDRP") || s.name.Contains("URP"));
 
-        // Face (human request 2026-10-28): blinks every few seconds, a soft smile (the Smile shape also narrows the eyes), the mouth moves while it speaks,
-        // a big smile on good reps and a concerned look on a warning
+        // Face (human request 2026-10-28): blinks every few seconds, a soft smile (the Smile shape also narrows the eyes),
+        // a big smile on good reps and a concerned look on a warning; the mouth stays still
         float nextBlink = 2f, blinkStart = -10f, smileNow = 15f, surpriseNow;
         Tone faceTone = Tone.Neutral;
 
@@ -657,9 +658,8 @@ namespace TheraQuest
             float surpriseTarget = active && faceTone == Tone.Bad ? 45f : 0f;
             smileNow = Mathf.MoveTowards(smileNow, smileTarget, dt * 160f);
             surpriseNow = Mathf.MoveTowards(surpriseNow, surpriseTarget, dt * 200f);
-            // Talking: the mouth opens and closes at a speaking rhythm with a little irregularity
-            float talk = talkWeight * Mathf.Clamp01(0.55f + 0.45f * Mathf.Sin(t * 13f) * Mathf.Sin(t * 5.3f + 1f)) * 45f;
-            b.coach.SetFace(blink, smileNow, talk, surpriseNow);
+            // No talking mouth: the face stays in its idle expression while the coach speaks (human request 2026-10-28)
+            b.coach.SetFace(blink, smileNow, 0f, surpriseNow);
         }
 
         void PlaceMarker(Vector3 from, Vector3 to)
@@ -707,7 +707,8 @@ namespace TheraQuest
             Transform[] posed;
             Quaternion[] rest, last;
             // The model's own torso, neck, head and leg shape (bind pose), kept under the idle clips (human request 2026-10-28:
-            // retain the model's original structure; the clips only move the arms)
+            // retain the model's original structure; the clips only move the upper arms, forearms and hands. The collarbones
+            // stay put so the shoulders sit at the sides of the chest, and the fingers keep their relaxed rest shape)
             Transform[] torso;
             Quaternion[] torsoRest;
             float ankleRest;      // ankle height (pivot space) when the soles rest on the mat
@@ -892,13 +893,32 @@ namespace TheraQuest
                 var torsoBones = new List<Transform>();
                 foreach (var hb in new[] { HumanBodyBones.Hips, HumanBodyBones.Spine, HumanBodyBones.Chest, HumanBodyBones.UpperChest, HumanBodyBones.Neck, HumanBodyBones.Head,
                                           HumanBodyBones.LeftUpperLeg, HumanBodyBones.RightUpperLeg, HumanBodyBones.LeftLowerLeg, HumanBodyBones.RightLowerLeg,
-                                          HumanBodyBones.LeftFoot, HumanBodyBones.RightFoot, HumanBodyBones.LeftToes, HumanBodyBones.RightToes })
+                                          HumanBodyBones.LeftFoot, HumanBodyBones.RightFoot, HumanBodyBones.LeftToes, HumanBodyBones.RightToes,
+                                          HumanBodyBones.LeftShoulder, HumanBodyBones.RightShoulder, HumanBodyBones.LeftHand, HumanBodyBones.RightHand }.Concat(FingerBones))
                 {
                     var t = SafeGetBone(anim, hb);
                     if (t != null && !torsoBones.Contains(t)) torsoBones.Add(t);
                 }
                 f.torso = torsoBones.ToArray();
                 f.torsoRest = new Quaternion[f.torso.Length];
+                // Shoulders at the sides of the chest, not behind it (human request 2026-10-28, anatomy): the Little Guys'
+                // collarbones set the arm joints well behind the chest's middle, so they turn forward until the joint is
+                // level with the chest bone
+                var chestBone = SafeGetBone(anim, HumanBodyBones.UpperChest) ?? SafeGetBone(anim, HumanBodyBones.Chest) ?? f.spine;
+                for (int side = 0; side < 2 && chestBone != null; side++)
+                {
+                    var clav = SafeGetBone(anim, side == 0 ? HumanBodyBones.LeftShoulder : HumanBodyBones.RightShoulder);
+                    var armJoint = SafeGetBone(anim, side == 0 ? HumanBodyBones.LeftUpperArm : HumanBodyBones.RightUpperArm);
+                    if (clav == null || armJoint == null) continue;
+                    Vector3 c = f.pivot.InverseTransformPoint(clav.position), d = f.pivot.InverseTransformPoint(armJoint.position) - c;
+                    var flat = new Vector3(d.x, 0f, d.z);
+                    float reach = flat.magnitude, want = f.pivot.InverseTransformPoint(chestBone.position).z - c.z;
+                    if (reach < 0.02f || want <= d.z) continue;
+                    want = Mathf.Min(want, reach * 0.5f);   // at most 30 degrees
+                    var to = new Vector3(Mathf.Sign(d.x) * Mathf.Sqrt(reach * reach - want * want), 0f, want);
+                    var turn = Quaternion.FromToRotation(f.pivot.TransformDirection(flat), f.pivot.TransformDirection(to));
+                    clav.rotation = turn * clav.rotation;
+                }
                 for (int i = 0; i < f.torso.Length; i++) f.torsoRest[i] = f.torso[i].localRotation;
 
                 foreach (var smr in go.GetComponentsInChildren<SkinnedMeshRenderer>(true))
@@ -973,6 +993,10 @@ namespace TheraQuest
                 f.Configure(Posture.Standing, 0f, 1);
                 return f;
             }
+
+            static IEnumerable<HumanBodyBones> FingerBones =>
+                Enumerable.Range((int)HumanBodyBones.LeftThumbProximal, (int)HumanBodyBones.RightLittleDistal - (int)HumanBodyBones.LeftThumbProximal + 1)
+                          .Select(i => (HumanBodyBones)i);
 
             /// <summary>Lowest point of the model's meshes as currently posed, in the given space (NaN without meshes).</summary>
             static float LowestPoint(Transform model, Transform space)
@@ -1203,23 +1227,20 @@ namespace TheraQuest
                 // (straight along the body when lying down); some exercises move the other arm naturally.
                 Vector3 upper = RestUpper(s, p, sway), fore = RestFore(s, p, sway);
                 Vector3 oUpper = RestUpper(o, p, -sway), oFore = RestFore(o, p, -sway);
-                bool sArm = false, oArm = false;   // arms the exercise moves (the idle clip keeps the others)
                 switch (m)
                 {
-                    case Motion.ShoulderAbd: upper = fore = Out(s, a); sArm = true; break;
-                    case Motion.Scaption: upper = fore = Scap(s, a); sArm = true; break;
-                    case Motion.ShoulderFlex: upper = fore = Sag(a); sArm = true; break;
-                    case Motion.ShoulderExt: upper = fore = Sag(-a); sArm = true; break;
-                    case Motion.ElbowFlex: fore = Sag(a); sArm = true; break;
+                    case Motion.ShoulderAbd: upper = fore = Out(s, a); break;
+                    case Motion.Scaption: upper = fore = Scap(s, a); break;
+                    case Motion.ShoulderFlex: upper = fore = Sag(a); break;
+                    case Motion.ShoulderExt: upper = fore = Sag(-a); break;
+                    case Motion.ElbowFlex: fore = Sag(a); break;
                     case Motion.March:                                                   // opposite arm swings forward
-                        sArm = oArm = true;
                         oUpper = Sag(a * 0.4f); oFore = Sag(a * 0.4f + 30f);
                         upper = Sag(-a * 0.25f); fore = Sag(-a * 0.25f + 15f);
                         break;
                     case Motion.MiniSquat: case Motion.MiniLunge:                        // arms forward for balance
                     {
                         float r = Mathf.Min(70f, a * 1.2f);
-                        sArm = oArm = true;
                         upper = oUpper = Sag(r);
                         fore = oFore = Sag(r + 12f);
                         break;
@@ -1227,7 +1248,6 @@ namespace TheraQuest
                     case Motion.SitStand:                                                // reach forward while rising
                     {
                         float r = 50f * Sin(2f * (90f - Mathf.Min(a, 90f)));
-                        sArm = oArm = true;
                         upper = oUpper = Sag(r);
                         fore = oFore = Sag(r + 20f);
                         break;
@@ -1242,8 +1262,10 @@ namespace TheraQuest
                         Arm(o, Sag(90f - a / 2f), Sag(90f + a / 2f));
                         return;
                 }
-                if (sArm || !useAnim) Arm(s, upper, fore);
-                if (oArm || !useAnim) Arm(o, oUpper, oFore);
+                // Always hand-posed: the idle clips' arm angles assume their own rig's collarbones (human request
+                // 2026-10-28: keep the model's structure, arms hang relaxed at the sides)
+                Arm(s, upper, fore);
+                Arm(o, oUpper, oFore);
             }
 
             /// <summary>
