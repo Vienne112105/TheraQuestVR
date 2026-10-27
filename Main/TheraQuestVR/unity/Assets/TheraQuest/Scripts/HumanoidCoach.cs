@@ -703,6 +703,7 @@ namespace TheraQuest
             Transform slot, pivot, chair, hips, spine, head;
             GameObject body;
             readonly Transform[] upperArm = new Transform[2], lowerArm = new Transform[2], hand = new Transform[2];
+            readonly Vector3[] palmLocal = new Vector3[2];   // palm normal in each hand's own space (zero: unknown)
             readonly Transform[] upperLeg = new Transform[2], lowerLeg = new Transform[2], foot = new Transform[2];
             Transform[] posed;
             Quaternion[] rest, last;
@@ -919,6 +920,13 @@ namespace TheraQuest
                     var turn = Quaternion.FromToRotation(f.pivot.TransformDirection(flat), f.pivot.TransformDirection(to));
                     clav.rotation = turn * clav.rotation;
                 }
+                // Semi-relaxed hands (human request 2026-10-28): the fingers curl gently toward the palm, more at the
+                // knuckles nearer the tips, the thumb a little; the model's own hand is flat
+                for (int side = 0; side < 2; side++)
+                {
+                    var palm = CurlFingers(anim, side == 0);
+                    if (palm != Vector3.zero && f.hand[side] != null) f.palmLocal[side] = f.hand[side].InverseTransformDirection(palm);
+                }
                 for (int i = 0; i < f.torso.Length; i++) f.torsoRest[i] = f.torso[i].localRotation;
 
                 foreach (var smr in go.GetComponentsInChildren<SkinnedMeshRenderer>(true))
@@ -992,6 +1000,34 @@ namespace TheraQuest
                 if (!float.IsNaN(flank)) f.sideLift += MatTop - flank;
                 f.Configure(Posture.Standing, 0f, 1);
                 return f;
+            }
+
+            static Vector3 CurlFingers(Animator anim, bool left)
+            {
+                HumanBodyBones B(string name) => (HumanBodyBones)System.Enum.Parse(typeof(HumanBodyBones), (left ? "Left" : "Right") + name);
+                var hand = SafeGetBone(anim, B("Hand"));
+                var index = SafeGetBone(anim, B("IndexProximal"));
+                var middle = SafeGetBone(anim, B("MiddleProximal"));
+                var little = SafeGetBone(anim, B("LittleProximal"));
+                if (hand == null || index == null || middle == null || little == null) return Vector3.zero;
+                // Palm normal from the hand's shape: fingers' direction crossed with the knuckle line
+                var palm = Vector3.Cross(middle.position - hand.position, index.position - little.position).normalized * (left ? -1f : 1f);
+                foreach (var (finger, curl) in new[] { ("Index", 1f), ("Middle", 1.05f), ("Ring", 1.1f), ("Little", 1.15f), ("Thumb", 0.4f) })
+                {
+                    float[] angles = { 14f, 20f, 12f };
+                    string[] joints = { "Proximal", "Intermediate", "Distal" };
+                    for (int j = 0; j < 3; j++)
+                    {
+                        var bone = SafeGetBone(anim, B(finger + joints[j]));
+                        if (bone == null) continue;
+                        var tip = j < 2 ? SafeGetBone(anim, B(finger + joints[j + 1])) : (bone.childCount > 0 ? bone.GetChild(0) : null);
+                        var along = tip != null ? tip.position - bone.position : bone.position - bone.parent.position;
+                        var axis = Vector3.Cross(along, palm);   // turns the bone toward the palm
+                        if (axis.sqrMagnitude < 1e-10f) continue;
+                        bone.rotation = Quaternion.AngleAxis(angles[j] * curl, axis.normalized) * bone.rotation;
+                    }
+                }
+                return palm;
             }
 
             static IEnumerable<HumanBodyBones> FingerBones =>
@@ -1133,21 +1169,12 @@ namespace TheraQuest
             {
                 // Standing with an idle clip: start from the animated pose (natural breathing, weight shift, arms).
                 // Otherwise start from the rest pose and add the small hand-made idle movements.
-                bool useAnim = animated && p == Posture.Standing;
-                if (!useAnim)
-                {
-                    // Also the chest and neck: the idle clip keeps playing and would lift the head off the mat
-                    for (int i = 0; i < torso.Length; i++) torso[i].localRotation = torsoRest[i];
-                    for (int i = 0; i < posed.Length; i++) posed[i].localRotation = rest[i];
-                    hips.localPosition = hipsRestLocal;
-                }
-                if (useAnim)
-                {
-                    // The clip moves the arms; the hips, spine, neck, head and legs keep the model's own shape (a clip made
-                    // for another rig twists the legs, which tilts the soles off the mat)
-                    for (int i = 0; i < torso.Length; i++) torso[i].localRotation = torsoRest[i];
-                    hips.localPosition = hipsRestLocal;
-                }
+                // Every frame starts from the model's own rest shape (human requests 2026-10-28: keep the model's
+                // structure). The idle clips no longer show: their arm twist turned the palms forward and the chest
+                // and neck lifted the head off the mat. Breathing and sway are added by hand below.
+                for (int i = 0; i < torso.Length; i++) torso[i].localRotation = torsoRest[i];
+                for (int i = 0; i < posed.Length; i++) posed[i].localRotation = rest[i];
+                hips.localPosition = hipsRestLocal;
                 legPosed[0] = legPosed[1] = false;
                 a = Mathf.Clamp(a, 0f, 180f);
                 int o = -s;
@@ -1229,10 +1256,13 @@ namespace TheraQuest
                 Vector3 oUpper = RestUpper(o, p, -sway), oFore = RestFore(o, p, -sway);
                 switch (m)
                 {
-                    case Motion.ShoulderAbd: upper = fore = Out(s, a); break;
-                    case Motion.Scaption: upper = fore = Scap(s, a); break;
-                    case Motion.ShoulderFlex: upper = fore = Sag(a); break;
-                    case Motion.ShoulderExt: upper = fore = Sag(-a); break;
+                    // Low angles keep the resting arm's gap from the hip, so the hand never sinks into the waist
+                    // and over the first 15 degrees the arm moves out of the relaxed resting pose (soft elbow), so the
+                    // idle and the start position look like the other arm
+                    case Motion.ShoulderAbd: Raise(ref upper, ref fore, Out(s, Mathf.Max(a, armOut)), a); break;
+                    case Motion.Scaption: Raise(ref upper, ref fore, Scap(s, Mathf.Max(a, armOut)), a); break;
+                    case Motion.ShoulderFlex: Raise(ref upper, ref fore, Clear(s, Sag(a)), a); break;
+                    case Motion.ShoulderExt: Raise(ref upper, ref fore, Clear(s, Sag(-a)), a); break;
                     case Motion.ElbowFlex: fore = Sag(a); break;
                     case Motion.March:                                                   // opposite arm swings forward
                         oUpper = Sag(a * 0.4f); oFore = Sag(a * 0.4f + 30f);
@@ -1272,6 +1302,20 @@ namespace TheraQuest
             /// Resting upper arm: hangs out just enough to clear the hips (armOut), drifting slightly with the idle sway.
             /// Seated, the arm comes forward so the hands rest on the thighs.
             /// </summary>
+            static void Raise(ref Vector3 upper, ref Vector3 fore, Vector3 to, float a)
+            {
+                float t = Mathf.Clamp01(a / 15f);
+                upper = Vector3.Slerp(upper, to, t);
+                fore = Vector3.Slerp(fore, to, t);
+            }
+
+            /// <summary>A hanging arm direction moved out to the resting angle, less as the arm rises.</summary>
+            Vector3 Clear(int s, Vector3 dir)
+            {
+                dir.x += s * Sin(armOut) * Mathf.Clamp01(-dir.y);
+                return dir.normalized;
+            }
+
             Vector3 RestUpper(int s, Posture p, float sway)
             {
                 if (p == Posture.Seated) return (Out(s, armOut * 0.6f) + Vector3.forward * 0.18f).normalized;   // elbow by the hip
@@ -1320,6 +1364,16 @@ namespace TheraQuest
             {
                 Aim(upperArm[I(s)], lowerArm[I(s)], upperDir);
                 Aim(lowerArm[I(s)], hand[I(s)], foreDir);
+                // Palm toward the body (human request 2026-10-28: palm parallel to the waist): turn the forearm about its
+                // own axis. Fades out as the forearm points sideways, where "toward the body" runs along it.
+                var palmHere = palmLocal[I(s)];
+                if (palmHere == Vector3.zero) return;
+                var axis = (hand[I(s)].position - lowerArm[I(s)].position).normalized;
+                var inward = Vector3.ProjectOnPlane(pivot.right * -s, axis);
+                var now = Vector3.ProjectOnPlane(hand[I(s)].TransformDirection(palmHere), axis);
+                if (now.sqrMagnitude < 1e-6f) return;
+                float turn = Vector3.SignedAngle(now, inward, axis) * Mathf.Clamp01((inward.magnitude - 0.3f) / 0.4f);
+                lowerArm[I(s)].rotation = Quaternion.AngleAxis(turn, axis) * lowerArm[I(s)].rotation;
             }
 
             /// <summary>Rotates bone so the segment to its child points along dir (body frame).</summary>
