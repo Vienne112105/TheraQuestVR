@@ -83,12 +83,42 @@ def ensure_model(kind, here=None, fetch=urllib.request.urlretrieve):
     return path
 
 
+def is_all_black(frame):
+    return hasattr(frame, "max") and frame.max() == 0
+
+
+def camera_backends(cv2):
+    # DirectShow first on Windows; Media Foundation as a fallback, because some
+    # virtual cameras (DroidCam Video) only open through it.
+    return (cv2.CAP_DSHOW, cv2.CAP_MSMF) if os.name == "nt" else (cv2.CAP_ANY,)
+
+
 def open_camera(cv2, cam_index):
-    backend = cv2.CAP_DSHOW if os.name == "nt" else cv2.CAP_ANY
+    *fallbacks, last = camera_backends(cv2)
+    for backend in fallbacks:
+        cap = open_with_backend(cv2, cam_index, backend)
+        if cap.isOpened():
+            return cap
+        cap.release()
+    return open_with_backend(cv2, cam_index, last)
+
+
+def open_with_backend(cv2, cam_index, backend):
     cap = cv2.VideoCapture(cam_index, backend)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-    return cap
+    if not cap.isOpened():
+        return cap
+    # Some webcams accept a size request and then send only black frames. If about
+    # one second of frames is pure black (cameras may start with a few), reopen at
+    # the camera's own size.
+    for _ in range(30):
+        ok, frame = cap.read()
+        if ok and not is_all_black(frame):
+            return cap
+    cap.release()
+    print(f"Camera {cam_index} gives black frames at 1280x720; using its default size.")
+    return cv2.VideoCapture(cam_index, backend)
 
 
 def wait_keep_responsive(cv2, seconds):

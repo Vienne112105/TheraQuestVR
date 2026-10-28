@@ -7,6 +7,8 @@ import tempfile
 import unittest
 from unittest import mock
 
+import numpy as np
+
 from angles import SIGNED_INVALID, empty_packet, measure, angle_at
 
 W, H = 640, 480
@@ -307,6 +309,9 @@ class TrackerHelperTests(unittest.TestCase):
             cap.read.return_value = (good, object() if good else None)
             caps.append(cap)
         cv2.VideoCapture.side_effect = caps
+        patcher = mock.patch.object(self.tracker, "camera_backends", lambda _cv2: (_cv2.CAP_DSHOW,))
+        patcher.start()
+        self.addCleanup(patcher.stop)
         return cv2, caps
 
     def test_reopen_camera_backoff(self):
@@ -318,6 +323,26 @@ class TrackerHelperTests(unittest.TestCase):
         self.assertEqual(delays, [1, 2, 4, 8, 10, 10])
         for c in caps[:-1]:
             c.release.assert_called_once()
+
+    def test_black_frames_fall_back_to_default_size(self):
+        cv2, caps = self._fake_cv2([True, True])
+        caps[0].read.return_value = (True, np.zeros((720, 1280, 3), np.uint8))
+        self.assertIs(self.tracker.open_camera(cv2, 1), caps[1])
+        caps[0].release.assert_called_once()
+        caps[1].set.assert_not_called()
+
+    def test_real_picture_keeps_requested_size(self):
+        cv2, caps = self._fake_cv2([True])
+        caps[0].read.return_value = (True, np.full((720, 1280, 3), 90, np.uint8))
+        self.assertIs(self.tracker.open_camera(cv2, 1), caps[0])
+        caps[0].release.assert_not_called()
+
+    def test_second_backend_tried_when_first_fails(self):
+        cv2, caps = self._fake_cv2([False, True])
+        with mock.patch.object(self.tracker, "camera_backends", lambda _cv2: (700, 1400)):
+            self.assertIs(self.tracker.open_camera(cv2, 0), caps[1])
+        self.assertEqual([c.args[1] for c in cv2.VideoCapture.call_args_list], [700, 1400])
+        caps[0].release.assert_called_once()
 
     def test_reopen_camera_quit_while_waiting(self):
         cv2, _ = self._fake_cv2([False])
