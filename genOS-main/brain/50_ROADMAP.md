@@ -45,13 +45,13 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M4.5 | M4 | done | Evaluation Pipeline Integrity |
 | M4.6 | M4 | done | Single Source of Exercise Definitions |
 | M5 | — | active | Dashboard & Game Experience |
-| M5.1 | M5 | TBF | Dashboard UX & Accessibility Polish |
-| M5.2 | M5 | TBF | Patient & Protocol Management |
-| M5.3 | M5 | TBF | Clinical Insights & Attention Flags |
-| M5.4 | M5 | TBF | Session Flow Polish |
-| M5.5 | M5 | TBF | Session Summary & Progress Screens |
+| M5.1 | M5 | done | Dashboard UX & Accessibility Polish |
+| M5.2 | M5 | done | Patient & Protocol Management |
+| M5.3 | M5 | done | Clinical Insights & Attention Flags |
+| M5.4 | M5 | done | Session Flow Polish |
+| M5.5 | M5 | done | Session Summary & Progress Screens |
 | M5.6 | M5 | TBF | Audio & Visual Assets |
-| M5.7 | M5 | TBF | Additional Built-in Clinical Protocols |
+| M5.7 | M5 | done | Additional Built-in Clinical Protocols |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -270,18 +270,19 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
   - The game has clear pacing between exercises, a rewarding summary and a progress page (history, streak, level, badges).
   - Placeholder sounds, music, badge art and text rendering are replaced with licensed assets, with credits recorded.
 - **Children:**
-  - `M5.1`: Dashboard UX & Accessibility Polish (TBF)
-  - `M5.2`: Patient & Protocol Management (TBF)
-  - `M5.3`: Clinical Insights & Attention Flags (TBF)
-  - `M5.4`: Session Flow Polish (TBF)
-  - `M5.5`: Session Summary & Progress Screens (TBF)
+  - `M5.1`: Dashboard UX & Accessibility Polish (done)
+  - `M5.2`: Patient & Protocol Management (done)
+  - `M5.3`: Clinical Insights & Attention Flags (done)
+  - `M5.4`: Session Flow Polish (done)
+  - `M5.5`: Session Summary & Progress Screens (done)
   - `M5.6`: Audio & Visual Assets
-  - `M5.7`: Additional Built-in Clinical Protocols (TBF; added by the human 2026-10-26)
+  - `M5.7`: Additional Built-in Clinical Protocols (done)
 - **Done when:** all children are done; the server, tracker, evaluation and Unity EditMode test suites pass; the human has done a dashboard walkthrough and a Play-mode walkthrough of the game (listed in `pending_human_tests` while open; the milestone is TBF until then).
 - **Dependencies:** M4. The dashboard children (M5.1–M5.3) and the game children (M5.4–M5.6) don't depend on each other.
 
 ### M5.1 — Dashboard UX & Accessibility Polish
-- **Status:** TBF
+- **Status:** done
+- **Human check:** passed 2026-10-28 (reported by the human).
 - **Verification so far (2026-10-26):** server tests pass (backend 30, authorization 13, including the new session-paging test). Browser check on a throwaway database: sign-in, caseload, chart and dialogs work by keyboard (Tab stays inside dialogs; Escape closes them and returns focus); no horizontal scroll at the app's minimum window size (980 × 640) on any view; empty states for a patient with no sessions; inline errors with Retry when the server stops; no console errors; no requests outside localhost. Left: the human walkthrough in the desktop app (`pending_human_tests`).
 - **Objective:** Make the existing dashboard robust, accessible and consistent before adding features to it.
 - **Deliverables:** empty, loading and inline error states (no fake "No Data" chart point; library/protocol load failures shown); keyboard-reachable navigation; dialogs that close on Escape, trap and restore focus, with labelled fields; tab roles on sub-tabs; status not shown by colour alone; layout that fits the app window from its minimum 980 × 640 up (DEC-013; the narrow-screen rules added also cover a small Edge fallback window); colours from CSS variables and no emoji in status text; unused Tailwind script removed; no `@latest` CDN fallback; session time shown, paging past 50 rows, duplicate CSV button removed.
@@ -290,7 +291,8 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** TherapistDashboard
 
 ### M5.2 — Patient & Protocol Management
-- **Status:** TBF
+- **Status:** done
+- **Human check:** passed 2026-10-28 (reported by the human).
 - **Verification so far (2026-10-26):** backend tests 39 (9 new: edit, code lock, length limits, archive/unarchive, archived VR program refused while queued uploads still save, built-in read-only, add/edit phase, criteria bounds, wrong-protocol phase, patients on an edited phase keep their prescription) and authorization tests (new routes refuse missing and bad tokens) pass; migration test checks `archived_at`. Browser check on a throwaway database at the app's minimum window size: edit details, archive with confirmation, archived banner and Reactivate, caseload hides archived unless "Show archived patients", phase editor (edit and add) on a custom protocol, read-only note on built-in protocols. Decision: DEC-014. Left: the human check in the desktop app (`pending_human_tests`).
 - **Objective:** Let therapists correct and retire records and refine protocols without touching the database.
 - **Deliverables:** edit patient details; archive / unarchive patients (records kept, archived hidden from the caseload by default; decision recorded); edit and add phases on therapist-authored protocols (built-in protocols read-only); new endpoints with authorization, bounds checks and escaping as in M4.2; schema migration in the existing order; tests. The patient name field keeps its current behaviour (TASK-004 decides its future).
@@ -299,7 +301,8 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** ClinicalBackend, TherapistDashboard
 
 ### M5.3 — Clinical Insights & Attention Flags
-- **Status:** TBF
+- **Status:** done
+- **Human check:** passed 2026-10-28 (reported by the human).
 - **Verification so far (2026-10-26):** backend tests 51 pass (9 new: no flags for a quiet patient, pain spike, pain rising across sessions, accuracy drop and a small dip not flagged, unsafe reps with old sessions ignored, missed days, no missed days before enrolment, no flags when archived; sources counted per flag). Browser check at the app's minimum window on a throwaway database: flagged patient sorted first with chips, chart notice with reasons and counted sources (non-webcam sessions called out), Clinical Status box from the flags. Left: the human check (`pending_human_tests`) and PT review of the thresholds (TASK-007).
 - **Objective:** Show the therapist which patients need attention first, and why.
 - **Deliverables:** server-computed per-patient flags (pain rising over recent sessions, accuracy dropping, missed scheduled days, unsafe reps); a "needs attention" column and sort on the caseload; reasons in the chart header; thresholds as named placeholder constants for PT review (see TASK-007); each flag states which input sources it counted (simulated sessions still count until TASK-003 is decided); tests.
@@ -308,7 +311,8 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** ClinicalBackend, TherapistDashboard
 
 ### M5.4 — Session Flow Polish
-- **Status:** TBF
+- **Status:** done
+- **Human check:** passed 2026-10-28 (reported by the human).
 - **Verification so far (2026-10-26):** Agent play-test in the Unity Editor (simulated input, offline cached program; the offline upload queue was backed up and restored after each run) on a seated, a standing and a side-lying exercise: get-ready card, countdown, keyboard hints and the queued-sessions line show correctly; auto-focus frames the coach at get-ready and again at Go once the coach takes the exercise pose (found during the play-test: the coach stands idle until Go, so a seated exercise was framed as standing). Also fixed the 'Moved too quickly (01s)' number format. Unity EditMode tests 35 pass (9 new: countdown 3-2-1-Go, countdown frozen while paused, restart keeps every attempt and unsafe rep while resetting the sets, control hints per device, four auto-focus framing cases: standing, on the table, small motions, coach to the side, and the too-fast message format); no compile errors. Restart design: the sets start again from set 1, but all attempts stay in the rep log and the upload (attempt numbers keep counting), so the therapist and the evaluation see them; the session UUID is unchanged. Left: human Play-mode check (`pending_human_tests`); the Unity Editor was not open, so nothing was checked in Play mode.
 - **Objective:** Give the patient clear pacing and control during a session.
 - **Deliverables:** auto-focus on the exercise (added by the human 2026-10-26: on the laptop the camera eases in to frame the coach at every exercise; in the headset only an instant re-center, to avoid motion sickness); 3-2-1 countdown and transition card between exercises; exercise-complete celebration; "Restart exercise" in the pause menu (rep log and session UUID stay consistent); queued offline uploads shown on the menu; control hints from the active input mode; EditMode tests for new pure logic.
@@ -317,7 +321,8 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** SessionOrchestration, VRClinicExperience
 
 ### M5.5 — Session Summary & Progress Screens
-- **Status:** TBF
+- **Status:** done
+- **Human check:** passed 2026-10-28 (reported by the human).
 - **Verification so far (2026-10-26):** server tests 54 pass (3 new: progress in the VR program and not in the dashboard's program endpoint, structured rewards xpGained / levelBefore / levelAfter in the upload response, recent-session limit); Unity EditMode tests 42 pass (7 new: XP span within a level and across a level-up, exercise lines, notes left to the animation, badge gallery, Progress page text, gamification scoring). Agent play-test against a throwaway server and database (the offline queue and program cache were backed up and restored): Progress page, full session summary with per-exercise lines, XP bar and new badges. Found and fixed during the play-test: the summary's starting XP was stale when queued offline sessions were sent at load (now from the server's xpGained); the Progress page overflowed the view (tall menu pages now scale down); badge names wrapped mid-name. Progress data rides on GET /api/vr/program (loopback, patient code, DEC-009) and is cached with the program for offline use. Left: human Play-mode check (`pending_human_tests`).
 - **Objective:** Make progress visible and rewarding to the patient.
 - **Deliverables:** short summary (changed by the human 2026-10-26: no per-exercise breakdown, notes or therapist numbers on the patient's summary; totals, a STOP-line warning when needed, saved status), animated XP fill, badge reveal online and offline, and a clear level-up moment (not a string match); main-menu Progress page with recent sessions, streak, level/XP and a badge gallery (earned and locked); progress data from a loopback-only, patient-code-scoped VR route or the program payload (DEC-009), shown as cached when offline; server tests; EditMode tests for summary/progress shaping and `GamificationManager`.
@@ -336,7 +341,8 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 
 
 ### M5.7 — Additional Built-in Clinical Protocols
-- **Status:** TBF
+- **Status:** done
+- **Human check:** passed 2026-10-28 (reported by the human).
 - **Objective:** Give therapists more evidence-based protocols to assign (requested by the human 2026-10-26): ACL reconstruction, hip fracture fixation, a second total knee arthroplasty source, ORIF for ankle, distal radius and tibial plateau fractures, and lateral ankle sprain.
 - **Deliverables:** seven `PROTOCOLS` entries summarized from published documents (ACL, TKA, ankle ORIF and ankle sprain: Mass General Brigham; distal radius ORIF: Brigham and Women's 2021; tibial plateau ORIF: Twin Cities Orthopedics, Dr. Butterfield 04/2024; hip fracture fixation: Dr. Jason Ferrel 07/2024), with the camera-measurable exercises in VR phases and the rest listed as done without the camera; protocol version 3; the built-in reload keeps unchanged protocols so patients on them keep their phase; tests.
 - **Completion criteria:** backend tests pass, including reload and data-shape tests; the protocols appear read-only in the library; human check that the phases read correctly.

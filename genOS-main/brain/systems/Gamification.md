@@ -4,7 +4,7 @@
 Maintains patient motivation and adherence through real-time feedback loops, scoring mechanics, achievement badges, streak multipliers, and player level progression.
 
 ## Status
-`in-progress` (M5.5 is TBF: summary with per-exercise lines, animated XP bar with level-up, badge reveal online and offline, and a Progress page with level, streak, badge gallery and recent sessions; M5.6 assets follow)
+`in-progress` (M5.5 done, human check passed 2026-10-28; M5.6 assets are TBF, waiting on their Play-mode check)
 
 ## Responsibilities
 - Calculate real-time repetition points based on accuracy and consecutive combo multipliers: `Points = 10 * accuracy * combo` (range x1.0 to x2.0).
