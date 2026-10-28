@@ -20,10 +20,7 @@ current_milestone: null
 current_scene: null
 
 # System file basenames under brain/systems/ (without .md) to load on BOOT
-systems_in_scope:
-  - VRClinicExperience
-  - Gamification
-  - AvatarCoach
+systems_in_scope: []
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on: []
@@ -47,4 +44,4 @@ blocked:
   - "Next program milestone not chosen: the human decides between the unscheduled hardware milestone HW (needs a Meta Quest headset) and other new work (not defined yet)."
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-10-28: M5 Dashboard & Game Experience is DONE. The human reported every hands-on check passed for M5.1-M5.7 (M5.6 assets included). No program milestone is active: current_milestone is null until the human picks the next one (blocked). Candidates: the unscheduled hardware milestone HW (gets the next M number when scheduled) or new work. Open items: confirm the source and licence of the older rep sounds and old coach FBX models (Assets/TheraQuest/CREDITS.md, Not yet recorded); the Low Poly Gym Pack may not be redistributed, so keep the repository private; backlog TASK-001 and TASK-003..TASK-013 remain. TheraQuest.unity may hold the human's own uncommitted scene changes: never commit or discard them."
+session_summary: "2026-10-28 SHUTDOWN: M5 Dashboard & Game Experience is DONE (all human checks passed). No milestone is active (current_milestone null; blocked on the human choosing). AT THE START OF THE NEXT SESSION, REMIND THE HUMAN OF THESE NEXT STEPS (human request): (1) high-priority backlog first, quick and protects real data: TASK-003 simulated/keyboard sessions counting as clinical data (needs a human choice: exclude from clinical rules or use a demo patient), TASK-004 free-text patient names vs pseudonymisation, TASK-005 no backup of the clinical database or project, TASK-006 Unity companyName still DefaultCompany (set before any clinic install); (2) research data for the capstone evaluation, likely the next milestone: TASK-007 licensed-PT review of exercise targets and attention-flag thresholds, TASK-008 real goniometer readings, therapist rep labels, SUS and PT surveys (metrics currently report not measured); (3) hardware milestone HW once a Meta Quest headset is available; (4) smaller items: source of the five old rep sounds (known_issues), TASK-001 dashboard export button, TASK-002 delete legacy server/theraquest.db, TASK-009..TASK-012 housekeeping and ankle tracking. Agent recommendation: 1 then 2. Weekly usage was at 93% (resets 2026-11-01). Repository must stay private (DEC-020: gym pack and Little Guys coaches are not redistributable). TheraQuest.unity may hold the human's own uncommitted scene changes: never commit or discard them."
