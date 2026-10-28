@@ -14,7 +14,7 @@ last_agent: claude-code
 last_ide: claude-desktop
 
 # ID only — resolve objective/criteria in 50_ROADMAP.md
-current_milestone: M5
+current_milestone: null
 
 # Active scene or primary file in focus, if any
 current_scene: null
@@ -32,9 +32,7 @@ working_on: []
 # below before other work, and keep reminding each new session until the human reports it done; then remove it.
 # A milestone with pending tests stays TBF in 50_ROADMAP.md until this list has none left for it.
 # The headset run and the real-footage signed-angle check are not here: they belong to roadmap milestone HW.
-pending_human_tests:
-  - 'M5.6 Play-mode check (Unity Editor or built player), with headphones at a normal volume: menu, HUD, summary and Your progress text is sharp and readable (now TextMeshPro; symbols like ★ ✓ ▶ show), panels use only the five palette colours (red only on STOP and unsafe warnings), big titles and numbers have outlines (navy text a light one, pop-ups a darker one), the main menu shows a tilted VR headset logo after TheraQuest, Your progress has Profile / Recent sessions / Badges tabs (Left / Right or click) with one card per badge, both coaches are the Little Guys characters (DEC-018) with toon shading and coloured outlines, their own colours showing, and breathe in a natural idle, the coach stands in the middle of its mat stands upright on a blue yoga mat a little further back, gestures while it speaks, and for seated or lying exercises sits on its chair or lies on the mat (no bed) already during the get-ready card, the room shows real gym equipment and furniture models (nothing blocks the coach or the HUD), and no card has empty space at the bottom; badge icons are gold when earned and grey when locked on the HUD Badges row, the summary (New badge) and Your progress; the lo-fi music plays and moves to another track when one ends, and Settings > Music changes its volume; holding a target plays the new hold-complete chime, a new badge plays the chime with reverb, and click, STOP and level up sound as before; the coach stands with a natural idle (breathing, small shifts) before and between exercises, keeps its own body shape, has its shoes on top of the mat (and lies fully on it), blinks and smiles but keeps its mouth still while it speaks, hangs both arms relaxed the same distance from the hips with palms toward the thighs and gently curled fingers, and has its shoulders at the sides of the chest (not behind); the room has no models with floating parts (rowing machine, weight plates and dumbbells, sofa, glass mirror). Also tell the agent where the old rep sounds (Perfect, Great, Awesome, Miss, Victory) came from, for CREDITS.md (the older coach models are no longer used, so their source matters only if they stay in the project).'
-
+pending_human_tests: []
 # Known bugs or risks
 known_issues:
   - "The Unity project renders with the Built-in render pipeline (no URP asset is assigned in Graphics or Quality settings), although 00_PROJECT.md lists URP. The Little Guys coach material is URP, so HumanoidCoach swaps it for a plain Built-in Standard material at runtime; if URP is switched on later, that swap stops and the pack's own material is used. Found 2026-10-27."
@@ -44,7 +42,8 @@ known_issues:
   - "Live webcam reconnect (M4.4) and the headset path are untested on hardware (no headset available; this PC has no OpenXR runtime installed). Both are part of the unscheduled hardware milestone HW (HW.2, HW.3)."
 
 # Blockers requiring human decision or external input
-blocked: []
+blocked:
+  - "Next program milestone not chosen: the human decides between the unscheduled hardware milestone HW (needs a Meta Quest headset) and other new work (not defined yet)."
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-10-28: The human reported all hands-on checks passed for M5.1, M5.2, M5.3, M5.4, M5.5 and M5.7; they are done in 50_ROADMAP.md. M5.6 Audio & Visual Assets (built in the linked session m56-assets: sounds, music playlist, badge icons, TextMeshPro, Little Guys coaches, idle clips, 3D room props; credits in Assets/TheraQuest/CREDITS.md) is TBF and waits on its own Play-mode check in pending_human_tests. M5 closes when M5.6 is done. Open: confirm the source and licence of the older rep sounds and the old coach FBX models (CREDITS.md, Not yet recorded); the Low Poly Gym Pack may not be redistributed, so keep the repository private. TheraQuest.unity may hold the human's own uncommitted scene changes: never commit or discard them."
+session_summary: "2026-10-28: M5 Dashboard & Game Experience is DONE. The human reported every hands-on check passed for M5.1-M5.7 (M5.6 assets included). No program milestone is active: current_milestone is null until the human picks the next one (blocked). Candidates: the unscheduled hardware milestone HW (gets the next M number when scheduled) or new work. Open items: confirm the source and licence of the older rep sounds and old coach FBX models (Assets/TheraQuest/CREDITS.md, Not yet recorded); the Low Poly Gym Pack may not be redistributed, so keep the repository private; backlog TASK-001 and TASK-003..TASK-013 remain. TheraQuest.unity may hold the human's own uncommitted scene changes: never commit or discard them."

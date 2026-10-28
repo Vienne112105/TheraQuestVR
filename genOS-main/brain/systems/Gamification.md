@@ -4,7 +4,7 @@
 Maintains patient motivation and adherence through real-time feedback loops, scoring mechanics, achievement badges, streak multipliers, and player level progression.
 
 ## Status
-`in-progress` (M5.5 done, human check passed 2026-10-28; M5.6 assets are TBF, waiting on their Play-mode check)
+`stable` (M5.5 and M5.6 done; human checks passed 2026-10-28)
 
 ## Responsibilities
 - Calculate real-time repetition points based on accuracy and consecutive combo multipliers: `Points = 10 * accuracy * combo` (range x1.0 to x2.0).
