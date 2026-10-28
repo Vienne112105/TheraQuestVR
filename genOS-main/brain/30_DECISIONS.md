@@ -36,6 +36,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-017 | superseded | 2026-10-27 | Cartoon Coach: Toon Shading, Outlines and Stylised Proportions |
 | DEC-018 | accepted | 2026-10-27 | Little Guys Coach Models |
 | DEC-019 | accepted | 2026-10-27 | Clinic Room Decorations and Exercise Chair Are 3D Model Assets |
+| DEC-020 | accepted | 2026-10-28 | The Repository Stays Private; Third-Party Asset Files Are Never Published |
 
 ---
 
@@ -191,4 +192,11 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Date:** 2026-10-27
 - **Reason:** The human asked to replace the primitive room decorations and the exercise props with real assets (TASK-014) and picked, from previews, the "Low Poly Gym Pack" by reodesuxz (itch.io, free for commercial use, no redistribution of the files) for the equipment and Kenney's "Furniture Kit" (CC0) for the furniture.
 - **Impact:** Models live in `Assets/TheraQuest/Resources/Room/Gym` and `Room/Furniture` with their licence files, and `ClinicRoom` places them at runtime along the walls (the scene file is not changed); the coach area and HUD stay clear. The seated-exercise chair is Kenney's `chairCushion`, scaled by `PropBuilder.Chair` to each coach (primitives as fallback). Walls, windows, posters, the exercise-spot marker and the coach's yoga mat stay built in code. The parallel bars and treatment table are gone (the gym pack has none). Because the gym pack forbids redistributing its files, the repository must stay private or those files be removed before it is shared.
+- **Supersedes:** none
+
+### DEC-020: The Repository Stays Private; Third-Party Asset Files Are Never Published
+- **Status:** accepted
+- **Date:** 2026-10-28
+- **Reason:** A licence audit found assets whose licences allow use in a shipped app but not publishing the raw files: the Low Poly Gym Pack (reodesuxz) and the Little Guys coaches (Unity Asset Store EULA). The human decided, quoted: "the repository wont be public ever, and if it ever will be, the asset files would not be shared publicly".
+- **Impact:** These assets stay as they are; no CC0 replacement is needed. Shipping built apps with them is within their licences. If the repository is ever published, the restricted files (and the git history that contains them) must be left out first. The five old rep sounds still have no known source (CREDITS.md "Not yet recorded"); that matters for any public or commercial release.
 - **Supersedes:** none
