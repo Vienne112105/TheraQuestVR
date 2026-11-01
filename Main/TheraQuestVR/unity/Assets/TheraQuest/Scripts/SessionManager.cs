@@ -31,7 +31,8 @@ namespace TheraQuest
         [Header("Added at runtime when empty")]
         public MenuController menu;
         public PlayerMover mover;
-        public ViewFocus focus;         // laptop: frames the coach at every exercise
+        public ViewFocus focus;         // laptop: frames the moving limb at every exercise
+        public FirstPersonGuide guide;  // the see-through limbs the patient follows (M5.8)
 
         enum Phase { Loading, Ready, Running, Uploading, Summary }
         Phase phase = Phase.Loading;
@@ -50,6 +51,10 @@ namespace TheraQuest
         readonly Countdown countdown = new Countdown();   // 3-2-1 before each exercise (M5.4)
         float celebrateTimer;        // "exercise complete" moment before the next exercise (M5.4)
         const float CelebrateSeconds = 3.5f;
+        readonly Tutorial tutorial = new Tutorial();      // before the first exercise of every session (M5.8)
+        float tutorialTimer;         // simulated mode moves on by itself
+        const float TutorialAutoSeconds = 3f;
+        bool wasOnTarget;            // for the reach chime on limbs the patient can't see
         static ControlHints Keys => ControlHints.Current;
 
         ExerciseDef Current => program != null && program.exercises.Length > 0 ? program.exercises[Mathf.Clamp(index, 0, program.exercises.Length - 1)] : null;
@@ -59,6 +64,11 @@ namespace TheraQuest
         void Awake()
         {
             SmoothEdges(Camera.main);
+            // The coach window and the mirror's plain body are seen only by their own small cameras (M5.8)
+            if (Camera.main != null) Camera.main.cullingMask &= ~((1 << HumanoidCoach.WindowLayer) | (1 << FirstPersonGuide.MirrorOnlyLayer));
+            if (guide == null) guide = GetComponent<FirstPersonGuide>();
+            if (guide == null) guide = gameObject.AddComponent<FirstPersonGuide>();
+            if (head != null) head.SetEyeHeight(FirstPersonMath.StandingEye);
             if (menu == null) menu = GetComponent<MenuController>();
             if (menu == null) menu = gameObject.AddComponent<MenuController>();
             menu.session = this;
@@ -77,7 +87,6 @@ namespace TheraQuest
                 focus = mover.GetComponent<ViewFocus>();
                 if (focus == null) focus = mover.gameObject.AddComponent<ViewFocus>();
                 focus.head = head;
-                focus.mover = mover;
             }
         }
 
@@ -190,7 +199,7 @@ namespace TheraQuest
         public string PauseSubtitle => Current != null ? $"{Current.name} · set {CurrentEval?.SetNumber ?? 1} of {Mathf.Max(1, Current.sets)}" : "";
 
         /// <summary>Pause menu: start the current exercise again from set 1 (not during the "complete" moment).</summary>
-        public bool CanRestartExercise => phase == Phase.Running && celebrateTimer <= 0f && CurrentEval != null;
+        public bool CanRestartExercise => phase == Phase.Running && celebrateTimer <= 0f && !tutorial.Active && CurrentEval != null;
 
         public void RestartExercise()
         {
@@ -240,8 +249,10 @@ namespace TheraQuest
         public void ReturnToStation()
         {
             if (focus != null) focus.Release();
+            if (phase == Phase.Running && Current != null) { PlaceBody(Current); return; }
             if (mover != null) mover.ReturnToStation();
             else if (head != null) head.Recenter();
+            if (head != null) head.SetEyeHeight(FirstPersonMath.StandingEye);
         }
 
         /// <summary>Therapist page: point this computer at another patient and load their program.</summary>
@@ -260,7 +271,7 @@ namespace TheraQuest
         /// <summary>Closing the app mid-session: keep what was done so far (queued, sent at the next start).</summary>
         void OnApplicationQuit()
         {
-            if (phase != Phase.Running || game == null) return;
+            if (phase != Phase.Running || game == null || tutorial.Active) return;
             api.QueueOffline(BuildUpload(endedEarly: true, completed: false, out _, out _, out _, out _, out _));
         }
 
@@ -297,7 +308,8 @@ namespace TheraQuest
                         else if (InputHelper.BackPressed) menu.Open(MenuController.Page.Main);
                         break;
                     case Phase.Running:
-                        if (InputHelper.BackPressed) Pause();
+                        if (tutorial.Active) RunTutorial(ex, dt);
+                        else if (InputHelper.BackPressed) Pause();
                         else RunExercise(ex, dt);
                         break;
                     case Phase.Summary:
@@ -307,19 +319,58 @@ namespace TheraQuest
             }
 
             var cur = CurrentEval;
-            Tone figTone = cur == null ? Tone.Neutral :
-                cur.State == LiveState.OnTarget || cur.State == LiveState.Holding ? Tone.Good :
-                cur.State == LiveState.TooFar || cur.State == LiveState.Fault || cur.State == LiveState.Unsafe ? Tone.Bad : Tone.Neutral;
+            bool inSession = phase == Phase.Running;
+            Tone figTone = GuideTone(ex, cur);
             if (coach != null)
             {
-                bool exercising = phase == Phase.Running && !awaitingReady && celebrateTimer <= 0f;
-                coach.isSessionActive = exercising;
-                coach.sessionRunning = phase == Phase.Running;   // get-ready and between exercises: wait in the posture
-                coach.ghostVisible = exercising;   // no ghost on the menu, summary or between exercises
+                coach.sessionRunning = inSession;   // leaves the room for its window, also between exercises
                 coach.Show(ex, motion.Angle, figTone);
             }
-            else figure.Show(ex, motion.Angle, figTone);
+            else if (figure != null)
+            {
+                figure.gameObject.SetActive(!inSession);
+                if (!inSession) figure.Show(ex, motion.Angle, figTone);
+            }
+            bool guideOn = inSession && ex != null && celebrateTimer <= 0f;
+            if (guideOn) guide.Show(ex, motion.Angle, figTone);
+            else guide.Hide();
+            hud.SetCoachWindow(inSession && ex != null && coach != null ? coach.WindowTexture : null,
+                               ex != null ? FirstPersonMath.Word(FigureVisualizer.PoseOf(ex)) : "",
+                               coach != null ? coach.ArrowMiddle : Vector2.zero, ex != null ? ex.cue : "");
+            hud.SetMirror(guide.MirrorTexture);
             hud.SetExercise(ex, cur, motion.Angle, game != null ? game.Points : 0, game != null ? game.Multiplier : 1f);
+        }
+
+        /// <summary>The guide's colour: green at the target, red on a fault. The tutorial's practice isn't evaluated, so it goes by the angle.</summary>
+        Tone GuideTone(ExerciseDef ex, ExerciseEvaluator cur)
+        {
+            if (tutorial.Active && ex != null) return Mathf.Abs(motion.Angle - ex.targetAngle) <= ex.tolerance ? Tone.Good : Tone.Neutral;
+            if (cur == null) return Tone.Neutral;
+            return cur.State == LiveState.OnTarget || cur.State == LiveState.Holding ? Tone.Good :
+                   cur.State == LiveState.TooFar || cur.State == LiveState.Fault || cur.State == LiveState.Unsafe ? Tone.Bad : Tone.Neutral;
+        }
+
+        void RunTutorial(ExerciseDef ex, float dt)
+        {
+            if (InputHelper.BackPressed) tutorial.Skip();
+            else if (InputHelper.StartPressed || (Simulated && (tutorialTimer -= dt) <= 0f))
+            {
+                feedback.PlayClick();
+                tutorial.Next();
+                ShowTutorialStep();
+            }
+            if (tutorial.Active) return;
+            hud.holdBubble = false;
+            startedAt = DateTime.Now;   // the session's time starts with the first exercise
+            PrepareExercise();
+        }
+
+        void ShowTutorialStep()
+        {
+            if (!tutorial.Active) return;
+            tutorialTimer = TutorialAutoSeconds;
+            hud.SetFeedback($"{tutorial.Text}\n<size=34>{tutorial.Step + 1} of {Tutorial.Steps.Length} · {Keys.Start} next · {Keys.Back} skip</size>", Tone.Neutral);
+            Subtitles.Say(tutorial.Text, TutorialAutoSeconds, "Coach");
         }
 
         void RunExercise(ExerciseDef ex, float dt)
@@ -350,13 +401,14 @@ namespace TheraQuest
                         awaitingReady = false;
                         ShowRepMessage(ex.cue, Tone.Neutral, 2f);
                         Subtitles.Say(ex.cue, 3f, "Coach");
-                        FocusOnExercise();   // frame again: the coach only takes the exercise pose (seated, lying) now
                     }
                     else hud.SetFeedback(countdown.Number > 0 ? $"Starting in… {countdown.Number}" : "Starting in… Go!", Tone.Neutral);
                     return;
                 }
                 if (InputHelper.StartPressed || (Simulated && (autoReadyTimer -= dt) <= 0f))
                 {
+                    // The patient is in position now: this is when the headset's height and direction are set
+                    if (head != null && head.HeadsetActive) PlaceBody(ex);
                     countdown.Begin();
                     Subtitles.Say("3, 2, 1, go!", 3f, "Countdown beeps");
                 }
@@ -378,6 +430,10 @@ namespace TheraQuest
             else if (ev.State == LiveState.Resting && lastState != LiveState.Resting)
                 Subtitles.Say($"Set {ev.SetNumber - 1} of {ev.Sets} done. Rest for {ex.restSeconds:0} seconds.", 3f, "Coach");
             lastState = ev.State;
+            // A limb behind the patient can't be seen reaching the target, so it is heard too
+            bool onTarget = ev.State == LiveState.OnTarget || ev.State == LiveState.Holding;
+            if (onTarget && !wasOnTarget && FirstPersonMath.BehindBody(FigureVisualizer.PoseOf(ex))) feedback.PlayHoldComplete();
+            wasOnTarget = onTarget;
             if (repMessageTimer > 0f) repMessageTimer -= dt;
             else if (!motion.HasReading && !ev.Resting)
                 hud.SetFeedback($"Step into view so your {ex.joint.ToLower()} is visible", Tone.Warn);
@@ -438,7 +494,12 @@ namespace TheraQuest
             sessionSource = motion.SourceLabel;   // locked for the whole session
             phase = Phase.Running;
             hud.SetQuest(program.exercises, evaluators, index, true);
-            PrepareExercise();
+            if (focus != null) focus.Wide(true);
+            // Tutorial first, on the first exercise's own pose and guide (not scored or saved)
+            PlaceBody(Current);
+            tutorial.Begin();
+            hud.holdBubble = true;
+            ShowTutorialStep();
         }
 
         void PrepareExercise(bool restarted = false)
@@ -447,23 +508,52 @@ namespace TheraQuest
             autoReadyTimer = 2.5f;
             repMessageTimer = 0f;
             lastState = LiveState.Idle;
+            wasOnTarget = false;
             countdown.Cancel();
             var ex = Current;
             string intro = restarted ? $"Starting {ex.name} again from set 1. Your earlier tries are still saved for your therapist."
                                      : $"{(index > 0 ? "Next: " : "")}{ex.name}.";
             Subtitles.Say($"{intro} {ex.position}. Put the camera {ex.CameraText}, then press {Keys.Start}.", 5f, "Coach");
-            FocusOnExercise();
+            PlaceBody(ex);
         }
 
         /// <summary>
-        /// Auto-focus: on the laptop the camera eases in to frame the coach doing this exercise; in the headset the
-        /// view never moves on its own (motion sickness), so the player is only re-centered facing the coach.
+        /// First person (M5.8, DEC-021): sets the view to the posture's default height and puts the patient's default
+        /// body there. On the laptop the view then eases to the moving limb; in the headset it never moves on its own
+        /// (motion sickness), so there is only an instant re-center.
         /// </summary>
-        void FocusOnExercise()
+        void PlaceBody(ExerciseDef ex)
         {
-            if (head != null && head.HeadsetActive) { ReturnToStation(); return; }
-            Transform who = coach != null && coach.Ready ? coach.transform : figure != null ? figure.transform : null;
-            if (focus != null && who != null) focus.FocusOn(who);
+            if (ex == null || head == null) return;
+            string posture = FirstPersonMath.PostureOf(ex);
+            float eye = FirstPersonMath.EyeHeight(posture), lift = FirstPersonMath.ViewLift(posture);
+            hud.lyingView = FirstPersonMath.IsLying(posture);
+            head.SetEyeHeight(eye + lift);
+            float yaw = mover != null ? mover.StationYaw : 0f;
+            Vector3 at;
+            if (head.HeadsetActive)
+            {
+                if (mover != null) mover.ReturnToStation(FirstPersonMath.IsLying(posture));
+                else head.Recenter(FirstPersonMath.IsLying(posture));
+                at = head.transform.position;
+            }
+            else at = mover != null ? mover.StationPosition : head.transform.parent.position;
+            at.y = eye;
+            guide.Anchor(ex, at, yaw);
+            if (focus == null || head.HeadsetActive) return;
+            if (FirstPersonMath.BehindBody(FigureVisualizer.PoseOf(ex))) { focus.AimAhead(); return; }
+            guide.AimPoints(ex, out var start, out var goal);
+            focus.AimAt(at + Vector3.up * lift, start, goal);
+        }
+
+        /// <summary>Back to the standing default for the menu and the summary.</summary>
+        void LeaveFirstPerson()
+        {
+            guide.Hide();
+            hud.lyingView = false;
+            if (focus != null) { focus.Release(); focus.Wide(false); }
+            if (mover != null) mover.ReturnToStation();
+            if (head != null) head.SetEyeHeight(FirstPersonMath.StandingEye);
         }
 
         /// <summary>The short "exercise complete" moment between exercises (M5.4).</summary>
@@ -563,6 +653,7 @@ namespace TheraQuest
         void FinishSession(bool endedEarly)
         {
             phase = Phase.Uploading;
+            LeaveFirstPerson();
             bool allDone = true;
             foreach (var e in evaluators) allDone &= e.Done;
             bool completed = !endedEarly && allDone;

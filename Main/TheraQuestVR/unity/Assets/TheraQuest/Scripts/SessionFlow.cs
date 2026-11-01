@@ -51,6 +51,30 @@ namespace TheraQuest
     }
 
     /// <summary>
+    /// The short tutorial before the first exercise of every session (M5.8). Practice movements during it are not
+    /// scored or saved. Start moves on, Back skips the rest.
+    /// </summary>
+    public sealed class Tutorial
+    {
+        public static readonly string[] Steps =
+        {
+            "Your coach shows the pose",
+            "The glowing limb is your goal",
+            "Move your limb into the glow",
+            "Green means you made it. Then come back down",
+            "Do your reps, rest, then the next exercise",
+        };
+
+        public int Step { get; private set; } = -1;
+        public bool Active => Step >= 0 && Step < Steps.Length;
+        public string Text => Active ? Steps[Step] : "";
+
+        public void Begin() => Step = 0;
+        public void Next() { if (Active) Step++; }
+        public void Skip() => Step = Steps.Length;
+    }
+
+    /// <summary>
     /// Control names for the hints on screen (M5.4): keyboard words on the laptop, controller buttons in the headset.
     /// The actual bindings live in <see cref="InputHelper"/>; keep the two in step.
     /// </summary>

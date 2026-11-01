@@ -12,6 +12,8 @@ namespace TheraQuest
     ///                 hold / rest bar, rep dots, points and combo
     ///   right card  - today's quest checklist and badges
     ///   banner      - the coach's speech bubble
+    ///   coach window - below the quest card during a session: the coach's still pose, arrow and word guides (M5.8)
+    ///   side mirror  - bottom centre, only for limbs that end behind the patient (M5.8)
     /// No degrees or percentages unless Settings > Show numbers (therapist) is on; the dashboard has all the data.
     /// The panels live in the player's view like a game overlay (Just Dance style), not beside the coach:
     ///   laptop screen - locked to the screen edges (top-left status, top-right quest, top-centre bubble)
@@ -69,9 +71,20 @@ namespace TheraQuest
 
         sealed class QuestRow { public Image bg, circle, barFill; public TextMeshProUGUI mark, name, count; }
 
-        Canvas leftCanvas, rightCanvas, bubbleCanvas, summaryCanvas;
+        Canvas leftCanvas, rightCanvas, bubbleCanvas, summaryCanvas, coachCanvas, mirrorCanvas;
         Transform view;
         bool viewPlaced;
+
+        // Coach window and side mirror (M5.8)
+        const float CoachW = 640f, CoachH = 740f, CoachPicture = 592f, CoachGap = 18f, MirrorSize = 520f;
+        RawImage coachPicture, mirrorPicture;
+        TextMeshProUGUI coachWord, coachCaption;
+        RectTransform coachWordChip;
+
+        /// <summary>Lying down in the headset the panels sit up toward the ceiling, where the patient is looking (M5.8).</summary>
+        [HideInInspector] public bool lyingView;
+        /// <summary>Keeps a calm message on screen instead of letting it fade (the tutorial's steps).</summary>
+        [HideInInspector] public bool holdBubble;
 
         const float GlassAlpha = 0.55f;      // see-through cards
         const float BubbleShowSeconds = 6f;  // calm messages fade after this long
@@ -97,9 +110,11 @@ namespace TheraQuest
             BuildRight();
             BuildBanner();
             BuildSummary();
+            BuildCoachWindow();
+            BuildMirror();
             // Move the panels into an overlay that follows the camera, and draw them on top of the scene
             view = new GameObject("View HUD").transform;
-            foreach (var c in new[] { leftCanvas, rightCanvas, bubbleCanvas, summaryCanvas })
+            foreach (var c in new[] { leftCanvas, rightCanvas, bubbleCanvas, summaryCanvas, coachCanvas, mirrorCanvas })
             {
                 c.transform.SetParent(view, false);
                 UIKit.MakeOnTop(c, c == summaryCanvas ? 35 : 30);
@@ -116,7 +131,12 @@ namespace TheraQuest
             if (cam == null) return;
             bool headset = XRSettings.isDeviceActive;
             var ct = cam.transform;
-            if (headset && viewPlaced)
+            if (headset && lyingView)
+            {
+                float rigYaw = ct.parent != null ? ct.parent.eulerAngles.y : 0f;
+                view.SetPositionAndRotation(ct.position, Quaternion.Euler(-65f, rigYaw, 0f));
+            }
+            else if (headset && viewPlaced)
             {
                 // Lazy follow in VR: stays level and catches up smoothly (a face-locked panel is uncomfortable)
                 float k = 1f - Mathf.Exp(-5f * Time.unscaledDeltaTime);
@@ -166,6 +186,9 @@ namespace TheraQuest
             Place(rightCanvas, new Vector3(x, rightY, d), yaw, scale);
             Place(bubbleCanvas, new Vector3(0f, bubbleY, d), 0f, scale);
             Place(summaryCanvas, new Vector3(0f, headset ? 0.1f : 0f, d * 0.95f), 0f, scale * 1.1f);
+            Place(coachCanvas, new Vector3(x, top - (questH + CoachGap + CoachH / 2f) * scale, d), yaw, scale);
+            float mirrorY = headset ? -0.3f : -d * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) + (MirrorSize * 0.5f + 40f) * scale;
+            Place(mirrorCanvas, new Vector3(0f, mirrorY, d), 0f, scale);
         }
 
         static void Place(Canvas c, Vector3 pos, float yaw, float scale)
@@ -391,7 +414,70 @@ namespace TheraQuest
             summary.SetActive(false);
         }
 
+        void BuildCoachWindow()
+        {
+            coachCanvas = UIKit.Canvas(transform, "Coach Window", Vector3.zero, 0f, new Vector2(CoachW, CoachH));
+            var card = UIKit.Card(coachCanvas.transform, new Vector2(CoachW, CoachH), UIKit.Cream, UIKit.Green);
+            card.Glass(GlassAlpha);
+            coachPicture = Picture(card.fill.transform, new Vector2(16, -32), CoachPicture, "Coach picture");
+            coachWord = UIKit.Pill(coachPicture.transform, Vector2.zero, new Vector2(250, 52), UIKit.Orange, "", 26, UIKit.White);
+            coachWordChip = (RectTransform)coachWord.transform.parent;
+            coachCaption = Label(card.fill.transform, new Vector2(24, -632), new Vector2(576, 84), 28, UIKit.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
+            coachCanvas.gameObject.SetActive(false);
+        }
+
+        void BuildMirror()
+        {
+            mirrorCanvas = UIKit.Canvas(transform, "Side Mirror", Vector3.zero, 0f, new Vector2(MirrorSize, MirrorSize));
+            var card = UIKit.Card(mirrorCanvas.transform, new Vector2(MirrorSize, MirrorSize), UIKit.Cream, UIKit.Teal);
+            card.Glass(GlassAlpha);
+            mirrorPicture = Picture(card.fill.transform, new Vector2(16, -32), MirrorSize - 48f, "Side view");
+            mirrorCanvas.gameObject.SetActive(false);
+        }
+
+        static RawImage Picture(Transform parent, Vector2 pos, float size, string name)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(RawImage));
+            go.transform.SetParent(parent, false);
+            var rt = (RectTransform)go.transform;
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0, 1);
+            rt.anchoredPosition = pos;
+            rt.sizeDelta = new Vector2(size, size);
+            var img = go.GetComponent<RawImage>();
+            img.raycastTarget = false;
+            return img;
+        }
+
         // ---------------------------------------------------------------- updates
+        /// <summary>
+        /// The coach window (M5.8), or none when there is no picture or the full quest list needs the room.
+        /// The word floats by the arrow's middle (arrow: 0-1 on the picture, 0,0 = bottom left).
+        /// </summary>
+        public void SetCoachWindow(Texture picture, string word, Vector2 arrow, string caption)
+        {
+            bool on = picture != null && !QuestOpen;
+            if (coachCanvas.gameObject.activeSelf != on) coachCanvas.gameObject.SetActive(on);
+            if (!on) return;
+            coachPicture.texture = picture;
+            coachCaption.text = caption;
+            coachWord.text = word;
+            // Outside the arrow's curve, away from the coach in the middle, so it never hides the arrow
+            Vector2 away = arrow - new Vector2(0.5f, 0.5f);
+            arrow += (away.sqrMagnitude > 1e-4f ? away.normalized : Vector2.up) * 0.14f;
+            Vector2 chip = coachWordChip.sizeDelta;
+            coachWordChip.anchoredPosition = new Vector2(
+                Mathf.Clamp(arrow.x * CoachPicture - chip.x / 2f, 6f, CoachPicture - chip.x - 6f),
+                -Mathf.Clamp((1f - arrow.y) * CoachPicture - chip.y / 2f, 6f, CoachPicture - chip.y - 6f));
+        }
+
+        /// <summary>The side mirror (M5.8), or none.</summary>
+        public void SetMirror(Texture picture)
+        {
+            bool on = picture != null;
+            if (mirrorCanvas.gameObject.activeSelf != on) mirrorCanvas.gameObject.SetActive(on);
+            if (on) mirrorPicture.texture = picture;
+        }
+
         public void SetPatient(PatientInfo p, ProgramInfo prog, bool online, PhaseInfo phase = null)
         {
             GamificationManager.Level(p.xp, out int lv, out int into, out int need);
@@ -598,7 +684,7 @@ namespace TheraQuest
         /// <summary>Calm messages fade after a few seconds; warnings stay. Anything new brings the bubble back.</summary>
         void UpdateBubbleFade()
         {
-            bool show = bubbleTone == Tone.Bad || bubbleTone == Tone.Warn || Time.unscaledTime - bubbleChangedAt < BubbleShowSeconds;
+            bool show = holdBubble || bubbleTone == Tone.Bad || bubbleTone == Tone.Warn || Time.unscaledTime - bubbleChangedAt < BubbleShowSeconds;
             bubbleGroup.alpha = Mathf.MoveTowards(bubbleGroup.alpha, show ? 1f : 0f, Time.unscaledDeltaTime * (show ? 6f : 1.5f));
         }
 

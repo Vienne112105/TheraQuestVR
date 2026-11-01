@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -371,51 +371,118 @@ namespace TheraQuest.Tests
         }
     }
 
-    /// <summary>Auto-focus framing math (ViewFocus.Frame).</summary>
-    public class ViewFocusTests
+    /// <summary>M5.8: default height, the first-person limbs, the view's aim and the tutorial.</summary>
+    public class FirstPersonTests
     {
-        static readonly Vector3 Cam = new Vector3(0f, 1.55f, 0f);
-
-        static ViewFocus.RigPose Frame(Bounds b, float headroom = 0f) =>
-            ViewFocus.Frame(Cam, 1.55f, b, headroom, 60f, 16f / 9f, 1.3f, 1.3f, 4.5f);
+        static FirstPersonMath.Chain Main(string pose, float angle, int side = 1) => FirstPersonMath.Limbs(pose, side, angle)[0];
 
         [Test]
-        public void StandingCoachIsFramedHeadToFootStraightAhead()
+        public void EveryHeightEndsAtTheSameDefaultEye()
         {
-            var b = new Bounds(new Vector3(0f, 0.9f, 3.5f), new Vector3(0.6f, 1.8f, 0.4f));
-            var p = Frame(b, 0.35f);
-            Assert.AreEqual(0f, p.yaw, 0.01f);
-            Assert.AreEqual(0f, p.rigPosition.x, 0.001f);
-            Assert.AreEqual(0f, p.rigPosition.y, 0.001f);                     // stays on the floor
-            Assert.AreEqual(3.5f - p.distance, p.rigPosition.z, 0.001f);      // moved along the line to the coach
-            float halfV = Mathf.Atan((b.extents.y + 0.175f) / p.distance) * Mathf.Rad2Deg;
-            Assert.Less(halfV, 30f, "coach height fits inside the 60° view");
+            foreach (float tracked in new[] { 1.40f, 1.60f, 1.95f })
+                Assert.AreEqual(FirstPersonMath.StandingEye, tracked + FirstPersonMath.HeightOffset(FirstPersonMath.StandingEye, tracked), 0.0001f);
+            Assert.Greater(FirstPersonMath.EyeHeight("standing"), FirstPersonMath.EyeHeight("seated"));
+            Assert.Greater(FirstPersonMath.EyeHeight("seated"), FirstPersonMath.EyeHeight("lying"));
+            Assert.AreEqual(0f, FirstPersonMath.ViewLift("standing"));
+            Assert.Greater(FirstPersonMath.ViewLift("lying"), 0f, "lying down the view sees the limbs from above");
         }
 
         [Test]
-        public void ExerciseOnTheTableLooksDownMoreThanStanding()
+        public void DefaultBodyFitsTheRoom()
         {
-            var standing = Frame(new Bounds(new Vector3(0f, 0.9f, 3.5f), new Vector3(0.6f, 1.8f, 0.4f)), 0.35f);
-            var lying = Frame(new Bounds(new Vector3(0f, 0.55f, 3.5f), new Vector3(0.8f, 0.7f, 2.0f)));
-            Assert.Greater(lying.pitch, standing.pitch);
-            Assert.Greater(lying.pitch, 0f);
+            // Standing, the foot is at the floor; seated, the foot is on the floor with the thigh level
+            var standing = Main("hipExt", 0f);
+            Assert.AreEqual(0f, FirstPersonMath.StandingEye + standing.end.y, 0.05f);
+            var seated = Main("kneeExt", 0f);
+            Assert.AreEqual(0f, FirstPersonMath.SeatedEye + seated.end.y, 0.05f);
+            Assert.AreEqual(seated.root.y, seated.mid.y, 0.001f);
         }
 
         [Test]
-        public void SmallMotionsGetCloserButNeverInsideTheMinimum()
+        public void ArmReachesTheTargetAngleOnTheOperatedSide()
         {
-            var small = Frame(new Bounds(new Vector3(0f, 1.2f, 3.5f), new Vector3(0.2f, 0.2f, 0.2f)));
-            var big = Frame(new Bounds(new Vector3(0f, 0.9f, 3.5f), new Vector3(0.6f, 1.8f, 0.4f)), 0.35f);
-            Assert.AreEqual(1.3f, small.distance, 0.001f);
-            Assert.Greater(big.distance, small.distance);
+            var right = Main("shoulderAbd", 90f);
+            Assert.AreEqual(right.root.y, right.end.y, 0.001f, "level at 90 degrees");
+            Assert.Greater(right.end.x, right.root.x);
+            Assert.Less(Main("shoulderAbd", 90f, -1).end.x, Main("shoulderAbd", 90f, -1).root.x);
+            var up = Main("shoulderFlex", 90f);
+            Assert.Greater(up.end.z, 0.4f, "straight ahead at 90 degrees");
         }
 
         [Test]
-        public void TurnsToACoachOffToTheSide()
+        public void SquatKeepsTheFeetDownAndUsesBothLegs()
         {
-            var p = Frame(new Bounds(new Vector3(3f, 0.9f, 0f), new Vector3(0.6f, 1.8f, 0.4f)), 0.35f);
-            Assert.AreEqual(90f, p.yaw, 0.01f);
-            Assert.AreEqual(3f - p.distance, p.rigPosition.x, 0.001f);
+            var limbs = FirstPersonMath.Limbs("miniSquat", 1, 40f);
+            Assert.AreEqual(2, limbs.Length);
+            Assert.AreEqual(Main("miniSquat", 0f).end.y, limbs[0].end.y, 0.001f);
+            Assert.Less(limbs[0].root.y, Main("miniSquat", 0f).root.y, "hips drop");
+        }
+
+        [Test]
+        public void OnlyLimbsThatEndBehindGetTheMirror()
+        {
+            foreach (var pose in new[] { "shoulderExt", "hipExt", "hamstringCurl" })
+            {
+                Assert.IsTrue(FirstPersonMath.BehindBody(pose), pose);
+                Assert.Less(Main(pose, 45f).end.z, Main(pose, 45f).root.z + 0.001f, pose);
+            }
+            foreach (var pose in new[] { "shoulderAbd", "shoulderFlex", "elbowFlex", "march", "kneeExt", "slr", "supineFlex" })
+                Assert.IsFalse(FirstPersonMath.BehindBody(pose), pose);
+        }
+
+        [Test]
+        public void LyingFrameSendsTheFeetForwardAndSideLyingKeepsTheMovingSideUp()
+        {
+            var feet = FirstPersonMath.BodyFrame("lying", 1) * Vector3.down;
+            Assert.AreEqual(1f, feet.z, 0.001f);
+            Assert.AreEqual(1f, (FirstPersonMath.BodyFrame("lying", 1) * Vector3.forward).y, 0.001f, "toes up");
+            foreach (int s in new[] { 1, -1 })
+            {
+                var frame = FirstPersonMath.BodyFrame("sidelying", s);
+                Assert.AreEqual(1f, (frame * new Vector3(s, 0f, 0f)).y, 0.001f, "moving side on top");
+                Assert.AreEqual(1f, (frame * Vector3.down).z, 0.001f, "feet ahead");
+            }
+            Assert.AreEqual(Quaternion.identity, FirstPersonMath.BodyFrame("standing", 1));
+        }
+
+        [Test]
+        public void BodyDirectionComesFromTheHeadTopWhenLying()
+        {
+            Assert.AreEqual(90f, FirstPersonMath.FlatYaw(Vector3.right, Vector3.up, false), 0.01f);
+            // Face to the ceiling, top of the head toward -X: the feet point toward +X
+            Assert.AreEqual(90f, FirstPersonMath.FlatYaw(Vector3.up, Vector3.left, true), 0.01f);
+            // Standing but looking straight down: the top of the head still gives the direction
+            Assert.AreEqual(0f, FirstPersonMath.FlatYaw(Vector3.down, Vector3.forward, false), 0.01f);
+        }
+
+        [Test]
+        public void AimLooksTowardTheMovementAndStaysInLimits()
+        {
+            FirstPersonMath.Aim(new Vector3(0.3f, -0.9f, 0.1f), new Vector3(0.7f, -0.2f, 0f), out float yaw, out float pitch);
+            Assert.Greater(yaw, 30f, "toward the right arm");
+            Assert.Greater(pitch, 0f, "looks down");
+            FirstPersonMath.Aim(Vector3.up, Vector3.up, out _, out pitch);
+            Assert.AreEqual(-60f, pitch, 0.01f);
+            FirstPersonMath.Aim(Vector3.down, Vector3.down, out _, out pitch);
+            Assert.AreEqual(75f, pitch, 0.01f);
+        }
+
+        [Test]
+        public void TutorialWalksThroughAndCanBeSkipped()
+        {
+            var t = new Tutorial();
+            Assert.IsFalse(t.Active);
+            t.Begin();
+            for (int i = 0; i < Tutorial.Steps.Length; i++)
+            {
+                Assert.IsTrue(t.Active);
+                Assert.AreEqual(Tutorial.Steps[i], t.Text);
+                t.Next();
+            }
+            Assert.IsFalse(t.Active);
+            t.Begin();
+            t.Skip();
+            Assert.IsFalse(t.Active);
         }
     }
 

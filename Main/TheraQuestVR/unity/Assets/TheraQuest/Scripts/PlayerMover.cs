@@ -102,14 +102,17 @@ namespace TheraQuest
             if (Mathf.Abs(degrees) > 1e-4f) transform.RotateAround(Cam.position, Vector3.up, degrees);
         }
 
+        public Vector3 StationPosition => stationPos;
+        public float StationYaw => stationRot.eulerAngles.y;
+
         /// <summary>Back to the exercise station, facing the coach.</summary>
-        public void ReturnToStation()
+        public void ReturnToStation(bool lying = false)
         {
             transform.SetPositionAndRotation(stationPos, stationRot);
             if (head != null)
             {
                 head.desktopPitch = 0f;
-                head.Recenter();   // in the headset: put your head over the station, facing the coach
+                head.Recenter(lying);   // in the headset: put your head over the station, facing the coach
             }
         }
     }

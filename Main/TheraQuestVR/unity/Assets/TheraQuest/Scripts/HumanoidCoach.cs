@@ -9,9 +9,11 @@ namespace TheraQuest
 {
     /// <summary>
     /// Rigged coach for any Humanoid character (Mixamo, Ready Player Me, VRoid, ...):
-    ///   Coach - stands in front of the player and demonstrates the current exercise,
-    ///           moving between the start pose and the therapist's target angle.
-    ///   Ghost - a translucent copy that follows the patient's live angle, tinted by the feedback tone.
+    ///   On menus, the summary and in free roam it stands in the clinic, facing the player.
+    ///   During a session (M5.8, DEC-021) it leaves the room and appears only in the floating coach window: holding
+    ///   still in the exercise's target pose, with an arrow showing how the limb gets there. The patient's own
+    ///   guide is first person (FirstPersonGuide).
+    /// The window is a small camera that alone sees the coach's layer; the coach stays where it is in the room.
     /// Bones come from Animator.GetBoneTransform (HumanBodyBones), so bone names don't matter.
     /// The Animator is switched off and the pose is written in LateUpdate: every limb is aimed at a
     /// direction in the body's frame (+Z forward, +Y up, +X the character's right), so it works
@@ -21,14 +23,10 @@ namespace TheraQuest
     ///   shoulderExt, elbowFlex (+ bicepsCurl), wallPushUp, hipAbd (+ side-lying), hipExt, hipFlex (slr),
     ///   march, kneeFlex (heelSlide, hamstringCurl), miniSquat (+ kneeWallSlide), miniLunge, kneeExt, sitStand.
     /// Several characters can be listed; the patient picks one on the start screen (remembered between sessions).
-    /// The patient also picks the guide (remembered too):
-    ///   Coach      - the coach demonstrates and the ghost follows the patient
-    ///   Silhouette - no coach: only the patient's silhouette, plus a gold marker showing where the
-    ///                moving limb has to reach (the target angle)
-    /// With no character assigned, or none that is Humanoid, the primitive FigureVisualizer is shown.
-    /// Smoothness: the live angle is smoothed (the tracker sends ~8-30 updates a second), every bone eases
-    /// toward its new pose instead of snapping, the coach breathes and glances at the player, and a
-    /// springy "pop" covers the jump when the exercise, posture or avatar changes.
+    /// With no character assigned, or none that is Humanoid, the primitive FigureVisualizer stands in on menus and
+    /// there is no coach window.
+    /// Smoothness: every bone eases toward its new pose instead of snapping, the coach breathes and glances at the
+    /// player, and a springy "pop" covers the jump when the avatar changes.
     /// </summary>
     public class HumanoidCoach : MonoBehaviour
     {
@@ -66,11 +64,7 @@ namespace TheraQuest
             if (string.IsNullOrEmpty(sound) || sound == "Coach") talkUntil = Time.unscaledTime + Mathf.Clamp(seconds, 1.5f, 5f);
         }
 
-        [Header("Coach demo")]
-        [Tooltip("Seconds to move from the start pose to the target, and the same to come back.")]
-        public float moveSeconds = 1.6f;
-        [Tooltip("Pause in the start pose between demo reps.")]
-        public float pauseSeconds = 0.8f;
+        [Header("Coach window")]
         [Tooltip("Move the coach's opposite limb so it reads like a mirror (your right arm = its left).")]
         public bool mirror = true;
 
@@ -80,34 +74,22 @@ namespace TheraQuest
         [Tooltip("Vertical foot grounding offset in metres. Adjust if shoes clip floor or float.")]
         [SerializeField, Range(-0.1f, 0.1f)] public float floorOffset = 0f;
 
-        [Header("Ghost (patient's live angle)")]
-        [Tooltip("Ghost position relative to the coach. Zero = drawn over the coach, so you match your ghost to it.")]
-        public Vector3 ghostOffset = Vector3.zero;
-        [Range(0.05f, 1f)] public float ghostAlpha = 0.4f;
-        [Tooltip("Opacity of the patient's figure in Silhouette mode, where it is the only figure.")]
-        [Range(0.05f, 1f)] public float silhouetteAlpha = 0.65f;
-
         [Header("Smoothness")]
-        [Tooltip("Seconds the live angle takes to catch up (hides tracker jitter and low frame rates).")]
-        public float angleSmoothing = 0.12f;
         [Tooltip("How quickly bones ease into each new pose (higher = snappier).")]
         public float poseEasing = 16f;
         [Tooltip("The coach glances toward the player, up to this many degrees.")]
         public float lookAtPlayer = 30f;
-        [Tooltip("Metres the overlaid ghost sits behind the coach (along the view), so it only shows where the patient differs.")]
-        public float ghostDepthOffset = 0.04f;
 
-        public enum Guide { Coach, Silhouette }
-
-        /// <summary>Show the patient's ghost over the coach (set by SessionManager: only while exercising).</summary>
-        [HideInInspector] public bool ghostVisible = true;
-        /// <summary>Set by SessionManager: true only while an exercise is actively running, false during menu or rest.</summary>
-        [HideInInspector] public bool isSessionActive = false;
         /// <summary>
         /// Set by SessionManager: a session is under way (also during get-ready cards and between exercises). The coach
-        /// then waits in the coming exercise's posture (on its chair or the mat); otherwise it stands, without props.
+        /// then holds the exercise's target pose in its window; otherwise it stands in the room, without props.
         /// </summary>
         [HideInInspector] public bool sessionRunning = false;
+
+        /// <summary>The coach window's picture while a session runs, else null (no character: no window).</summary>
+        public Texture WindowTexture => windowOn ? windowTex : null;
+        /// <summary>Where on the window the arrow's middle falls (0-1, 0,0 = bottom left), for its floating word.</summary>
+        public Vector2 ArrowMiddle { get; private set; } = new Vector2(0.5f, 0.5f);
 
         [Tooltip("Yoga mat the coach exercises on (built at runtime). It turns and grows to fit each posture. " +
                  "The scene's old \"Exercise mat\", if any, is hidden.")]
@@ -118,32 +100,34 @@ namespace TheraQuest
         public bool Ready => built.Count > 0 || fallback != null;
         public int Count => built.Count > 0 ? built.Count : (fallback != null ? FigureVisualizer.StyleCount : 0);
         public string CoachName => built.Count > 0 ? built[selected].name : (fallback != null ? fallback.CurrentStyleName : "");
-        public Guide CurrentGuide { get; private set; }
-        public string GuideName => CurrentGuide == Guide.Coach ? "Coach to follow" : "Silhouette + target angle";
         public bool Has3DModels => built.Count > 0;
 
         enum Motion { ShoulderAbd, Scaption, ShoulderFlex, SupineFlex, ShoulderExt, ElbowFlex, WallPushUp, HipAbd, HipExt, HipFlex, March,
                       KneeFlex, MiniSquat, MiniLunge, KneeExt, SitStand }
         enum Posture { Standing, Seated, Lying, SideLying }
 
-        static readonly Color GhostNeutral = new Color(0.18f, 0.76f, 0.68f);
-        static readonly Color TargetColor = new Color(0.96f, 0.77f, 0.32f, 0.6f);
-        const string PrefKey = "TheraQuest.Coach", GuideKey = "TheraQuest.Guide";
-        const float MarkerWidth = 0.07f;
+        const string PrefKey = "TheraQuest.Coach";
+        /// <summary>Only the coach window's camera draws this layer.</summary>
+        public const int WindowLayer = 31;
+        const float WindowFov = 30f;
+        const int ArrowPoints = 18;
 
-        sealed class Built { public string name; public GameObject root; public Figure coach, ghost; }
+        sealed class Built { public string name; public GameObject root; public Figure coach; }
 
         readonly List<Built> built = new List<Built>();
         int selected;
-        Material ghostMat, propMat, markerMat;
-        Transform marker, markerLimb, markerEnd;
+        Material propMat;
         ExerciseDef current;
         string currentCode, currentSide;
         Motion motion;
         Posture posture;
         int side;               // +1 = drive the character's right limbs, -1 = left
-        float liveAngle, liveTarget, liveVel, demoTime, popTime = 10f;
+        float popTime = 10f;
         bool idleLayout;            // standing with no props (menu, summary, free roam)
+        Camera windowCam;
+        RenderTexture windowTex;
+        LineRenderer arrow;
+        bool windowOn, arrowDirty;
         bool matDirty = true;       // posture or props changed: fit the mat once the coach has settled
         Transform yogaMat;
         Vector3 matPos;             // where the mat is heading (it glides there)
@@ -180,47 +164,40 @@ namespace TheraQuest
                 Build(option);
 
             if (fallback != null) fallback.gameObject.SetActive(built.Count == 0);
-            CurrentGuide = PlayerPrefs.GetInt(GuideKey, 0) == 1 ? Guide.Silhouette : Guide.Coach;
             if (built.Count > 0)
             {
-                BuildMarker();
+                BuildWindow();
                 Select(Mathf.Clamp(PlayerPrefs.GetInt(PrefKey, 0), 0, built.Count - 1));
             }
-            else if (fallback != null)
-            {
-                fallback.SetBodyVisible(CurrentGuide == Guide.Coach);
-            }
         }
 
-        /// <summary>Switches between following the coach and silhouette + target, and remembers the choice.</summary>
-        public void ToggleGuide()
+        /// <summary>The window's camera and the arrow. They stay off until a session starts.</summary>
+        void BuildWindow()
         {
-            if (!Ready) return;
-            CurrentGuide = CurrentGuide == Guide.Coach ? Guide.Silhouette : Guide.Coach;
-            PlayerPrefs.SetInt(GuideKey, (int)CurrentGuide);
-            if (built.Count > 0)
-                Select(selected);
-            else if (fallback != null)
-                fallback.SetBodyVisible(CurrentGuide == Guide.Coach);
-        }
+            windowTex = new RenderTexture(640, 640, 24) { antiAliasing = 4, name = "Coach window" };
+            windowCam = new GameObject("Coach window camera").AddComponent<Camera>();
+            windowCam.transform.SetParent(transform, false);
+            windowCam.targetTexture = windowTex;
+            windowCam.cullingMask = 1 << WindowLayer;
+            windowCam.clearFlags = CameraClearFlags.SolidColor;
+            windowCam.backgroundColor = new Color(0.89f, 0.93f, 0.95f);
+            windowCam.fieldOfView = WindowFov;
+            windowCam.stereoTargetEye = StereoTargetEyeMask.None;
+            windowCam.enabled = false;
 
-        /// <summary>Holographic target area and limb showing where the motion should end.</summary>
-        void BuildMarker()
-        {
-            markerMat = FigureVisualizer.MakeMat(TargetColor, true);
-            marker = new GameObject("Holographic Target Guide").transform;
-            marker.SetParent(transform, false);
-            markerLimb = Figure.Primitive(PrimitiveType.Capsule, marker, markerMat);
-            markerEnd = Figure.Primitive(PrimitiveType.Sphere, marker, markerMat);
-            markerEnd.localScale = Vector3.one * MarkerWidth * 2.5f;
-
-            // Translucent glowing halo sphere indicating the target tolerance area
-            var haloMat = FigureVisualizer.MakeMat(new Color(TargetColor.r, TargetColor.g, TargetColor.b, 0.22f), true);
-            var halo = Figure.Primitive(PrimitiveType.Sphere, markerEnd, haloMat);
-            halo.name = "Target Tolerance Zone";
-            halo.localScale = Vector3.one * 1.8f;
-
-            marker.gameObject.SetActive(false);
+            arrow = new GameObject("Coach window arrow").AddComponent<LineRenderer>();
+            arrow.transform.SetParent(transform, false);
+            arrow.gameObject.layer = WindowLayer;
+            arrow.sharedMaterial = FirstPersonGuide.HologramMaterial(UIKit.Orange, 0f, 0f, alwaysOnTop: true);
+            arrow.shadowCastingMode = ShadowCastingMode.Off;
+            arrow.receiveShadows = false;
+            arrow.alignment = LineAlignment.View;
+            arrow.numCapVertices = 4;
+            arrow.positionCount = ArrowPoints;
+            // A line that widens into an arrowhead over its last part
+            arrow.widthCurve = new AnimationCurve(new Keyframe(0f, 0.03f), new Keyframe(0.86f, 0.03f),
+                                                  new Keyframe(0.861f, 0.1f), new Keyframe(1f, 0.002f));
+            arrow.enabled = false;
         }
 
         /// <summary>Switches to the next (step 1) or previous (step -1) coach and remembers the choice.</summary>
@@ -236,11 +213,8 @@ namespace TheraQuest
         {
             selected = i;
             for (int j = 0; j < built.Count; j++) built[j].root.SetActive(j == i);
-            built[i].coach.SetBodyVisible(CurrentGuide == Guide.Coach);   // its chair stays
-            built[i].ghost.SetBodyVisible(current != null && (ghostVisible || CurrentGuide == Guide.Silhouette));
-            currentCode = null;   // re-run Configure on the next Show (ghost size depends on the guide)
+            currentCode = null;   // re-run Configure on the next Show
             built[i].coach.Snap();
-            built[i].ghost.Snap();
             popTime = 0f;
             PlayerPrefs.SetInt(PrefKey, i);
         }
@@ -278,11 +252,7 @@ namespace TheraQuest
 
             var avatar = FindAvatar(model);
 
-            if (ghostMat == null)
-            {
-                propMat = FigureVisualizer.MakeMat(new Color(0.25f, 0.32f, 0.34f), false);
-                ghostMat = FigureVisualizer.MakeMat(new Color(GhostNeutral.r, GhostNeutral.g, GhostNeutral.b, ghostAlpha), true);
-            }
+            if (propMat == null) propMat = FigureVisualizer.MakeMat(new Color(0.25f, 0.32f, 0.34f), false);
 
             string name = string.IsNullOrEmpty(option.name) ? model.name : option.name;
             var b = new Built { name = name, root = new GameObject(name) };
@@ -298,36 +268,23 @@ namespace TheraQuest
                 try { coachAnim.Rebind(); } catch {}
             }
 
-            var ghostGo = Instantiate(coachGo);   // copy before the coach's Animator is switched off
-            var ghostAnim = ghostGo.GetComponentInChildren<Animator>(true);
-            if (ghostAnim == null) ghostAnim = ghostGo.AddComponent<Animator>();
-            if (avatar != null && (avatar.isHuman || avatar.isValid))
-            {
-                ghostAnim.avatar = avatar;
-                try { ghostAnim.Rebind(); } catch {}
-            }
-
             coachGo.name = "Coach (" + model.name + ")";
-            ghostGo.name = "Ghost (" + model.name + ")";
             b.coach = Figure.Create(b.root.transform, "Coach", coachGo, Vector3.zero, propMat, null, idleClip, coachHeight, floorOffset, talkClip);
-            b.ghost = Figure.Create(b.root.transform, "Ghost", ghostGo, ghostOffset, ghostMat, ghostMat, idleClip, coachHeight, floorOffset);
-            // Same proportions on both, so the patient's ghost still lines up with the coach; toon shading on the coach only
             if (b.coach != null) UsePlainMaterials(coachGo);
-            if (b.coach == null || b.ghost == null)
+            if (b.coach == null)
             {
                 Debug.LogWarning($"[TheraQuest] Could not resolve skeleton for {model.name}. Skipping it.");
                 Destroy(b.root);
                 return;
             }
-            b.ghost.showProps = ghostOffset.sqrMagnitude > 0.01f;   // overlaid ghost shares the coach's chair
-            b.ghost.SetBodyVisible(false);
             built.Add(b);
         }
 
         void OnDestroy()
         {
             Subtitles.Said -= OnSaid;
-            foreach (var b in built) { b.coach.Dispose(); b.ghost.Dispose(); }
+            foreach (var b in built) b.coach.Dispose();
+            if (windowTex != null) windowTex.Release();
         }
 
 #if UNITY_EDITOR
@@ -375,26 +332,17 @@ namespace TheraQuest
             if (ex == null) return;
             if (built.Count == 0)
             {
-                if (fallback != null) fallback.Show(ex, angle, tone);
+                // No character: the primitive figure stands in on menus, and leaves the room during a session
+                if (fallback != null)
+                {
+                    fallback.gameObject.SetActive(!sessionRunning);
+                    if (!sessionRunning) fallback.Show(ex, angle, tone);
+                }
                 return;
             }
-            bool exerciseLayout = sessionRunning || isSessionActive;
-            faceTone = tone;
-            if (exerciseLayout && (idleLayout || ex.code != currentCode || ex.side != currentSide)) Configure(ex);
-            else if (!exerciseLayout && !idleLayout) ConfigureIdle();
+            if (sessionRunning && (idleLayout || ex.code != currentCode || ex.side != currentSide)) Configure(ex);
+            else if (!sessionRunning && !idleLayout) ConfigureIdle();
             current = ex;
-            liveTarget = angle;
-            var c = tone == Tone.Neutral ? GhostNeutral : FeedbackManager.ToneColor(tone);
-            c.a = CurrentGuide == Guide.Coach ? ghostAlpha : silhouetteAlpha;
-            ghostMat.color = c;
-
-            if (markerMat != null)
-            {
-                var mc = tone == Tone.Good ? new Color(0.2f, 0.9f, 0.45f, 0.75f)
-                       : tone == Tone.Bad ? new Color(0.95f, 0.45f, 0.2f, 0.75f)
-                       : TargetColor;
-                markerMat.color = mc;
-            }
         }
 
         /// <summary>Standing, facing the player, no chair (menu, summary, free roam).</summary>
@@ -405,9 +353,7 @@ namespace TheraQuest
             foreach (var b in built)
             {
                 b.coach.Configure(Posture.Standing, 0f, 1);
-                b.ghost.Configure(Posture.Standing, 0f, 1);
                 b.coach.Snap();
-                b.ghost.Snap();
             }
             popTime = 0f;
         }
@@ -416,6 +362,7 @@ namespace TheraQuest
         {
             idleLayout = false;
             matDirty = true;
+            arrowDirty = true;
             currentCode = ex.code;
             currentSide = ex.side;
             motion = MotionFor(ex);
@@ -430,13 +377,8 @@ namespace TheraQuest
             foreach (var b in built)
             {
                 b.coach.Configure(posture, yaw, side);
-                b.ghost.Configure(posture, yaw, side);
-                b.coach.Snap();   // new posture: jump straight there, hidden by the pop
-                b.ghost.Snap();
+                b.coach.Snap();   // new posture: jump straight there
             }
-            demoTime = 0f;
-            liveAngle = liveTarget;
-            liveVel = 0f;
             popTime = 0f;
         }
 
@@ -492,75 +434,83 @@ namespace TheraQuest
             float dt = Time.deltaTime;   // 0 while paused: everything holds still
             var b = built[selected];
 
+            SetWindow(b, sessionRunning && current != null && !idleLayout);
             FitMat(b, dt);
+            popTime += Time.unscaledDeltaTime;
+            if (windowOn)
+            {
+                // In the window the coach only poses (human request 2026-11-01): no breathing, sway, blinking or glances
+                b.root.transform.localScale = Vector3.one;
+                if (arrowDirty) DrawArrow(b);
+                b.coach.SetTalk(0f);
+                b.coach.SetFace(0f, 15f, 0f, 0f);
+                b.coach.Pose(motion, posture, current.targetAngle, side, 0f, 0f);
+                return;
+            }
+
             UpdateFace(b);
             // Gestures while speaking, eased in and out (standing only: the clip drives no other posture)
             float talkTarget = Time.unscaledTime < talkUntil ? 1f : 0f;
             talkWeight = Mathf.MoveTowards(talkWeight, talkTarget, Time.unscaledDeltaTime * 2.5f);
             b.coach.SetTalk(talkWeight);
-            if (!isSessionActive || current == null)
+
+            // On menus and the summary the coach DOES NOT move on its own: it stands in a natural, relaxed idle
+            float idleBreath = Mathf.Sin(Time.time * 1.6f) * 1.2f;
+            float idleSway = Mathf.Sin(Time.time * 0.7f) * 1.5f;
+            b.coach.Pose(Motion.ShoulderAbd, Posture.Standing, 0f, 1, idleBreath, idleSway);
+            if (Camera.main != null) b.coach.LookAt(Camera.main.transform.position, lookAtPlayer);
+            b.coach.Settle(dt, poseEasing);
+
+            // Springy pop when switching coaches
+            float px = Mathf.Clamp01(popTime / 0.35f) - 1f;
+            float pscale = 0.6f + 0.4f * (1f + 2.70158f * px * px * px + 1.70158f * px * px);
+            b.root.transform.localScale = Vector3.one * pscale;
+        }
+
+        /// <summary>Moves the coach (and its chair and mat) between the room and the window's layer.</summary>
+        void SetWindow(Built b, bool on)
+        {
+            if (on == windowOn) return;
+            windowOn = on;
+            int layer = on ? WindowLayer : 0;
+            SetLayer(b.root.transform, layer);
+            if (yogaMat != null) SetLayer(yogaMat, layer);
+            windowCam.enabled = on;
+            arrow.enabled = on;
+        }
+
+        static void SetLayer(Transform t, int layer)
+        {
+            t.gameObject.layer = layer;
+            foreach (Transform child in t) SetLayer(child, layer);
+        }
+
+        /// <summary>
+        /// Traces the moving limb from the start to the target for the arrow, then frames the window on the coach and
+        /// the arrow. Done once per exercise, because the coach holds still.
+        /// </summary>
+        void DrawArrow(Built b)
+        {
+            arrowDirty = false;
+            for (int i = 0; i < ArrowPoints; i++)
             {
-                // Before a session begins, while on the menu, or resting between exercises the coach DOES NOT move
-                // on its own: it stands in a natural, relaxed idle, or (get-ready card, between exercises) waits in
-                // the coming exercise's start position on its chair or the mat.
-                float idleBreath = Mathf.Sin(Time.time * 1.6f) * 1.2f;
-                float idleSway = Mathf.Sin(Time.time * 0.7f) * 1.5f;
-                bool waiting = !idleLayout && current != null;
-
-                if (waiting) b.coach.Pose(motion, posture, 0f, side, idleBreath, idleSway);
-                else b.coach.Pose(Motion.ShoulderAbd, Posture.Standing, 0f, 1, idleBreath, idleSway);
-                if (Camera.main != null && (!waiting || (posture != Posture.Lying && posture != Posture.SideLying)))
-                    b.coach.LookAt(Camera.main.transform.position, lookAtPlayer);
-                b.coach.Settle(dt, poseEasing);
-
-                b.ghost.SetBodyVisible(false);
-                if (marker != null) marker.gameObject.SetActive(false);
-
-                // Springy pop when switching coaches
-                popTime += Time.unscaledDeltaTime;
-                float px = Mathf.Clamp01(popTime / 0.35f) - 1f;
-                float pscale = 0.6f + 0.4f * (1f + 2.70158f * px * px * px + 1.70158f * px * px);
-                b.root.transform.localScale = Vector3.one * pscale;
-                return;
+                b.coach.Pose(motion, posture, current.targetAngle * i / (ArrowPoints - 1), side, 0f, 0f);
+                var (from, to) = b.coach.Segment(motion, side);
+                arrow.SetPosition(i, to + (to - from).normalized * 0.07f);   // just beyond the limb's end
             }
+            b.coach.Pose(motion, posture, current.targetAngle, side, 0f, 0f);
 
-            demoTime += dt;
-            liveAngle = Mathf.SmoothDamp(liveAngle, liveTarget, ref liveVel, angleSmoothing, Mathf.Infinity, Mathf.Max(dt, 1e-5f));
-            bool coachMode = CurrentGuide == Guide.Coach;
-            // Gentle breathing and a slow side-to-side weight shift, in degrees (the idle animation does this when there is one)
-            float breath = Mathf.Sin(Time.time * 1.6f) * 1.2f;
-            float sway = Mathf.Sin(Time.time * 0.7f) * 1.5f;
-            if (coachMode)
-            {
-                b.coach.Pose(motion, posture, current.targetAngle * DemoPhase(), side, breath, sway);
-                if (posture != Posture.Lying && posture != Posture.SideLying && Camera.main != null)
-                    b.coach.LookAt(Camera.main.transform.position, lookAtPlayer);
-                b.coach.Settle(dt, poseEasing);
-            }
-
-            // Holographic target area / guide: always compute and show the target position so the user knows where their motion ends!
-            b.ghost.Pose(motion, posture, current.targetAngle, side, 0f, 0f);
-            var (from, to) = b.ghost.Segment(motion, side);
-            PlaceMarker(from, to);
-            if (marker != null) marker.gameObject.SetActive(true);
-
-            b.ghost.SetBodyVisible(ghostVisible && (CurrentGuide == Guide.Silhouette || coachMode));
-            b.ghost.Pose(motion, posture, liveAngle, side, coachMode ? breath : 0f, coachMode ? sway : 0f);
-            if (coachMode && posture != Posture.Lying && posture != Posture.SideLying && Camera.main != null)
-                b.ghost.LookAt(Camera.main.transform.position, lookAtPlayer);
-            b.ghost.Settle(dt, poseEasing);
-
-            // Over the coach, push the ghost a few centimetres away from the camera: wherever it matches the coach
-            // it is hidden behind the coach's body (no flicker, no patches), and the teal only shows where the
-            // patient's limb is somewhere else. From the player's point of view the push is invisible.
-            bool overlay = coachMode && ghostOffset.sqrMagnitude < 0.01f && Camera.main != null;
-            b.ghost.Nudge(overlay ? Camera.main.transform.forward * ghostDepthOffset : Vector3.zero);
-
-            // Springy pop when the exercise, posture or avatar changes (grows from the floor, slight overshoot)
-            popTime += Time.unscaledDeltaTime;
-            float x = Mathf.Clamp01(popTime / 0.35f) - 1f;
-            float scale = 0.6f + 0.4f * (1f + 2.70158f * x * x * x + 1.70158f * x * x);
-            b.root.transform.localScale = Vector3.one * scale;
+            var area = b.coach.Footprint();
+            area.Encapsulate(area.max + Vector3.up * 0.2f);   // the head bone stops short of the hair
+            for (int i = 0; i < ArrowPoints; i++) area.Encapsulate(arrow.GetPosition(i));
+            float halfSize = Mathf.Max(area.extents.y, Mathf.Max(area.extents.x, area.extents.z));
+            float distance = halfSize * 1.2f / Mathf.Tan(WindowFov * 0.5f * Mathf.Deg2Rad) + Mathf.Max(area.extents.x, area.extents.z);
+            var cam = windowCam.transform;
+            cam.position = area.center + transform.forward * distance;   // the coach faces along its own forward
+            cam.rotation = Quaternion.LookRotation(-transform.forward, Vector3.up);
+            windowCam.nearClipPlane = 0.1f;
+            windowCam.farClipPlane = distance * 2f + 2f;
+            ArrowMiddle = windowCam.WorldToViewportPoint(arrow.GetPosition(ArrowPoints / 2));
         }
 
         /// <summary>
@@ -586,10 +536,11 @@ namespace TheraQuest
                     yogaMat = PropBuilder.YogaMat(null, size.x, size.y);
                     yogaMat.SetPositionAndRotation(at, turn);
                     matSizeBuilt = size;
+                    if (windowOn) SetLayer(yogaMat, WindowLayer);
                 }
             }
             if (yogaMat == null) return;
-            float k = dt > 0f ? 1f - Mathf.Exp(-8f * Time.unscaledDeltaTime) : 0f;
+            float k = windowOn ? 1f : dt > 0f ? 1f - Mathf.Exp(-8f * Time.unscaledDeltaTime) : 0f;
             yogaMat.position = Vector3.Lerp(yogaMat.position, matPos, k);
             yogaMat.rotation = Quaternion.Slerp(yogaMat.rotation, matRot, k);
         }
@@ -636,14 +587,13 @@ namespace TheraQuest
             UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null &&
             (s.name.StartsWith("Universal Render Pipeline") || s.name.StartsWith("HDRP") || s.name.Contains("URP"));
 
-        // Face (human request 2026-10-28): blinks every few seconds, a soft smile (the Smile shape also narrows the eyes),
-        // a big smile on good reps and a concerned look on a warning; the mouth stays still
-        float nextBlink = 2f, blinkStart = -10f, smileNow = 15f, surpriseNow;
-        Tone faceTone = Tone.Neutral;
+        // Face (human request 2026-10-28): blinks every few seconds and a soft smile (the Smile shape also narrows the
+        // eyes); the mouth stays still
+        float nextBlink = 2f, blinkStart = -10f;
 
         void UpdateFace(Built b)
         {
-            float t = Time.unscaledTime, dt = Time.unscaledDeltaTime;
+            float t = Time.unscaledTime;
             if (t >= nextBlink)
             {
                 blinkStart = t;
@@ -652,39 +602,10 @@ namespace TheraQuest
             }
             float bt = (t - blinkStart) / 0.16f;                    // closes and opens in about a sixth of a second
             float blink = bt >= 0f && bt <= 1f ? Mathf.Sin(bt * Mathf.PI) * 100f : 0f;
-
-            bool active = isSessionActive && current != null;
-            float smileTarget = !active || faceTone == Tone.Neutral ? 15f : faceTone == Tone.Good ? 60f : faceTone == Tone.Warn ? 10f : 0f;
-            float surpriseTarget = active && faceTone == Tone.Bad ? 45f : 0f;
-            smileNow = Mathf.MoveTowards(smileNow, smileTarget, dt * 160f);
-            surpriseNow = Mathf.MoveTowards(surpriseNow, surpriseTarget, dt * 200f);
             // No talking mouth: the face stays in its idle expression while the coach speaks (human request 2026-10-28)
-            b.coach.SetFace(blink, smileNow, 0f, surpriseNow);
+            b.coach.SetFace(blink, 15f, 0f, 0f);
         }
 
-        void PlaceMarker(Vector3 from, Vector3 to)
-        {
-            var d = to - from;
-            float len = d.magnitude;
-            if (len < 1e-4f) return;
-            markerLimb.position = (from + to) / 2f;
-            markerLimb.rotation = Quaternion.FromToRotation(Vector3.up, d);
-            markerLimb.localScale = new Vector3(MarkerWidth, len / 2f, MarkerWidth);   // capsule is 2 units tall
-            markerEnd.position = to;
-        }
-
-        /// <summary>0 = start pose, 1 = target. One demo rep: rise, hold, lower, pause.</summary>
-        float DemoPhase()
-        {
-            float move = Mathf.Max(0.2f, moveSeconds), hold = Mathf.Max(0.5f, current.holdSeconds);
-            float t = demoTime % (move * 2f + hold + Mathf.Max(0f, pauseSeconds));
-            if (t < move) return Ease(t / move);
-            if ((t -= move) < hold) return 1f;
-            if ((t -= hold) < move) return Ease(1f - t / move);
-            return 0f;
-        }
-
-        static float Ease(float x) { x = Mathf.Clamp01(x); return x * x * x * (x * (6f * x - 15f) + 10f); }
         static float Sin(float deg) => Mathf.Sin(deg * Mathf.Deg2Rad);
         static float Cos(float deg) => Mathf.Cos(deg * Mathf.Deg2Rad);
 
@@ -1073,8 +994,6 @@ namespace TheraQuest
 
             float Length(Transform a, Transform b) => pivot.InverseTransformVector(b.position - a.position).magnitude;
 
-            public void SetBodyVisible(bool visible) => body.SetActive(visible);
-
             /// <summary>World start and end of the limb segment that the exercise moves (as currently posed).</summary>
             public (Vector3 from, Vector3 to) Segment(Motion m, int s)
             {
@@ -1088,17 +1007,6 @@ namespace TheraQuest
                     case Motion.KneeFlex: case Motion.KneeExt: return (lowerLeg[i].position, foot[i].position);
                     default: return (upperLeg[i].position, lowerLeg[i].position);   // march, mini squat, sit to stand: thigh
                 }
-            }
-
-            public static Transform Primitive(PrimitiveType type, Transform parent, Material mat)
-            {
-                var go = GameObject.CreatePrimitive(type);
-                Object.Destroy(go.GetComponent<Collider>());
-                go.transform.SetParent(parent, false);
-                var r = go.GetComponent<Renderer>();
-                r.sharedMaterial = mat;
-                r.shadowCastingMode = ShadowCastingMode.Off;
-                return go.transform;
             }
 
             public void Configure(Posture p, float yaw, int s)
@@ -1129,9 +1037,6 @@ namespace TheraQuest
                         foreach (var r in prop.GetComponentsInChildren<Renderer>()) area.Encapsulate(r.bounds);
                 return area;
             }
-
-            /// <summary>Moves the figure by a world-space offset from its place (used to sit the ghost behind the coach).</summary>
-            public void Nudge(Vector3 world) => slot.localPosition = offset + slot.parent.InverseTransformVector(world);
 
             /// <summary>Next pose is applied as is (after a posture change), not eased from the old one.</summary>
             public void Snap() => hasLast = false;

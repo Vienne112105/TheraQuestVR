@@ -3,139 +3,63 @@ using UnityEngine;
 namespace TheraQuest
 {
     /// <summary>
-    /// Auto-focus on the exercise (requested 2026-10-26). On the laptop, at every exercise's get-ready card the
-    /// camera eases forward and turns to frame the coach, and again at "Go!" once the coach has taken the exercise
-    /// pose (it stands idle beside the chair or table until then): closer for small motions, wider for standing
-    /// ones, tilted down for exercises on the treatment table. It then stays there for the exercise.
-    /// In the headset the view is never moved on its own (motion sickness); SessionManager re-centers instead.
-    /// Put it on the camera Rig (SessionManager adds it at runtime).
+    /// Auto-focus on the moving limb (first-person view, M5.8). On the laptop the patient can't look around during an
+    /// exercise, so the view eases from where it is to the limb's movement, with a wider lens to fit more of it. The
+    /// camera only turns: it stays at the eyes. In the headset the view is never moved on its own (motion sickness);
+    /// the patient looks at the limb themself. Put it on the camera Rig (SessionManager adds it at runtime).
     /// </summary>
     public class ViewFocus : MonoBehaviour
     {
         public HeadTracking head;
-        public PlayerMover mover;
-        [Tooltip("Seconds to wait before measuring the coach, so its new pose (and the 'pop') has settled.")]
-        public float settleSeconds = 0.45f;
         public float easeSeconds = 1.2f;
-        [Tooltip("Room left around the coach, as a share of its size (1.3: the coach fills about three quarters of the view's height).")]
-        public float margin = 1.3f;
-        [Tooltip("Extra height above a standing coach for raised arms.")]
-        public float headroom = 0.35f;
-        public float minDistance = 1.3f, maxDistance = 4.5f;
-        const float MinMove = 0.12f, MinTurn = 3f;   // smaller changes are skipped
+        [Tooltip("Lens during exercises on the laptop: first person needs more of the view around the body.")]
+        public float exerciseFov = 72f;
 
-        Transform target;
-        float wait, t = -1f;
-        Vector3 fromPos, toPos;
-        Quaternion fromRot, toRot;
-        float fromPitch, toPitch;
+        float t = -1f, fromYaw, toYaw, fromPitch, toPitch, normalFov = -1f;
 
-        /// <summary>Frame <paramref name="coach"/> once its pose has settled.</summary>
-        public void FocusOn(Transform coach)
+        /// <summary>Turn the view to frame a movement from the start point to the target (room positions).</summary>
+        public void AimAt(Vector3 eye, Vector3 start, Vector3 goal)
         {
-            target = coach;
-            wait = settleSeconds;
-            t = -1f;
+            FirstPersonMath.Aim(start - eye, goal - eye, out toYaw, out toPitch);
+            Begin();
+        }
+
+        /// <summary>Turn the view straight ahead, a little down (the limb is seen in the side mirror instead).</summary>
+        public void AimAhead()
+        {
+            toYaw = 0f;
+            toPitch = 8f;
+            Begin();
+        }
+
+        void Begin()
+        {
+            fromYaw = transform.eulerAngles.y;
+            fromPitch = head != null ? head.desktopPitch : 0f;
+            t = 0f;
         }
 
         /// <summary>Stop any move in progress (e.g. the player was sent back to the exercise spot).</summary>
-        public void Release()
+        public void Release() => t = -1f;
+
+        /// <summary>The wider lens during exercises, the scene's own otherwise. The headset ignores it.</summary>
+        public void Wide(bool wide)
         {
-            target = null;
-            t = -1f;
+            var cam = Camera.main;
+            if (cam == null || cam.stereoEnabled) return;
+            if (normalFov < 0f) normalFov = cam.fieldOfView;
+            cam.fieldOfView = wide ? exerciseFov : normalFov;
         }
 
         void Update()
         {
             if (head != null && head.HeadsetActive) { Release(); return; }
-            float dt = Time.deltaTime;   // freezes while paused
-            if (target != null && t < 0f)
-            {
-                if ((wait -= dt) > 0f) return;
-                if (!Plan()) { Release(); return; }
-                t = 0f;
-            }
             if (t < 0f) return;
-            t = Mathf.Min(1f, t + dt / Mathf.Max(0.01f, easeSeconds));
+            t = Mathf.Min(1f, t + Time.deltaTime / Mathf.Max(0.01f, easeSeconds));   // freezes while paused
             float k = t * t * (3f - 2f * t);   // smoothstep
-            transform.SetPositionAndRotation(Vector3.Lerp(fromPos, toPos, k), Quaternion.Slerp(fromRot, toRot, k));
+            transform.rotation = Quaternion.Euler(0f, Mathf.LerpAngle(fromYaw, toYaw, k), 0f);
             if (head != null) head.desktopPitch = Mathf.Lerp(fromPitch, toPitch, k);
             if (t >= 1f) Release();
-        }
-
-        /// <summary>Works out where the rig should stand to frame the coach. False when there is nothing to frame.</summary>
-        bool Plan()
-        {
-            if (!CoachBounds(target, out var b)) return false;
-            var cam = Camera.main;
-            if (cam == null) return false;
-            float eye = head != null ? head.desktopEyeHeight : 1.55f;
-            var camPos = transform.position + Vector3.up * eye;
-            bool standing = b.size.y > 1.6f;   // a seated coach is about 1.5 m tall: no raised-arm headroom
-            var pose = Frame(camPos, eye, b, standing ? headroom : 0f, cam.fieldOfView, cam.aspect, margin, minDistance, maxDistance);
-            fromPos = transform.position;
-            fromRot = transform.rotation;
-            fromPitch = head != null ? head.desktopPitch : 0f;
-            toPos = ClampToRoom(pose.rigPosition);
-            toRot = Quaternion.Euler(0f, pose.yaw, 0f);
-            toPitch = pose.pitch;
-            // Already framed well enough: don't nudge the view for nothing (it is framed twice per exercise)
-            return Vector3.Distance(fromPos, toPos) > MinMove || Quaternion.Angle(fromRot, toRot) > MinTurn
-                   || Mathf.Abs(fromPitch - toPitch) > MinTurn;
-        }
-
-        Vector3 ClampToRoom(Vector3 p)
-        {
-            if (mover == null) return p;
-            p.x = Mathf.Clamp(p.x, mover.roomMin.x, mover.roomMax.x);
-            p.z = Mathf.Clamp(p.z, mover.roomMin.y, mover.roomMax.y);
-            return p;
-        }
-
-        /// <summary>Bounds of everything visible on the coach (character, treatment table, guides).</summary>
-        static bool CoachBounds(Transform root, out Bounds b)
-        {
-            b = default;
-            bool any = false;
-            if (root == null) return false;
-            foreach (var r in root.GetComponentsInChildren<Renderer>())
-            {
-                if (!r.enabled || !r.gameObject.activeInHierarchy || r is ParticleSystemRenderer) continue;
-                if (!any) { b = r.bounds; any = true; }
-                else b.Encapsulate(r.bounds);
-            }
-            return any;
-        }
-
-        public struct RigPose { public Vector3 rigPosition; public float yaw, pitch, distance; }
-
-        /// <summary>
-        /// Pure framing math (unit tested). The camera stays at eye height and moves along the floor on the line
-        /// from where it is now to the coach, far enough that the coach (plus headroom) fits the view with margin.
-        /// </summary>
-        public static RigPose Frame(Vector3 camPos, float eyeHeight, Bounds coach, float headroom, float vFovDeg, float aspect,
-                                    float margin, float minDistance, float maxDistance)
-        {
-            var center = coach.center + Vector3.up * headroom * 0.5f;
-            float halfH = coach.extents.y + headroom * 0.5f;
-            float halfW = Mathf.Max(coach.extents.x, coach.extents.z);
-            float tanV = Mathf.Tan(vFovDeg * 0.5f * Mathf.Deg2Rad);
-            float tanH = tanV * Mathf.Max(0.1f, aspect);
-            // Distance to the coach's centre so both its height and width fit, with room left for the coach bubble on top
-            float d = Mathf.Max(halfH / tanV, halfW / tanH) * margin;
-            d = Mathf.Clamp(d, minDistance, maxDistance);
-
-            var flat = new Vector3(center.x - camPos.x, 0f, center.z - camPos.z);
-            var dir = flat.sqrMagnitude > 1e-4f ? flat.normalized : Vector3.forward;
-            var camTarget = new Vector3(center.x, camPos.y, center.z) - dir * d;
-            float pitch = Mathf.Atan2(camTarget.y - center.y, d) * Mathf.Rad2Deg;   // positive = look down
-            return new RigPose
-            {
-                rigPosition = camTarget - Vector3.up * eyeHeight,
-                yaw = Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg,
-                pitch = Mathf.Clamp(pitch, -30f, 45f),
-                distance = d,
-            };
         }
     }
 }

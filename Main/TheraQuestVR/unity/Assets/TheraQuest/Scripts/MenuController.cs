@@ -182,8 +182,6 @@ namespace TheraQuest
             Add(() => "Your progress", select: () => Open(Page.Progress));
             if (coach != null && coach.Ready && coach.Count > 1)
                 Add(() => coach.Has3DModels ? "Coach (Female / Male)" : "Coach Style", value: () => coach.CoachName, adjust: d => coach.Cycle(d));
-            if (coach != null && coach.Ready)
-                Add(() => "Guide Mode", value: () => coach.GuideName, adjust: d => coach.ToggleGuide());
             Add(() => "Settings", select: () => Open(Page.Settings));
             Add(() => "Therapist", select: () => { Array.Clear(pin, 0, pin.Length); pinMessage = ""; Open(Page.TherapistPin); },
                 enabled: () => !session.SessionRunning);
