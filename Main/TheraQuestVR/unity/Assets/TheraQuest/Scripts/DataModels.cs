@@ -47,6 +47,9 @@ namespace TheraQuest
         public string side;
         public float trunkLean;
         public float elbowDrift;
+        public string trackingState;   // tracking | degraded | reacquiring | lost (DEC-022)
+        public AngleSet estL;          // angles from estimated landmarks: for display only, never scored
+        public AngleSet estR;
         public AngleSet L = new AngleSet();
         public AngleSet R = new AngleSet();
 

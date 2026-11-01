@@ -332,7 +332,7 @@ namespace TheraQuest
                 if (!inSession) figure.Show(ex, motion.Angle, figTone);
             }
             bool guideOn = inSession && ex != null && celebrateTimer <= 0f;
-            if (guideOn) guide.Show(ex, motion.Angle, figTone);
+            if (guideOn) guide.Show(ex, motion.DisplayAngle, figTone);
             else guide.Hide();
             hud.SetCoachWindow(inSession && ex != null && coach != null ? coach.WindowTexture : null,
                                ex != null ? FirstPersonMath.Word(FigureVisualizer.PoseOf(ex)) : "",
@@ -344,6 +344,8 @@ namespace TheraQuest
         /// <summary>The guide's colour: green at the target, red on a fault. The tutorial's practice isn't evaluated, so it goes by the angle.</summary>
         Tone GuideTone(ExerciseDef ex, ExerciseEvaluator cur)
         {
+            // No verified reading: orange, and never green, whatever the limb's estimate says
+            if (!motion.HasReading && (cur == null || !cur.Resting)) return Tone.Warn;
             if (tutorial.Active && ex != null) return Mathf.Abs(motion.Angle - ex.targetAngle) <= ex.tolerance ? Tone.Good : Tone.Neutral;
             if (cur == null) return Tone.Neutral;
             return cur.State == LiveState.OnTarget || cur.State == LiveState.Holding ? Tone.Good :
@@ -418,6 +420,7 @@ namespace TheraQuest
             }
             var ev = CurrentEval;
             if (motion.HasReading || ev.Resting) ev.Update(motion.Angle, motion.Fault, dt);
+            else ev.TrackingPaused(dt);
             if (ev.State == LiveState.Unsafe)
             {
                 if (lastState != LiveState.Unsafe)
@@ -434,9 +437,12 @@ namespace TheraQuest
             bool onTarget = ev.State == LiveState.OnTarget || ev.State == LiveState.Holding;
             if (onTarget && !wasOnTarget && FirstPersonMath.BehindBody(FigureVisualizer.PoseOf(ex))) feedback.PlayHoldComplete();
             wasOnTarget = onTarget;
-            if (repMessageTimer > 0f) repMessageTimer -= dt;
-            else if (!motion.HasReading && !ev.Resting)
-                hud.SetFeedback($"Step into view so your {ex.joint.ToLower()} is visible", Tone.Warn);
+            if (!motion.HasReading && !ev.Resting)
+            {
+                repMessageTimer = 0f;   // counting has paused: this always shows right away
+                hud.SetFeedback($"Move back into view\n<size=34>Your {ex.joint.ToLower()} is hidden. Counting is paused</size>", Tone.Warn);
+            }
+            else if (repMessageTimer > 0f) repMessageTimer -= dt;
             else
             {
                 var (msg, tone) = FeedbackManager.LiveMessage(ev, motion.Fault);

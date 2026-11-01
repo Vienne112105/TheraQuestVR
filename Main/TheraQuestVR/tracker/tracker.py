@@ -2,7 +2,7 @@
 TheraQuest - Motion Tracking Module (webcam + MediaPipe Pose -> Unity over UDP)
 
 Pipeline (Section 3.6.3, Motion Tracking Module):
-  Frame Preprocessor -> Pose Estimator -> Joint Angle Calculator -> Motion Data Packager
+  Frame Preprocessor -> Pose Estimator -> Landmark Tracking -> Joint Angle Calculator -> Motion Data Packager
 
 Usage:
   python tracker.py                 # webcam 0, sends to Unity on 127.0.0.1:5005
@@ -21,7 +21,7 @@ import sys
 import time
 import urllib.request
 
-from angles import empty_packet, measure
+from tracking import POSE_LOST, POSE_TRACKING, PoseTracker, landmark_confidence
 
 # Pinned model version "1" (not "latest"), so every install runs the same model.
 # Sizes / SHA-256 were computed from these exact URLs on 2026-10-20.
@@ -172,7 +172,7 @@ def run_fake(sock, addr):
             "shoulderElevSigned": round(92 * wave, 1),
             "hipElevSigned": round(47 * wave, 1),
         }
-        packet = {"ts": round(t, 3), "visible": True, "side": "R", **angles,
+        packet = {"ts": round(t, 3), "visible": True, "side": "R", "trackingState": POSE_TRACKING, **angles,
                   "trunkLean": 3.0, "elbowDrift": 8.0, "L": angles, "R": angles}
         send(sock, addr, packet)
         time.sleep(1 / 30)
@@ -187,16 +187,22 @@ def run_camera(sock, addr, cam_index, model_kind, mirror):
     except ImportError as e:
         sys.exit(f"Missing package: {e.name}. Run:  pip install -r requirements.txt")
 
-    landmarker = vision.PoseLandmarker.create_from_options(
-        vision.PoseLandmarkerOptions(
-            base_options=mp_python.BaseOptions(model_asset_path=ensure_model(model_kind)),
-            running_mode=vision.RunningMode.VIDEO,
-            num_poses=1,
-            min_pose_detection_confidence=0.5,
-            min_pose_presence_confidence=0.5,
-            min_tracking_confidence=0.5,
+    model_path = ensure_model(model_kind)
+
+    def make_landmarker():
+        return vision.PoseLandmarker.create_from_options(
+            vision.PoseLandmarkerOptions(
+                base_options=mp_python.BaseOptions(model_asset_path=model_path),
+                running_mode=vision.RunningMode.VIDEO,
+                num_poses=1,
+                min_pose_detection_confidence=0.5,
+                min_pose_presence_confidence=0.5,
+                min_tracking_confidence=0.5,
+            )
         )
-    )
+
+    landmarker = make_landmarker()
+    pose = PoseTracker()
 
     cap = open_camera(cv2, cam_index)
     if not cap.isOpened():
@@ -217,7 +223,8 @@ def run_camera(sock, addr, cam_index, model_kind, mirror):
                 if wait_keep_responsive(cv2, 0.05):
                     break
                 continue
-            empty = empty_packet()
+            pose.reset()                 # no estimate survives losing the camera
+            empty = pose.packet(1, 1)
             empty["ts"] = round(time.time() - t0, 3)
             send(sock, addr, empty)      # tell Unity nobody is tracked while we reconnect
             cap = reopen_camera(cv2, cap, cam_index)
@@ -239,26 +246,31 @@ def run_camera(sock, addr, cam_index, model_kind, mirror):
         last_ts = ts
         result = landmarker.detect_for_video(image, ts)
 
+        # Landmark Tracking: trust, smoothing, short-term prediction (tracking.py, DEC-022)
+        pts = None
         if result.pose_landmarks:
-            lms = result.pose_landmarks[0]
-            pts = [(l.x, l.y, l.visibility if l.visibility is not None else 1.0) for l in lms]
-            # Joint Angle Calculator + Motion Data Packager
-            packet = measure(pts, w, h)
-            packet["ts"] = round(ts / 1000, 3)
-            draw_skeleton(cv2, frame, pts)
-        else:
-            packet = empty_packet()
-            packet["ts"] = round(ts / 1000, 3)
+            pts = [(l.x, l.y, landmark_confidence(l.visibility, l.presence)) for l in result.pose_landmarks[0]]
+        pose.update(pts, ts / 1000)
+        if pose.should_redetect(ts / 1000):
+            # MediaPipe re-detects by itself when it finds nobody; a pose it keeps reporting but we
+            # can't track may be a bad lock, so restart it to force a fresh detection.
+            landmarker.close()
+            landmarker = make_landmarker()
+
+        # Joint Angle Calculator + Motion Data Packager: measured angles use verified landmarks only
+        packet = pose.packet(w, h)
+        packet["ts"] = round(ts / 1000, 3)
+        draw_skeleton(cv2, frame, pose)
         send(sock, addr, packet)
 
         # Mirror only the preview (detection runs on the raw frame so left/right stay correct)
         if mirror:
             frame = cv2.flip(frame, 1)
-        if packet["visible"]:
+        if packet["trackingState"] == POSE_TRACKING:
             draw_text(cv2, frame, packet)
         else:
-            cv2.putText(frame, "No person detected - step into view", (20, 40),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.9, (60, 60, 255), 2)
+            text = "No person detected - step into view" if packet["trackingState"] == POSE_LOST else "Move back into view"
+            cv2.putText(frame, text, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (60, 60, 255), 2)
 
         fps_n += 1
         if time.time() - fps_t >= 1:
@@ -273,15 +285,20 @@ def run_camera(sock, addr, cam_index, model_kind, mirror):
     cv2.destroyAllWindows()
 
 
-def draw_skeleton(cv2, frame, pts):
+def draw_skeleton(cv2, frame, pose):
+    """Verified landmarks in the usual colours; estimates in orange, as hollow circles, so they can't be mistaken."""
     h, w = frame.shape[:2]
-    P = lambda i: (int(pts[i][0] * w), int(pts[i][1] * h))
+    tracks = pose.tracks
+    P = lambda i: (int(tracks[i].x * w), int(tracks[i].y * h))
     for a, b in BONES:
-        if pts[a][2] > 0.5 and pts[b][2] > 0.5:
-            cv2.line(frame, P(a), P(b), (180, 220, 210), 3)
+        if tracks[a].has_position and tracks[b].has_position:
+            verified = tracks[a].reliable and tracks[b].reliable
+            cv2.line(frame, P(a), P(b), (180, 220, 210) if verified else (44, 114, 243), 3 if verified else 1)
     for i in (11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28):
-        if pts[i][2] > 0.5:
+        if tracks[i].reliable:
             cv2.circle(frame, P(i), 6, (124, 138, 11), -1)
+        elif tracks[i].has_position:
+            cv2.circle(frame, P(i), 6, (44, 114, 243), 2)
 
 
 def draw_text(cv2, frame, packet):

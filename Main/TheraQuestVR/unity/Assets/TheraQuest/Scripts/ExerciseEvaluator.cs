@@ -24,6 +24,7 @@ namespace TheraQuest
     public class ExerciseEvaluator
     {
         const float HoldGrace = 0.3f;   // seconds the angle may jitter out of the band without resetting the hold
+        const float MaxTrackingGap = 2f;   // a rep interrupted longer than this can't be judged, so it is dropped
 
         public ExerciseDef Exercise { get; private set; }
         public int ValidReps { get; private set; }
@@ -43,7 +44,7 @@ namespace TheraQuest
         public event Action<float> HoldCompleted;
 
         bool inRep, pastMax, holdFiredThisRep;
-        float peak, bestHold, outOfBand, elapsed;
+        float peak, bestHold, outOfBand, elapsed, trackingGap;
         string repFault;
 
         public ExerciseEvaluator(ExerciseDef ex) { Exercise = ex; }
@@ -55,10 +56,32 @@ namespace TheraQuest
         public int SetNumber => Mathf.Min(ValidReps / Mathf.Max(1, Exercise.reps) + 1, Sets);
         public int RepsInSet => Done ? Exercise.reps : ValidReps % Mathf.Max(1, Exercise.reps);
 
+        /// <summary>
+        /// The tracker can't verify the joint this frame (DEC-022): counting pauses. Nothing is scored from this time;
+        /// the hold timer stops and the rep's peak stays what was really measured. Its clock keeps running, because
+        /// the movement takes that long. A gap too long to judge the rep drops it, without counting an attempt.
+        /// </summary>
+        public void TrackingPaused(float dt)
+        {
+            elapsed += dt;
+            trackingGap += dt;
+            State = LiveState.Idle;
+            if (!inRep) return;
+            RepDuration += dt;
+            if (trackingGap > MaxTrackingGap)
+            {
+                inRep = false;
+                HoldTime = bestHold = outOfBand = 0f;
+                RepDuration = 0f;
+                holdFiredThisRep = false;
+            }
+        }
+
         public void Update(float angle, string fault, float dt)
         {
             CurrentAngle = angle;
             elapsed += dt;
+            trackingGap = 0f;
             if (Resting)
             {
                 RestRemaining = Mathf.Max(0f, RestRemaining - dt);

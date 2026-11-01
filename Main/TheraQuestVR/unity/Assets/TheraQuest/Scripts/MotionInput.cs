@@ -25,12 +25,19 @@ namespace TheraQuest
         public float AngularSpeed { get; private set; }
         public string Fault { get; private set; }
         public bool HasReading { get; private set; }
+        /// <summary>
+        /// The angle to draw the patient's limb at. It follows <see cref="Angle"/>, except that while the tracker can't
+        /// verify the joint it may use the tracker's estimate. Display only: scoring reads <see cref="Angle"/> and
+        /// <see cref="HasReading"/>, never this (DEC-022).
+        /// </summary>
+        public float DisplayAngle { get; private set; }
         /// <summary>Side being measured: the exercise's operated side, or the side the camera sees best.</summary>
         public string MeasuredSide { get; private set; }
 
         float keyboardAngle;
         float simTime, simPeak = 90f, simPeriod, simPlateau;
         bool simStarted, simFault;
+        bool hadReading = true;
 
         public void NextSource()
         {
@@ -80,6 +87,15 @@ namespace TheraQuest
             return AngleSet.SignedValid(signed) && signed < 0f ? 0f : a;
         }
 
+        /// <summary>The tracker's estimate of the exercise's angle for display, or -1 when it has none.</summary>
+        public static float EstimatedAngle(ExerciseDef ex, MotionPacket p)
+        {
+            if (p == null) return -1f;
+            string side = ex != null && !string.IsNullOrEmpty(ex.side) ? ex.side : p.side;
+            var est = side == "L" ? p.estL : side == "R" ? p.estR : null;
+            return est != null ? MeasuredAngle(ex, est) : -1f;
+        }
+
         public void Sample(ExerciseDef ex, float dt)
         {
             float raw = 0f;
@@ -97,6 +113,9 @@ namespace TheraQuest
                     if (receiver == null || !receiver.IsReceiving || p == null || !p.visible || measured < 0f)
                     {
                         HasReading = false;
+                        hadReading = false;
+                        float estimate = receiver != null && receiver.IsReceiving ? EstimatedAngle(ex, p) : -1f;
+                        DisplayAngle = estimate >= 0f ? estimate : Angle;   // no estimate: the limb stays where it was
                         return;
                     }
                     raw = measured;
@@ -135,8 +154,11 @@ namespace TheraQuest
             }
 
             float prev = Angle;
-            float sm = source == InputSource.Webcam ? smoothing : 0f;
+            // Back from a gap: start from the real reading. Easing from the old angle would make up values in between
+            float sm = source == InputSource.Webcam && hadReading ? smoothing : 0f;
+            hadReading = true;
             Angle = Mathf.Lerp(raw, Angle, sm);
+            DisplayAngle = Angle;
             AngularSpeed = dt > 1e-4f ? Mathf.Abs(Angle - prev) / dt : 0f;
         }
 

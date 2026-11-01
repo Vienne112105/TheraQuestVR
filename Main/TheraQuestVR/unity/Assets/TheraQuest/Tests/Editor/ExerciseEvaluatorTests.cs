@@ -371,6 +371,122 @@ namespace TheraQuest.Tests
         }
     }
 
+    /// <summary>Tracking-loss safeguards (DEC-022): only verified readings can count toward a rep.</summary>
+    public class TrackingLossTests
+    {
+        const float Dt = 0.02f;
+
+        static void Run(ExerciseEvaluator ev, float from, float to, float seconds)
+        {
+            for (float t = 0; t < seconds; t += Dt) ev.Update(Mathf.Lerp(from, to, t / seconds), null, Dt);
+            ev.Update(to, null, Dt);
+        }
+
+        static void Pause(ExerciseEvaluator ev, float seconds)
+        {
+            for (float t = 0; t < seconds; t += Dt) ev.TrackingPaused(Dt);
+        }
+
+        [Test]
+        public void ShortGapKeepsTheRepAndItsMeasuredPeak()
+        {
+            var ev = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex());
+            Run(ev, 0f, 90f, 1f);
+            Pause(ev, 0.5f);
+            Run(ev, 90f, 0f, 1f);
+            Assert.AreEqual(1, ev.Attempts);
+            Assert.AreEqual(1, ev.ValidReps);
+            Assert.AreEqual(90f, ev.RepEvents[0].peak, 0.5f);
+        }
+
+        [Test]
+        public void GapNeverCountsARepOrRaisesThePeak()
+        {
+            var ev = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex());
+            Run(ev, 0f, 60f, 1f);
+            Pause(ev, 1f);
+            Assert.AreEqual(0, ev.Attempts);
+            Run(ev, 60f, 0f, 1f);
+            Assert.AreEqual(1, ev.Attempts);
+            Assert.AreEqual(0, ev.ValidReps, "only reached 60 where it could be seen");
+            Assert.AreEqual(60f, ev.RepEvents[0].peak, 0.5f);
+        }
+
+        [Test]
+        public void LongGapDropsTheRepWithoutCountingAnAttempt()
+        {
+            var ev = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex());
+            Run(ev, 0f, 90f, 1f);
+            Pause(ev, 2.5f);
+            Run(ev, 90f, 0f, 1f);    // the angle was never "lowered" in a rep that is still open
+            Assert.AreEqual(0, ev.ValidReps);
+            Assert.LessOrEqual(ev.Attempts, 1);
+            Assert.AreEqual(0, ev.RepEvents.FindAll(e => e.valid).Count);
+        }
+
+        [Test]
+        public void LongGapAtTheBottomStartsCleanly()
+        {
+            var ev = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex());
+            Run(ev, 0f, 90f, 1f);
+            Pause(ev, 2.5f);
+            ev.Update(0f, null, Dt);
+            Assert.AreEqual(0, ev.Attempts, "the dropped rep is not scored");
+            Run(ev, 0f, 90f, 1f);
+            Run(ev, 90f, 0f, 1f);
+            Assert.AreEqual(1, ev.ValidReps);
+        }
+
+        [Test]
+        public void StateIsNeverLeftOnTargetDuringAGap()
+        {
+            var ev = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex());
+            Run(ev, 0f, 90f, 1f);
+            Assert.AreNotEqual(LiveState.Idle, ev.State);
+            ev.TrackingPaused(Dt);
+            Assert.AreEqual(LiveState.Idle, ev.State);
+        }
+
+        [Test]
+        public void HoldTimerStopsDuringAGap()
+        {
+            var ev = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex(hold: 2f));
+            Run(ev, 0f, 90f, 1f);
+            float held = ev.HoldTime;
+            Pause(ev, 1f);
+            Assert.AreEqual(held, ev.HoldTime, 0.001f);
+        }
+
+        [Test]
+        public void GapTimeStillCountsTowardTheRepsDuration()
+        {
+            var ev = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex());
+            Run(ev, 0f, 90f, 0.2f);
+            Pause(ev, 1f);
+            Run(ev, 90f, 0f, 0.2f);
+            Assert.IsFalse(ev.RepEvents[0].too_fast);
+        }
+
+        [Test]
+        public void EstimateIsKeptApartFromTheMeasuredAngle()
+        {
+            var ex = new ExerciseDef { side = "R", measure = "elbowFlex" };
+            var p = JsonUtility.FromJson<MotionPacket>("{\"visible\":true,\"trackingState\":\"degraded\",\"R\":{\"elbowFlex\":-1},\"estR\":{\"elbowFlex\":80}}");
+            Assert.AreEqual("degraded", p.trackingState);
+            Assert.AreEqual(-1f, MotionInput.MeasuredAngle(ex, p.For("R")), "no reading to score");
+            Assert.AreEqual(80f, MotionInput.EstimatedAngle(ex, p), "for display");
+        }
+
+        [Test]
+        public void NoEstimateMeansNoDisplayAngle()
+        {
+            var ex = new ExerciseDef { side = "L", measure = "elbowFlex" };
+            var p = JsonUtility.FromJson<MotionPacket>("{\"visible\":false}");
+            Assert.AreEqual(-1f, MotionInput.EstimatedAngle(ex, p));
+            Assert.AreEqual(-1f, MotionInput.EstimatedAngle(ex, null));
+        }
+    }
+
     /// <summary>M5.8: default height, the first-person limbs, the view's aim and the tutorial.</summary>
     public class FirstPersonTests
     {
