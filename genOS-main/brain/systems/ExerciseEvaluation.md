@@ -32,6 +32,7 @@ Evaluates real-time patient kinematics against prescribed clinical rehabilitatio
 - An exercise repetition that breaches compensatory posture thresholds is flagged invalid and awarded minimal points (2 pts).
 - Exceeding the therapist's safety maximum halts repetition accumulation and logs an unsafe rep event.
 - Repetitions cannot count during set-rest periods.
+- Only verified tracker readings are evaluated (DEC-022). Without one, counting pauses, the hold timer stops and the rep's peak stays what was measured; a gap over 2 s drops the open rep without counting an attempt. The tracker's estimates are for display and never reach the evaluator.
 - An extension exercise scores only when the signed angle shows the limb behind the trunk; with no signed reading it has no reading at all.
 - Unity holds no per-exercise rules keyed by code: posture checks, direction and pose come from the program.
 
