@@ -44,7 +44,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M4.4 | M4 | done | Tracker Measurement Correctness |
 | M4.5 | M4 | done | Evaluation Pipeline Integrity |
 | M4.6 | M4 | done | Single Source of Exercise Definitions |
-| M5 | — | done | Dashboard & Game Experience |
+| M5 | — | active | Dashboard & Game Experience |
 | M5.1 | M5 | done | Dashboard UX & Accessibility Polish |
 | M5.2 | M5 | done | Patient & Protocol Management |
 | M5.3 | M5 | done | Clinical Insights & Attention Flags |
@@ -52,6 +52,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M5.5 | M5 | done | Session Summary & Progress Screens |
 | M5.6 | M5 | done | Audio & Visual Assets |
 | M5.7 | M5 | done | Additional Built-in Clinical Protocols |
+| M5.8 | M5 | TBF | First-Person Exercise View & Default Height |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -62,7 +63,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 
 ## Suggested sequence
 
-`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience) ➔ next program milestone not decided yet
+`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (active: M5.8 first-person view added 2026-11-01, waiting on the human check) ➔ next program milestone not decided yet
 
 Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided (it takes the next free `M` number when scheduled).
 
@@ -261,7 +262,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 
 ## M5 — Dashboard & Game Experience
 
-- **Status:** done
+- **Status:** active (reopened 2026-11-01 by the human for M5.8; the other children stay done)
 - **Objective:** Make the therapist dashboard easier and safer to use, give therapists patient/protocol management and early warnings, and make the patient game more rewarding and polished. Scope chosen by the human on 2026-10-26; showing the unused dashboard data (TASK-001) and the high-priority backlog (TASK-003..TASK-006) are deliberately outside M5.
 - **Success criteria:**
   - The dashboard app works fully by keyboard, fits its window from the minimum size up (DEC-013), and shows honest empty, loading and error states.
@@ -277,6 +278,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
   - `M5.5`: Session Summary & Progress Screens (done)
   - `M5.6`: Audio & Visual Assets
   - `M5.7`: Additional Built-in Clinical Protocols (done)
+  - `M5.8`: First-Person Exercise View & Default Height (TBF)
 - **Done when:** all children are done; the server, tracker, evaluation and Unity EditMode test suites pass; the human has done a dashboard walkthrough and a Play-mode walkthrough of the game (listed in `pending_human_tests` while open; the milestone is TBF until then).
 - **Dependencies:** M4. The dashboard children (M5.1–M5.3) and the game children (M5.4–M5.6) don't depend on each other.
 
@@ -351,6 +353,15 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Dependencies:** M5.2 (read-only built-ins, DEC-014)
 - **Systems:** ClinicalBackend, TherapistDashboard
 
+### M5.8 — First-Person Exercise View & Default Height
+- **Status:** TBF
+- **Objective:** Change the exercise from watching a coach in the room to following a guide on the patient's own body, seen in first person, from the same default height for everyone (requested by the human 2026-11-01; DEC-021).
+- **Deliverables:** a see-through target limb at the prescribed angle, extending from the patient's default body, which is the exercise's threshold, plus a live limb following the tracker's angle; the old gold threshold shapes, ghost and Guide Mode removed; a floating coach window under the quest card showing the coach holding the target pose, still, with an arrow and word guides; the coach in the room only on menus and the summary; a side mirror panel and a reach chime for limbs that end behind the patient (shoulder extension, hip extension, hamstring curl); a default view height per posture that the headset is calibrated to; a tutorial before the first exercise of every session, skippable and not scored or saved; tests.
+- **Completion criteria:** EditMode tests pass; every posture works in Play mode; human Play-mode check on the laptop. The headset path is checked in HW.2.
+- **Verification so far (2026-11-01):** Unity EditMode tests 57 pass (9 new; the 4 old coach-framing tests were replaced). Agent play-test in the Editor with simulated input and the offline cached program (saved game data restored afterwards): tutorial steps advance with no attempts recorded; standing arm, seated knee, standing behind-body leg with the mirror, lying and side-lying exercises; coach window and word guide; coach back in the room on the summary; no console errors. Found and fixed during the play-test: looking right along a sideways arm showed only its end (the view's turn is now limited), lying views ran along the limb (the view is lifted), the word guide hid the arrow. Lying and side-lying remain the hardest views to read, because the leg runs away from the eye. Not tested: anything in a headset (HW.2), and real webcam input with this view.
+- **Dependencies:** M5.4, M5.6
+- **Systems:** VRClinicExperience, AvatarCoach, SessionOrchestration
+
 ## HW — Hardware Integration & Field Validation (unscheduled)
 
 - **Status:** planned (unscheduled: not yet numbered or placed in the sequence)
@@ -379,7 +390,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 ### HW.2 — Headset Integration Test
 - **Status:** planned
 - **Objective:** Verify the VR client on the real headset (moved here from M4.3's completion criteria on 2026-10-25).
-- **Deliverables:** test run covering head tracking and recentering (Y / R), controller mapping (A select, B pause, thumbsticks for menus, walking and turning), locomotion locked during exercises, HUD and menu legibility and comfort at the configured distances, subtitles, pause and quit in the headset, and the desktop fallback with Link off; fixes for problems found.
+- **Deliverables:** test run covering head tracking and recentering (Y / R), controller mapping (A select, B pause, thumbsticks for menus, walking and turning), locomotion locked during exercises, HUD and menu legibility and comfort at the configured distances, subtitles, pause and quit in the headset, and the desktop fallback with Link off; the first-person view (M5.8): default height calibration standing, seated and lying, the limbs lining up with where the patient feels their body, and the panels' position when lying; fixes for problems found.
 - **Completion criteria:** every item passes in the headset, or has a recorded fix or workaround; a session done in the headset uploads to the dashboard.
 - **Dependencies:** HW.1
 - **Systems:** VRClinicExperience, SessionOrchestration

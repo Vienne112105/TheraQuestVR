@@ -5,7 +5,7 @@
 schema_version: 2
 
 # ISO date of last SHUTDOWN update (YYYY-MM-DD)
-last_updated: 2026-10-28
+last_updated: 2026-11-01
 
 # Who last wrote this file (e.g. cursor-agent, agy-agent, agency:unity-specialist)
 last_agent: claude-code
@@ -14,13 +14,16 @@ last_agent: claude-code
 last_ide: claude-desktop
 
 # ID only — resolve objective/criteria in 50_ROADMAP.md
-current_milestone: null
+current_milestone: M5.8
 
 # Active scene or primary file in focus, if any
-current_scene: null
+current_scene: Main/TheraQuestVR/unity/Assets/TheraQuest/TheraQuest.unity
 
 # System file basenames under brain/systems/ (without .md) to load on BOOT
-systems_in_scope: []
+systems_in_scope:
+  - VRClinicExperience
+  - AvatarCoach
+  - SessionOrchestration
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on: []
@@ -29,7 +32,8 @@ working_on: []
 # below before other work, and keep reminding each new session until the human reports it done; then remove it.
 # A milestone with pending tests stays TBF in 50_ROADMAP.md until this list has none left for it.
 # The headset run and the real-footage signed-angle check are not here: they belong to roadmap milestone HW.
-pending_human_tests: []
+pending_human_tests:
+  - "M5.8 Play-mode check on the laptop: run a session and judge the first-person view. Does the tutorial read well; can you see and follow the holographic limb for an arm, a seated knee, and a lying or side-lying leg (the hardest views); are the coach window, arrow and word guide clear and uncluttered; does the side mirror and chime work for a behind-the-body exercise; does it work with the real webcam tracker."
 # Known bugs or risks
 known_issues:
   - "Open, ask the human at the start of a session until settled: the five old rep sounds (Assets/TheraQuest: Perfect, great, Awesome, miss, victory .mp3) have no known source (CREDITS.md \"Not yet recorded\"). Fine while the repository stays private (DEC-020), but before any commercial release either the human names the source (if made with an AI tool: which tool and plan, since its terms decide commercial use; labelling them AI-generated is only right if true) or the agent replaces them with CC0 sounds (Kenney). Raised 2026-10-28."
@@ -38,10 +42,12 @@ known_issues:
   - "Patient codes (P-001...) are guessable pseudonyms; VR routes are safe only because they are loopback-only. A remote VR client would need a per-device secret (see ClinicalBackend Future Changes)."
   - "Extension exercises (shoulderExt, hipExt) have no reading when the tracker can't tell which way the patient faces (signed angle -999); flexion exercises fall back to the unsigned angle. Measured in the unscheduled hardware milestone HW (HW.3)."
   - "Live webcam reconnect (M4.4) and the headset path are untested on hardware (no headset available; this PC has no OpenXR runtime installed). Both are part of the unscheduled hardware milestone HW (HW.2, HW.3)."
+  - "First-person view (M5.8, DEC-021): the live limb shows one tracker angle on a fixed default body, so it can't show a limb moving out of the exercise's plane, and its length won't match the patient's real limb. Lying and side-lying legs run away from the eye and are the hardest to read. Default height calibration, the lying head direction and the lying panel position have only been unit tested or written, never run in a headset (HW.2). Found 2026-11-01."
 
 # Blockers requiring human decision or external input
 blocked:
-  - "Next program milestone not chosen: the human decides between the unscheduled hardware milestone HW (needs a Meta Quest headset) and other new work (not defined yet)."
+  - "M5.8 needs the human Play-mode check (pending_human_tests) before M5 can close."
+  - "Next program milestone not chosen: after M5.8, the human decides between the unscheduled hardware milestone HW (needs a Meta Quest headset) and other new work (not defined yet)."
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-10-28 SHUTDOWN: M5 Dashboard & Game Experience is DONE (all human checks passed). No milestone is active (current_milestone null; blocked on the human choosing). AT THE START OF THE NEXT SESSION, REMIND THE HUMAN OF THESE NEXT STEPS (human request): (1) high-priority backlog first, quick and protects real data: TASK-003 simulated/keyboard sessions counting as clinical data (needs a human choice: exclude from clinical rules or use a demo patient), TASK-004 free-text patient names vs pseudonymisation, TASK-005 no backup of the clinical database or project, TASK-006 Unity companyName still DefaultCompany (set before any clinic install); (2) research data for the capstone evaluation, likely the next milestone: TASK-007 licensed-PT review of exercise targets and attention-flag thresholds, TASK-008 real goniometer readings, therapist rep labels, SUS and PT surveys (metrics currently report not measured); (3) hardware milestone HW once a Meta Quest headset is available; (4) smaller items: source of the five old rep sounds (known_issues), TASK-001 dashboard export button, TASK-002 delete legacy server/theraquest.db, TASK-009..TASK-012 housekeeping and ankle tracking. Agent recommendation: 1 then 2. Weekly usage was at 93% (resets 2026-11-01). Repository must stay private (DEC-020: gym pack and Little Guys coaches are not redistributable). TheraQuest.unity may hold the human's own uncommitted scene changes: never commit or discard them."
+session_summary: "2026-11-01: the human reopened M5 and asked for a first-person exercise view; built as M5.8 (DEC-021), now TBF. In place: holographic target limb as the threshold plus a live limb from a fixed default body, gold threshold shapes, ghost and Guide Mode removed, still coach in a floating window with arrow and word guide, side mirror and chime for limbs behind the patient, default view height per posture, skippable tutorial every session. EditMode tests 57 pass; agent play-test on the laptop with simulated input passed on all postures, no console errors. Not tested: headset, real webcam with this view. The M5.8 code and Brain changes are committed on branch m5.8-first-person-view, not merged into main; the human approved the commit from the screenshots and summary, and has not reported the Play-mode check as done. TheraQuest.unity holds the human's own uncommitted scene changes: never commit or discard them. NEXT: the human does the M5.8 Play-mode check; feedback on how the views read is expected, especially lying and side-lying. Then close M5 and return to the earlier next-step options: (1) high-priority backlog TASK-003..TASK-006, (2) research data TASK-007, TASK-008, likely the next milestone, (3) hardware milestone HW once a headset is available, (4) smaller items: source of the five old rep sounds, TASK-001, TASK-002, TASK-009..TASK-012. Agent recommendation: 1 then 2. Repository must stay private (DEC-020)."

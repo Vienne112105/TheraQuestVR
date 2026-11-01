@@ -4,10 +4,10 @@
 Coordinates the patient workout lifecycle: patient profile selection, prescription retrieval, exercise sequencing, inter-set rest intervals, camera guidance, and HTTP session data upload.
 
 ## Status
-`stable` (M5.4 session flow done; human check passed 2026-10-28)
+`stable` (M5.4 session flow done, human check passed 2026-10-28; M5.8 tutorial and first-person flow waiting on the human check)
 
 ## Responsibilities
-- Manage the rehabilitation session state machine: Idle -> Prescription Fetch -> Exercise Intro & Camera Placement -> Countdown -> Active Sets -> Rest Countdowns -> Exercise Completion -> Session Upload.
+- Manage the rehabilitation session state machine: Idle -> Prescription Fetch -> Tutorial -> Exercise Intro & Camera Placement -> Countdown -> Active Sets -> Rest Countdowns -> Exercise Completion -> Session Upload.
 - Fetch patient prescription from the clinical backend over HTTP, identified by the configured synthetic patient code (no clinician credentials; see [[30_DECISIONS]] DEC-009).
 - Cache completed session metrics locally if the network/server is offline, with automated retry when reconnected; every upload carries a `session_uuid` so retries are never counted twice.
 - Resolve the patient code and server URL from the command line (`-patient`, `-server`), `config.json` in the persistent data folder, or the Inspector; a PIN-protected therapist page in the main menu changes the patient code, input source and therapist numbers (M4.3).
@@ -30,6 +30,7 @@ Coordinates the patient workout lifecycle: patient profile selection, prescripti
 - A session never runs on a hardcoded program: only a server-issued or cached server program (with its phase VR gate) may be used.
 - The input source is locked for the whole session; walking is disabled while an exercise runs.
 - A session interrupted by quitting the app is queued as ended early, not lost.
+- The tutorial is never scored or saved: it plays before every session's first exercise, can be skipped, and the session's time starts after it.
 
 ## Notes
 - Seamlessly falls back to simulated/keyboard motion mode when webcam tracking is unavailable.

@@ -46,9 +46,9 @@ TheraQuest VR is a gamified virtual reality physical therapy and telerehabilitat
 
 1. **Prescription & Protocol Assignment:** Physical therapist selects an evidence-based clinical protocol (OHSU Total Knee or MGB Rotator Cuff) and customizes target ROM angles, tolerances, sets, reps, and safety maxes in the therapist desktop app (`Start_Therapist_App.bat`).
 2. **Session Initialization:** Patient launches the motion tracker (`tracker.py`) and Unity VR application. Unity fetches the patient's active prescription via HTTP REST.
-3. **Setup & Guided Positioning:** Unity presents camera setup instructions (frontal vs sagittal view) and displays the humanoid coach avatar demonstrating the target motion.
+3. **Setup & Guided Positioning:** Unity plays a short tutorial, presents camera setup instructions (frontal vs sagittal view), and shows the humanoid coach avatar holding the target pose in a floating window with arrow and word guides (DEC-021).
 4. **Active Exercise Execution:**
-   - Patient performs movement; webcam captures pose landmarks and streams joint angles over UDP.
+   - In first person, from a default eye height, the patient moves their limb into a holographic target limb that extends from their body (DEC-021); webcam captures pose landmarks and streams joint angles over UDP.
    - Evaluator evaluates joint kinematics against target ROM: posture heuristics invalidate cheat reps, safety limits trigger red STOP alerts, and valid reps are counted.
    - Gamification engine triggers real-time chime feedback, combo streaks, and power meter visual cues.
 5. **Session Upload & Clinical Review:** Upon session conclusion, Unity uploads full performance records (accuracy %, rep count, angle error, unsafe reps) to SQLite. The therapist inspects adherence calendars, enters clinical notes (pain 0-10, soreness, swelling), and reviews stage progression recommendations ("Ready for Phase II?").

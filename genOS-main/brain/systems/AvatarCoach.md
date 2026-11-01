@@ -1,33 +1,33 @@
 # AvatarCoach
 
 ## Purpose
-Visualizes a virtual physical therapy coach avatar that demonstrates exercise movements, mirrors kinematic angles in real time, and provides visual guidance for the patient.
+Visualizes a virtual physical therapy coach avatar: standing in the clinic on menus, and during a session holding each exercise's target pose in a floating window (DEC-021). The patient's own first-person guide limbs are `FirstPersonGuide`, in VRClinicExperience.
 
 ## Status
 `stable`
 
 ## Responsibilities
-- Drive 3D humanoid avatar bone rotations according to target angles and detected patient angles.
-- Render visual guidance figures (wireframe/ghost demonstration avatar, geometric visualizer, or dual-zone holographic ROM guidance).
+- Drive 3D humanoid avatar bone rotations to the exercise's target angle.
+- Render the coach window: its own camera, the still pose, and an arrow tracing how the moving limb gets there.
 - Automatically configure imported Mixamo FBX avatars with Unity Humanoid rigs and smooth materials across gender-segregated folders (`Assets/TheraQuest/Coaches/Male` and `Female`).
-- Maintain natural resting idle posture (breathing cycles, weight shifts, player eye tracking) prior to session start, only demonstrating repetitions during active exercise phases.
-- Support runtime switching between coach avatars, genders, styles, and demonstration modes (Coach vs. Silhouette) from the main menu.
+- Maintain natural resting idle posture (breathing cycles, weight shifts, player eye tracking) on menus and the summary.
+- Support runtime switching between coach avatars, genders and styles from the main menu.
 
 ## Dependencies
 - Unity Animation and Humanoid Rig system.
 - Inter-system: Controlled by `SessionOrchestration` (`SessionManager.isSessionActive`) and synchronized with `ExerciseEvaluation`.
 
 ## Runtime References
-- `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/HumanoidCoach.cs`: IK/FK bone rotation controller, blend trees, animation sequencing, and holographic target guidance markers.
+- `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/HumanoidCoach.cs`: bone rotation controller, idle animation, and the coach window with its arrow.
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/FigureVisualizer.cs`: Kinematic figure drawing for exercise demonstration poses.
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Editor/CoachModelImporter.cs`: FBX asset postprocessor for automatic Humanoid rigging.
 
 ## Invariants
 - Coach movement demonstrations must align with clinical target angles defined in the active prescription.
 - The coach and the figure choose animation, posture and facing from the exercise's `pose`, `posture` and `view` sent by the server (DEC-012), never from its code; an unknown pose falls back to one chosen by the measured angle and view.
-- Coach avatar must remain in resting idle during menus and free-roam, never moving unprompted before session begins. On menus, the summary and in free roam it stands facing the player with no chair; during a session's get-ready cards and between exercises it waits, still, in the coming exercise's start position on its chair or on the mat.
-- The coach exercises on a yoga mat that `HumanoidCoach` builds at runtime and turns and fits to each posture; lying and side-lying exercises happen on the mat on the floor (no bed). The coach always faces the way it should face, whatever an idle clip does.
-- Holographic range-of-motion guidance marker must be visible in both Coach Mode and Silhouette Mode.
+- Coach avatar must remain in resting idle during menus and free-roam, never moving unprompted before session begins. On menus, the summary and in free roam it stands facing the player with no chair.
+- During a session the coach is not in the room's view. In its window it only poses (no breathing, sway, blinking or glances; human request 2026-11-01), in the target pose, also on get-ready cards and between exercises.
+- The coach poses on a yoga mat that `HumanoidCoach` builds at runtime and turns and fits to each posture; lying and side-lying exercises happen on the mat on the floor (no bed). The coach always faces the way it should face, whatever an idle clip does.
 
 ## Notes
 - The standing idle is Quaternius' CC0 `Idle_Loop` (`Resources/CoachAnimations`, M5.6), loaded when the coach's Idle Clip field is empty; without it the hand-made breathing and sway are used. It plays only on Humanoid avatars: the bundled Quaternius coach rigs keep their feet under the root, so `CoachModelImporter` maps them by hand (feet = the ankle end bones); the clip drives trunk, head and arms while standing legs stay hand-posed.

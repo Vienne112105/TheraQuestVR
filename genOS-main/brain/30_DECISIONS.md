@@ -37,6 +37,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-018 | accepted | 2026-10-27 | Little Guys Coach Models |
 | DEC-019 | accepted | 2026-10-27 | Clinic Room Decorations and Exercise Chair Are 3D Model Assets |
 | DEC-020 | accepted | 2026-10-28 | The Repository Stays Private; Third-Party Asset Files Are Never Published |
+| DEC-021 | accepted | 2026-11-01 | First-Person Exercise View, Coach Window and Default Height |
 
 ---
 
@@ -200,3 +201,10 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Reason:** A licence audit found assets whose licences allow use in a shipped app but not publishing the raw files: the Low Poly Gym Pack (reodesuxz) and the Little Guys coaches (Unity Asset Store EULA). The human decided, quoted: "the repository wont be public ever, and if it ever will be, the asset files would not be shared publicly".
 - **Impact:** These assets stay as they are; no CC0 replacement is needed. Shipping built apps with them is within their licences. If the repository is ever published, the restricted files (and the git history that contains them) must be left out first. The five old rep sounds still have no known source (CREDITS.md "Not yet recorded"); that matters for any public or commercial release.
 - **Supersedes:** none
+
+### DEC-021: First-Person Exercise View, Coach Window and Default Height
+- **Status:** accepted
+- **Date:** 2026-11-01
+- **Reason:** The human asked to replace the third-person exercise with a first-person one: a holographic body part extending from the patient's body acts as the threshold, the coach becomes a still pose in a floating window with arrow and word guides, the yellow threshold shapes go, a tutorial comes first, and a default height removes the distortion caused by patients' different heights. The human also chose: limbs that end behind the patient get a side mirror panel and a chime; the coach stays in the room on menus and the summary; the tutorial plays every session and can be skipped.
+- **Impact:** During a session the coach is drawn only by the window's own camera (it stays physically in the room, on a layer the main camera doesn't draw), holding the target pose without blinking or breathing. `FirstPersonGuide` draws a target limb and a live limb from one default body whose proportions are fixed, not the patient's. A headset hides the real arm, so the live limb is the patient's only view of it; it follows the tracker's single angle and always moves in the exercise's plane, so it can't show a limb moving out of that plane (posture checks still cover that). The view height depends only on the posture: 1.55 m standing, 1.15 m seated, lower lying down with a lift so the limbs can be seen; the headset is calibrated to it only at instant re-center moments (session start, Start pressed at get-ready, R / Y), keeping the rule that the game never moves the headset view on its own. Scoring is unchanged: the evaluator still uses the same angle, target and tolerance, and the hologram only shows them. Sessions' times start after the tutorial, and quitting during it saves nothing. On the laptop the view turns to the limb on its own, because the patient can't look around during an exercise. Guide Mode (Coach / Silhouette) is removed from Settings. M5.4's camera framing of the coach is replaced.
+- **Supersedes:** the Silhouette guide mode of DEC-004 and the holographic target orb and tolerance halo of DEC-005 (the rest of both stands)
