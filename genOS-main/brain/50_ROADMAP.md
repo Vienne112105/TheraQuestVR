@@ -54,6 +54,12 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M5.7 | M5 | done | Additional Built-in Clinical Protocols |
 | M5.8 | M5 | done | First-Person Exercise View & Default Height |
 | M5.9 | M5 | done | Tracking Reliability & Loss Safeguards |
+| M6 | — | active | Camera Tracking Mechanics |
+| M6.1 | M6 | done | Landmark Record & Replay Harness |
+| M6.2 | M6 | active | Facing Direction & Extension Readings |
+| M6.3 | M6 | planned | Camera Setup Assistant |
+| M6.4 | M6 | planned | Out-of-Plane Live Limb & Ankle Exercises |
+| M6.5 | M6 | planned | Webcam Field Test & Tuning |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -65,7 +71,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 
 ## Suggested sequence
 
-`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience, first-person view and tracking safeguards; their human checks moved to HW) ➔ next program milestone not decided yet
+`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience, first-person view and tracking safeguards; their human checks moved to HW) ➔ `M6` (active: camera tracking mechanics, webcam only, no headset)
 
 Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided (it takes the next free `M` number when scheduled).
 
@@ -374,6 +380,63 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Dependencies:** M4.4, M5.8
 - **Systems:** MotionTracking, ExerciseEvaluation, SessionOrchestration
 
+## M6 — Camera Tracking Mechanics
+
+- **Status:** active
+- **Objective:** Make the single-webcam tracking more complete and better tested without needing a headset (requested by the human 2026-11-05): repeatable offline testing from recorded landmarks, readings for extension exercises when the facing direction is unclear, a camera setup check before counting, a live limb that shows out-of-plane movement, ankle exercises, and real-webcam tuning of the M5.9 safeguards.
+- **Success criteria:**
+  - A recorded session can be replayed through the tracker and gives the same packets every time.
+  - Side-view shoulder and hip extension have a signed reading in at least ~95% of frames on real recordings, with the right sign facing both ways.
+  - The patient is told, before counting, when the camera view, distance or framing is wrong for the exercise.
+  - The live limb shows movement out of the exercise's plane; scoring is unchanged (DEC-023).
+  - Ankle exercises are tracked and in the library (TASK-012).
+  - The tracking safeguards pass a real-person webcam test and their thresholds are tuned.
+- **Children:** `M6.1` Landmark Record & Replay Harness; `M6.2` Facing Direction & Extension Readings; `M6.3` Camera Setup Assistant; `M6.4` Out-of-Plane Live Limb & Ankle Exercises; `M6.5` Webcam Field Test & Tuning.
+- **Done when:** all children are done.
+- **Dependencies:** M5.9
+- **Systems:** MotionTracking, ExerciseEvaluation, VRClinicExperience
+
+### M6.1 — Landmark Record & Replay Harness
+- **Status:** done
+- **Objective:** Record the tracker's raw landmarks (never video, DEC-024) so tuning and checks can be repeated offline from one session with a real person.
+- **Deliverables:** `tracker.py --record <file>` writes one JSON line per frame (timestamp, 2D landmarks with visibility and presence, 3D world landmarks); `--replay <file>` sends a recording through the same tracking and measuring code to UDP, in real time or `--fast`; recordings kept in a git-ignored `tracker/recordings/` folder; `tracker/report.py` summarises a recording (share of time in each tracking state, share of frames with no signed angle per side, pauses, jump rejections); tests.
+- **Completion criteria:** tracker tests pass; a recording replays to identical packets on every run; a synthetic recording works end to end (amended 2026-11-05: `--fake` sends angles, not landmarks, so the end-to-end check uses `recording.synthetic`).
+- **Verification (2026-11-05):** tracker tests 71 pass (9 new in `test_replay.py`: identical replays, replay equals the live loop, landmarks-only files, camera-lost event, real-time pacing, bad file refused, date-only file names, report counts). `tracker.py --replay --fast` sent all 360 packets of a synthetic recording to a UDP listener, and `report.py` summarised it. The real MediaPipe result was checked to carry the 2D and world landmark fields the recorder saves (x, y, z, visibility, presence). Not yet done: a recording of a real person (the first one is part of M6.5, or earlier as input for M6.2).
+- **Dependencies:** M5.9
+- **Systems:** MotionTracking
+
+### M6.2 — Facing Direction & Extension Readings
+- **Status:** active
+- **Objective:** Give shoulder and hip extension a reading when the face can't be seen, by telling which way the patient faces from MediaPipe's 3D world landmarks (DEC-023).
+- **Deliverables:** facing direction from the world landmarks first, the current nose/ear test as fallback, and a short, time-limited hold of the last known direction; packet fields only added (e.g. the facing source), -999 still sent when nothing is known; tests.
+- **Completion criteria:** tracker tests pass; on real recordings the share of side-view frames with no signed angle is under ~5%, and flexion reads positive and extension negative facing both ways.
+- **Dependencies:** M6.1
+- **Systems:** MotionTracking, ExerciseEvaluation
+
+### M6.3 — Camera Setup Assistant
+- **Status:** planned
+- **Objective:** Check the camera placement for each exercise before counting starts, instead of only telling the patient where to put the camera.
+- **Deliverables:** tracker setup checks sent in the packet: the joints the exercise needs are inside the frame with a margin, the body's size in frame (distance), front or side view as the exercise needs, enough landmark confidence (lighting); a short setup step in Unity after get-ready (icons and one line, green when every check passes, skippable); Unity reads `trackingState`; tests.
+- **Completion criteria:** tracker and Unity EditMode tests pass; in Play mode, replayed packets show each failed check's message and the step passes when the checks pass.
+- **Dependencies:** M6.2
+- **Systems:** MotionTracking, VRClinicExperience, SessionOrchestration
+
+### M6.4 — Out-of-Plane Live Limb & Ankle Exercises
+- **Status:** planned
+- **Objective:** Let the live limb show movement that leaves the exercise's plane, keeping the default body and height (amends DEC-021, see DEC-023), and track the ankle (TASK-012).
+- **Deliverables:** a display-only out-of-plane angle from the world landmarks, used by the first-person live limb (target limb and scoring unchanged); an ankle angle from the knee, ankle and foot landmarks; ankle exercises in `LIBRARY` (e.g. seated dorsiflexion/plantarflexion, standing heel raise) with Unity pose geometry; the ankle ORIF and ankle sprain protocols use them (targets are placeholders until TASK-007); tests.
+- **Completion criteria:** server, tracker and Unity EditMode tests pass; the new exercises and the out-of-plane limb work in Play mode with replayed or simulated input.
+- **Dependencies:** M6.2
+- **Systems:** MotionTracking, ExerciseEvaluation, VRClinicExperience
+
+### M6.5 — Webcam Field Test & Tuning
+- **Status:** planned
+- **Objective:** Test the tracking with a real person in front of the laptop webcam, without a headset, and tune it (the no-headset webcam parts of HW.3, moved here 2026-11-05).
+- **Deliverables:** one guided recording session by the human (normal reps per posture, a joint hidden for about a second, stepping out for over 2 s, facing both ways, webcam unplugged and reconnected); thresholds in `tracker/tracking.py` and the setup checks tuned from the replayed recordings; one final live run; findings recorded.
+- **Completion criteria:** with a real person, normal reps give no false pauses, rejected movement or lag; a hidden joint pauses counting with "Move back into view" and an orange limb and then resumes; stepping out over 2 s drops the rep; movement made while hidden never counts; the webcam reconnects; side-view frames with no signed angle are under ~5%; the human confirms.
+- **Dependencies:** M6.1, M6.2, M6.3 (M6.4 for the ankle exercises)
+- **Systems:** MotionTracking, ExerciseEvaluation
+
 ## HW — Hardware Integration & Field Validation (unscheduled)
 
 - **Status:** planned (unscheduled: not yet numbered or placed in the sequence)
@@ -411,6 +474,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 ### HW.3 — Webcam and Headset Concurrent Operation
 - **Status:** planned
 - **Objective:** Check that tracking and VR rendering can share one PC, and that tracking works for a patient wearing a headset.
+- **Note (2026-11-05):** the parts below that need no headset (signed-angle footage check with the headset off, live webcam reconnect, real-webcam safeguard tests and threshold tuning) are done in M6.5; what stays here is repeating them with the headset on and the shared-PC load measurements.
 - **Deliverables:** measurements of headset frame rate, tracker rate and CPU/GPU load with everything running; a real side-view footage check of the signed elevation angles with `tracker/check_signed.py` (moved here from M4.6 verification on 2026-10-25): shoulder and hip extension must read negative and flexion positive, facing both ways, with and without the headset, measuring the share of frames where the facing direction can't be told; tracker accuracy and visibility while the patient wears the headset (the headset can hide the face landmarks used to tell facing direction); front and side camera placement checked for each tracked exercise; live webcam unplug and reconnect test (open from M4.4); the first-person view driven by the real tracker (moved from M5.8 on 2026-11-01); real webcam testing of the tracking safeguards (moved from M5.9 on 2026-11-01): normal reps with no false pauses, rejected movement or lag; a joint hidden for about a second pauses counting with "Move back into view" and an orange limb, then resumes; stepping out mid-rep for over 2 s drops that rep; movement made while hidden never counts; the thresholds in `tracker/tracking.py` tuned from these results.
 - **Completion criteria:** the headset frame rate and tracker rate stay usable during a full session; signed angles have the right sign and the facing direction is missing in under ~5% of frames (at ~20% or more, Unity keeps the last known direction across short gaps), with the headset on and off; posture checks work with the headset on, or a fix is made; camera placement guidance is confirmed or corrected; the tracking safeguards behave as listed above with a real person, or their thresholds are corrected.
 - **Dependencies:** HW.1, HW.2

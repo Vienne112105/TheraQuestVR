@@ -8,6 +8,8 @@ Usage:
   python tracker.py                 # webcam 0, sends to Unity on 127.0.0.1:5005
   python tracker.py --camera 1      # use a second (USB) webcam
   python tracker.py --fake          # no camera: sends simulated angles (tests the Unity link)
+  python tracker.py --record        # also save the landmarks (no images) to recordings/<date-time>.jsonl
+  python tracker.py --replay FILE   # no camera: send a recording to Unity as if it were live (--fast: no waiting)
 
 Press Q in the preview window to quit.
 """
@@ -21,6 +23,7 @@ import sys
 import time
 import urllib.request
 
+import recording
 from tracking import POSE_LOST, POSE_TRACKING, PoseTracker, landmark_confidence
 
 # Pinned model version "1" (not "latest"), so every install runs the same model.
@@ -178,7 +181,30 @@ def run_fake(sock, addr):
         time.sleep(1 / 30)
 
 
-def run_camera(sock, addr, cam_index, model_kind, mirror):
+def run_replay(sock, addr, path, fast):
+    """Send a recording (M6.1) through the same tracking code as the live camera."""
+    header, _ = recording.load(path)
+    print(f"Replaying {path} ({header.get('model')} model, {header['width']}x{header['height']}) "
+          f"to {addr[0]}:{addr[1]}{' as fast as possible' if fast else ''}  (Ctrl+C to stop)")
+    n = 0
+    for _, packet, _ in recording.replay(path, realtime=not fast):
+        send(sock, addr, packet)
+        n += 1
+    print(f"Done: {n} packets sent.")
+
+
+def raw_landmarks(result):
+    """MediaPipe's first pose as plain tuples for a recording: 2D (x, y, visibility, presence) and
+    3D world (x, y, z, visibility, presence); None for each one that is missing."""
+    pose = world = None
+    if result.pose_landmarks:
+        pose = [(l.x, l.y, l.visibility, l.presence) for l in result.pose_landmarks[0]]
+    if getattr(result, "pose_world_landmarks", None):
+        world = [(l.x, l.y, l.z, l.visibility, l.presence) for l in result.pose_world_landmarks[0]]
+    return pose, world
+
+
+def run_camera(sock, addr, cam_index, model_kind, mirror, record_path=None):
     try:
         import cv2
         import mediapipe as mp
@@ -213,6 +239,9 @@ def run_camera(sock, addr, cam_index, model_kind, mirror):
     last_ts = -1
     fps, fps_t, fps_n = 0.0, time.time(), 0
     misses = 0
+    recorder = None
+    if record_path:
+        print(f"Recording landmarks (no images) to {record_path}")
 
     while True:
         ok, frame = cap.read()
@@ -227,6 +256,8 @@ def run_camera(sock, addr, cam_index, model_kind, mirror):
             empty = pose.packet(1, 1)
             empty["ts"] = round(time.time() - t0, 3)
             send(sock, addr, empty)      # tell Unity nobody is tracked while we reconnect
+            if recorder:
+                recorder.camera_lost(empty["ts"])
             cap = reopen_camera(cv2, cap, cam_index)
             if cap is None:
                 break
@@ -245,6 +276,10 @@ def run_camera(sock, addr, cam_index, model_kind, mirror):
             ts = last_ts + 1
         last_ts = ts
         result = landmarker.detect_for_video(image, ts)
+        if record_path:
+            if recorder is None:
+                recorder = recording.Recorder(record_path, w, h, model_kind)
+            recorder.frame(ts / 1000, *raw_landmarks(result))
 
         # Landmark Tracking: trust, smoothing, short-term prediction (tracking.py, DEC-022)
         pts = None
@@ -282,6 +317,9 @@ def run_camera(sock, addr, cam_index, model_kind, mirror):
 
     if cap is not None:
         cap.release()
+    if recorder:
+        recorder.close()
+        print(f"Saved {recorder.frames} frames to {recorder.path}")
     cv2.destroyAllWindows()
 
 
@@ -323,15 +361,28 @@ def main():
                     help="lite = faster, full = more accurate")
     ap.add_argument("--no-mirror", action="store_true", help="don't mirror the preview")
     ap.add_argument("--fake", action="store_true", help="send simulated angles, no camera")
+    ap.add_argument("--record", nargs="?", const="", default=None, metavar="FILE",
+                    help="also save the landmarks (never images) to FILE, default recordings/<date-time>.jsonl")
+    ap.add_argument("--replay", metavar="FILE", help="send a recording instead of using the camera")
+    ap.add_argument("--fast", action="store_true", help="with --replay: send as fast as possible")
     args = ap.parse_args()
+    if args.replay and (args.fake or args.record is not None):
+        ap.error("--replay can't be combined with --fake or --record")
+    record_path = None
+    if args.record is not None:
+        if args.fake:
+            ap.error("--record needs the camera (it saves landmarks, and --fake has none)")
+        record_path = args.record or recording.default_path()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     addr = (args.host, args.port)
     try:
         if args.fake:
             run_fake(sock, addr)
+        elif args.replay:
+            run_replay(sock, addr, args.replay, args.fast)
         else:
-            run_camera(sock, addr, args.camera, args.model, not args.no_mirror)
+            run_camera(sock, addr, args.camera, args.model, not args.no_mirror, record_path)
     except KeyboardInterrupt:
         pass
 

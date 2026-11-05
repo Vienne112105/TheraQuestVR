@@ -14,13 +14,16 @@ last_agent: claude-code
 last_ide: claude-desktop
 
 # ID only — resolve objective/criteria in 50_ROADMAP.md
-current_milestone: null
+current_milestone: M6.2
 
 # Active scene or primary file in focus, if any
 current_scene: Main/TheraQuestVR/unity/Assets/TheraQuest/TheraQuest.unity
 
 # System file basenames under brain/systems/ (without .md) to load on BOOT
-systems_in_scope: []
+systems_in_scope:
+  - MotionTracking
+  - ExerciseEvaluation
+  - VRClinicExperience
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on: []
@@ -42,8 +45,7 @@ known_issues:
   - "Tracking safeguards (M5.9, DEC-022): every threshold in tracker/tracking.py is an untuned starting value; real webcam testing is in HW.3. The only live webcam run (2026-11-01) showed MediaPipe being restarted for a person with legs out of frame (fixed: it now needs no verified joint at all), and two more restarts about 22 s apart afterwards whose cause is unknown (possibly nobody in view). Check in HW.3."
 
 # Blockers requiring human decision or external input
-blocked:
-  - "Next program milestone not chosen: M5 is done; the human decides between the unscheduled hardware milestone HW (needs a Meta Quest headset) and other new work (not defined yet)."
+blocked: []
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-11-05 SHUTDOWN: M5 is DONE. The human moved M5.8's Play-mode check into a new unscheduled hardware child, HW.5 First-Person View Assessment (M5.9's webcam testing was already moved to HW.3), so M5.8 and M5 are done, no milestone is active (current_milestone null) and pending_human_tests is empty. Both are committed on branch m5.8-first-person-view (last commit 86b40f2), not merged into main and not pushed (no remote); merging is the human's call. History: 2026-11-01: the human reopened M5 and asked for a first-person exercise view; built as M5.8 (DEC-021), now TBF. In place: holographic target limb as the threshold plus a live limb from a fixed default body, gold threshold shapes, ghost and Guide Mode removed, still coach in a floating window with arrow and word guide, side mirror and chime for limbs behind the patient, default view height per posture, skippable tutorial every session. EditMode tests 57 pass; agent play-test on the laptop with simulated input passed on all postures, no console errors. Not tested: headset, real webcam with this view. The M5.8 code and Brain changes are committed on branch m5.8-first-person-view, not merged into main; the human approved the commit from the screenshots and summary, and has not reported the Play-mode check as done. Then the human asked for tracking reliability, built as M5.9 (DEC-022), done with its real webcam testing moved to HW.3 at the human's request, and committed on the same branch, not merged into main: tracker/tracking.py gives each landmark a trust state with One Euro smoothing and Kalman prediction; only verified landmarks are measured, estimates go only to the live limb's display; Unity pauses counting with a 'Move back into view' prompt. Tracker and Unity tests pass (66 in Unity); checked with the real model on a screenshot and with UDP packets in Play mode, not with a real person and webcam. TheraQuest.unity holds the human's own uncommitted scene changes: never commit or discard them. NEXT: the human chooses the next milestone; when HW.5 is played, feedback on how the views read is expected, especially lying and side-lying. Next-step options: (1) high-priority backlog TASK-003..TASK-006, (2) research data TASK-007, TASK-008, likely the next milestone, (3) hardware milestone HW once a headset is available, (4) smaller items: source of the five old rep sounds, TASK-001, TASK-002, TASK-009..TASK-012. Agent recommendation: 1 then 2. Repository must stay private (DEC-020)."
+session_summary: "2026-11-05 SHUTDOWN: the human started a new program milestone M6 Camera Tracking Mechanics (webcam only, no headset) with five children M6.1-M6.5 in 50_ROADMAP.md, and decisions DEC-023 (3D world landmarks for facing direction and an out-of-plane, display-only live limb; scoring unchanged; default body and height of DEC-021 kept) and DEC-024 (recordings hold landmarks only, never images, git-ignored in tracker/recordings/). HW.3's no-headset webcam parts moved to M6.5. M6.1 Landmark Record & Replay Harness is DONE: tracker/recording.py (Recorder, load, replay, synthetic), tracker.py --record [FILE] / --replay FILE [--fast], tracker/report.py (tracking states, signed -999 share, pauses, rejected jumps), test_replay.py; tracker tests 71 pass; README and MotionTracking.md updated. Not tested: a recording of a real person. Nothing committed this session (branch m5.8-first-person-view, still not merged into main, no remote). TheraQuest.unity holds the human's own uncommitted scene changes: never commit or discard them. NEXT: M6.2 Facing Direction & Extension Readings: in tracker/angles.py get facing from world landmarks first (nose/ear cross product as fallback, short time-limited hold of the last facing), record world landmarks in PoseTracker/packet path, add a facingSource field, tests; a short real recording of side-on shoulder/hip extension by the human (python tracker.py --record) would let the <5% -999 criterion be checked. Repository must stay private (DEC-020)."

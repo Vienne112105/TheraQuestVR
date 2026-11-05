@@ -39,6 +39,8 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-020 | accepted | 2026-10-28 | The Repository Stays Private; Third-Party Asset Files Are Never Published |
 | DEC-021 | accepted | 2026-11-01 | First-Person Exercise View, Coach Window and Default Height |
 | DEC-022 | accepted | 2026-11-01 | Estimated Landmarks Are Never Measured or Scored |
+| DEC-023 | accepted | 2026-11-05 | 3D World Landmarks for Facing Direction and the Out-of-Plane Live Limb |
+| DEC-024 | accepted | 2026-11-05 | Tracking Recordings Hold Landmarks Only and Stay Local |
 
 ---
 
@@ -215,4 +217,18 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Date:** 2026-11-01
 - **Reason:** The human asked for landmark persistence, smoothing and prediction, occlusion handling, reacquisition and tracking-loss safeguards, and stated that a preserved coordinate is an estimate, not a newly verified position, and must not be read as a correctly detected movement. The Section 3.9 metrics also depend on angles coming only from what the camera really saw (DEC-011).
 - **Impact:** Each landmark has a trust state (`tracked`, `reacquiring`, `unreliable`, `predicted`, `lost`) in `tracker/tracking.py`. Only `tracked` landmarks reach the measured angles; any angle needing another one is -1, so Unity has no reading and pauses counting. Estimates travel only in the new `estL` / `estR` packet fields, drawn by the patient's live limb and nowhere else, and that limb shows orange then. Confidence is the lower of MediaPipe's visibility and presence. Trust returns only after 3 confident frames; a jump faster than is physically plausible is rejected unless several frames agree; an estimate lasts at most 0.5 s, then the landmark's history is dropped. During a gap the evaluator's hold timer stops and the rep's peak stays what was measured; a gap over 2 s drops the open rep without counting an attempt. A One Euro filter smooths verified landmarks, so measured angles are now filtered: the MAE evaluation (TASK-008) measures the filtered angle, which is what the game scores. All thresholds are starting values, not yet tuned on real footage. Posture checks stay lenient as before (a metric that can't be read never breaks a check), because the far shoulder and hip are often hidden in side view.
+- **Supersedes:** none
+
+### DEC-023: 3D World Landmarks for Facing Direction and the Out-of-Plane Live Limb
+- **Status:** accepted
+- **Date:** 2026-11-05
+- **Reason:** The human started M6 (camera tracking mechanics) and chose, for the live limb, to show out-of-plane movement while keeping the default body and height. Side-view extension exercises have no reading whenever the nose and ears can't tell which way the patient faces (signed angle -999), and MediaPipe already gives 3D world landmarks that the tracker ignores.
+- **Impact:** The tracker reads MediaPipe's world landmarks. They decide the facing direction first (the nose/ear test stays as the fallback), and they give a display-only out-of-plane angle for the first-person live limb. Scored angles stay the 2D angles of verified landmarks (DEC-022), so the Section 3.9 metrics are unchanged. DEC-021's fixed default body and per-posture height stay; only its "the live limb always moves in the exercise's plane" no longer holds once M6.4 is done. Packet fields are only added.
+- **Supersedes:** none (amends DEC-021's live-limb sentence)
+
+### DEC-024: Tracking Recordings Hold Landmarks Only and Stay Local
+- **Status:** accepted
+- **Date:** 2026-11-05
+- **Reason:** The human chose a record-and-replay tool so one webcam session can be used to tune and recheck the tracker offline. Video of a patient would be personal data under RA 10173 and is not needed for tuning.
+- **Impact:** `tracker.py --record` saves landmark coordinates, confidences and timestamps per frame, never images. Recordings live in `tracker/recordings/`, which git ignores, and are named by date or patient code only, never by a real name. A recording replays through the same tracking and measuring code as the live camera.
 - **Supersedes:** none

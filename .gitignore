@@ -43,3 +43,6 @@ Main/TheraQuestVR/tracker/*.task.tmp
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Tracker landmark recordings (DEC-024): never committed
+Main/TheraQuestVR/tracker/recordings/

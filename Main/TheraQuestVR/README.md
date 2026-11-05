@@ -63,6 +63,9 @@ cd tracker
 python tracker.py              # built-in webcam
 python tracker.py --camera 1   # USB webcam
 python tracker.py --fake       # no camera: sends simulated reps to Unity (to test the link)
+python tracker.py --record     # also saves the landmarks (never images) to tracker/recordings/<date-time>.jsonl
+python tracker.py --replay recordings/FILE.jsonl [--fast]   # sends a recording to Unity as if it were live
+python report.py recordings/FILE.jsonl                      # tracking-state, signed-angle and pause summary
 ```
 
 A preview window shows your skeleton and the live angles. The first run downloads the pose model (about 6 MB).
