@@ -4,7 +4,7 @@
 Coordinates the patient workout lifecycle: patient profile selection, prescription retrieval, exercise sequencing, inter-set rest intervals, camera guidance, and HTTP session data upload.
 
 ## Status
-`stable` (M5.4 session flow done, human check passed 2026-10-28; M5.8 tutorial and first-person flow waiting on the human check)
+`stable` (M5.4 session flow done, human check passed 2026-10-28; M5.8 tutorial and first-person flow done, its human check moved to HW.5)
 
 ## Responsibilities
 - Manage the rehabilitation session state machine: Idle -> Prescription Fetch -> Tutorial -> Exercise Intro & Camera Placement -> Countdown -> Active Sets -> Rest Countdowns -> Exercise Completion -> Session Upload.
