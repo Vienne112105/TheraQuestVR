@@ -41,6 +41,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-022 | accepted | 2026-11-01 | Estimated Landmarks Are Never Measured or Scored |
 | DEC-023 | accepted | 2026-11-05 | 3D World Landmarks for Facing Direction and the Out-of-Plane Live Limb |
 | DEC-024 | accepted | 2026-11-05 | Tracking Recordings Hold Landmarks Only and Stay Local |
+| DEC-025 | accepted | 2026-11-07 | Landmarks Are Trusted Again After 2 Confident Frames |
 
 ---
 
@@ -225,6 +226,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Reason:** The human started M6 (camera tracking mechanics) and chose, for the live limb, to show out-of-plane movement while keeping the default body and height. Side-view extension exercises have no reading whenever the nose and ears can't tell which way the patient faces (signed angle -999), and MediaPipe already gives 3D world landmarks that the tracker ignores.
 - **Impact:** The tracker reads MediaPipe's world landmarks. They decide the facing direction first (the nose/ear test stays as the fallback), and they give a display-only out-of-plane angle for the first-person live limb. Scored angles stay the 2D angles of verified landmarks (DEC-022), so the Section 3.9 metrics are unchanged. DEC-021's fixed default body and per-posture height stay; only its "the live limb always moves in the exercise's plane" no longer holds once M6.4 is done. Packet fields are only added.
 - **Supersedes:** none (amends DEC-021's live-limb sentence)
+- **Amended 2026-11-07 (DEC-025):** the facing-direction part was not built: real recordings showed the nose/ear test already knows the facing direction in side view (3 of 1,756 side-on frames unknown). World landmarks are still recorded and stay planned for the out-of-plane live limb (M6.4) and the camera setup checks (M6.3).
 
 ### DEC-024: Tracking Recordings Hold Landmarks Only and Stay Local
 - **Status:** accepted
@@ -232,3 +234,10 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Reason:** The human chose a record-and-replay tool so one webcam session can be used to tune and recheck the tracker offline. Video of a patient would be personal data under RA 10173 and is not needed for tuning.
 - **Impact:** `tracker.py --record` saves landmark coordinates, confidences and timestamps per frame, never images. Recordings live in `tracker/recordings/`, which git ignores, and are named by date or patient code only, never by a real name. A recording replays through the same tracking and measuring code as the live camera.
 - **Supersedes:** none
+
+### DEC-025: Landmarks Are Trusted Again After 2 Confident Frames
+- **Status:** accepted
+- **Date:** 2026-11-07
+- **Reason:** M6.2's real recordings showed that missing hip readings in side view came from the knee waiting to be trusted again, not from the facing direction. Replaying a whole-body recording with other settings: 3 frames (DEC-022's starting value) left the hip without a reading in 9.2% of side-on frames, 2 frames 7.1%, 1 frame 4.5%; confidence 0.4 instead of 0.5 gave 4.8-5.1%. Each easing also let more implausible hip angles through on a recording with the legs partly out of frame (76 with 3 frames, 96 with 2, 132 with 1). The human chose 2 frames.
+- **Impact:** `REACQUIRE_FRAMES` in `tracker/tracking.py` is 2: a landmark seen confidently again is measured from its second frame in a row (about 50-70 ms at 30-40 fps). The confidence threshold stays 0.5 and every other DEC-022 rule stands. The hip signed reading is still missing in about 7% of side-on frames; the rest is handled in M6.5 with the other thresholds.
+- **Supersedes:** DEC-022's "Trust returns only after 3 confident frames" (the rest of DEC-022 stands)

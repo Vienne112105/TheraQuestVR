@@ -20,6 +20,7 @@ import math
 import os
 import socket
 import sys
+import threading
 import time
 import urllib.request
 
@@ -42,6 +43,10 @@ MODELS = {
 }
 
 CAMERA_BACKOFF_MAX = 10.0     # seconds between camera reopen attempts (1, 2, 4, 8, 10, 10 ...)
+CAMERA_FPS_REQUEST = 60       # ask for more than needed: the camera gives its highest rate up to this
+DETECT_WIDTH = 640            # MediaPipe scales to 256 px inside anyway; a smaller copy only saves time
+PREVIEW_WIDTH = 960           # the preview window is drawn at most this wide
+GOOD_CAMERA_FPS = 25          # a backend this fast is kept without trying the others
 
 BONES = [(11, 12), (11, 13), (13, 15), (12, 14), (14, 16), (11, 23), (12, 24),
          (23, 24), (23, 25), (25, 27), (24, 26), (26, 28)]
@@ -91,25 +96,54 @@ def is_all_black(frame):
 
 
 def camera_backends(cv2):
-    # DirectShow first on Windows; Media Foundation as a fallback, because some
-    # virtual cameras (DroidCam Video) only open through it.
+    # DirectShow first on Windows; Media Foundation as well, because some virtual cameras (DroidCam Video)
+    # only open through it, and some webcams only send compressed (fast) video through it.
     return (cv2.CAP_DSHOW, cv2.CAP_MSMF) if os.name == "nt" else (cv2.CAP_ANY,)
 
 
-def open_camera(cv2, cam_index):
-    *fallbacks, last = camera_backends(cv2)
-    for backend in fallbacks:
+def measure_fps(cap, frames=15, skip=5, clock=time.perf_counter):
+    """Frames per second a capture really delivers (the camera's own reported rate is often wrong).
+    The first `skip` frames are read and dropped: they may be waiting in a buffer and come at once."""
+    for _ in range(skip):
+        cap.read()
+    start, got = clock(), 0
+    for _ in range(frames):
+        ok, _ = cap.read()
+        got += bool(ok)
+    elapsed = clock() - start
+    return got / elapsed if elapsed > 0 else float("inf")
+
+
+def open_camera(cv2, cam_index, rate=measure_fps):
+    """Open the camera through the backend that gives the most frames per second. The same webcam can send
+    13 fps of raw video through DirectShow and 30 fps of compressed video through Media Foundation."""
+    backends = camera_backends(cv2)
+    best, best_fps, cap = None, -1.0, None
+    for backend in backends:
         cap = open_with_backend(cv2, cam_index, backend)
-        if cap.isOpened():
+        if not cap.isOpened():
+            if backend != backends[-1] or best is not None:
+                cap.release()
+            continue
+        if len(backends) == 1:
             return cap
-        cap.release()
-    return open_with_backend(cv2, cam_index, last)
+        fps = rate(cap)
+        if fps > best_fps:
+            if best is not None:
+                best.release()
+            best, best_fps = cap, fps
+        else:
+            cap.release()
+        if best_fps >= GOOD_CAMERA_FPS:
+            break
+    return best if best is not None else cap
 
 
 def open_with_backend(cv2, cam_index, backend):
     cap = cv2.VideoCapture(cam_index, backend)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS_REQUEST)
     if not cap.isOpened():
         return cap
     # Some webcams accept a size request and then send only black frames. If about
@@ -153,6 +187,61 @@ def reopen_camera(cv2, cap, cam_index, sleep=wait_keep_responsive):
                 return cap
         cap.release()
         delay = min(delay * 2, CAMERA_BACKOFF_MAX)
+
+
+class FrameGrabber:
+    """Reads the camera on its own thread and keeps only the newest frame, so a slow detection step
+    never makes the loop wait for the camera (or work on an old, buffered frame)."""
+
+    def __init__(self, cap):
+        self.cap = cap
+        self._lock = threading.Condition()
+        self._frame, self._ok, self._seq, self._taken = None, True, 0, 0
+        self._running = True
+        self._times = []
+        self._thread = threading.Thread(target=self._loop, daemon=True)
+        self._thread.start()
+
+    def _loop(self):
+        while self._running:
+            ok, frame = self.cap.read()
+            with self._lock:
+                self._ok, self._seq = ok, self._seq + 1
+                if ok:
+                    self._frame = frame
+                    self._times = (self._times + [time.time()])[-31:]
+                self._lock.notify_all()
+            if not ok:
+                time.sleep(0.02)
+
+    def read(self, timeout=1.0):
+        """(ok, frame): the next frame not handed out yet; (False, None) on a failed read or a timeout."""
+        with self._lock:
+            if not self._lock.wait_for(lambda: self._seq > self._taken, timeout):
+                return False, None
+            self._taken = self._seq
+            return (True, self._frame) if self._ok else (False, None)
+
+    @property
+    def fps(self):
+        """Frames per second the camera is delivering (last ~30 frames)."""
+        with self._lock:
+            t = self._times
+            return (len(t) - 1) / (t[-1] - t[0]) if len(t) > 1 and t[-1] > t[0] else 0.0
+
+    def stop(self):
+        """Stop reading; the capture itself stays open (the caller releases or reopens it)."""
+        self._running = False
+        self._thread.join(timeout=2.0)
+        return self.cap
+
+
+def detection_frame(cv2, frame):
+    """A copy at most DETECT_WIDTH wide for MediaPipe; landmarks are 0..1, so they still fit the full frame."""
+    h, w = frame.shape[:2]
+    if w <= DETECT_WIDTH:
+        return frame
+    return cv2.resize(frame, (DETECT_WIDTH, round(h * DETECT_WIDTH / w)), interpolation=cv2.INTER_AREA)
 
 
 def send(sock, addr, packet):
@@ -205,6 +294,8 @@ def raw_landmarks(result):
 
 
 def run_camera(sock, addr, cam_index, model_kind, mirror, record_path=None):
+    # Media Foundation's hardware transforms can take ~30 s to open a webcam; without them it takes ~2 s.
+    os.environ.setdefault("OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS", "0")
     try:
         import cv2
         import mediapipe as mp
@@ -234,6 +325,9 @@ def run_camera(sock, addr, cam_index, model_kind, mirror, record_path=None):
     if not cap.isOpened():
         sys.exit(f"Could not open camera {cam_index}. Try --camera 1, or close other apps using the webcam.")
 
+    print(f"Camera {cam_index}: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))} "
+          f"through {cap.getBackendName()} (the preview shows the live frame rates)")
+    grabber = FrameGrabber(cap)
     print(f"Tracking. Sending to Unity at {addr[0]}:{addr[1]}. Press Q in the window to quit.")
     t0 = time.time()
     last_ts = -1
@@ -244,7 +338,7 @@ def run_camera(sock, addr, cam_index, model_kind, mirror, record_path=None):
         print(f"Recording landmarks (no images) to {record_path}")
 
     while True:
-        ok, frame = cap.read()
+        ok, frame = grabber.read()
         if not ok:
             # A few dropped frames are normal; a run of them means the camera is gone.
             misses += 1
@@ -258,16 +352,18 @@ def run_camera(sock, addr, cam_index, model_kind, mirror, record_path=None):
             send(sock, addr, empty)      # tell Unity nobody is tracked while we reconnect
             if recorder:
                 recorder.camera_lost(empty["ts"])
-            cap = reopen_camera(cv2, cap, cam_index)
+            cap = reopen_camera(cv2, grabber.stop(), cam_index)
             if cap is None:
+                grabber = None
                 break
+            grabber = FrameGrabber(cap)
             misses = 0
             continue
         misses = 0
         h, w = frame.shape[:2]
 
         # Frame Preprocessor: BGR -> RGB (MediaPipe expects RGB)
-        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        rgb = cv2.cvtColor(detection_frame(cv2, frame), cv2.COLOR_BGR2RGB)
         image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
 
         # Pose Estimator (timestamps must strictly increase)
@@ -310,13 +406,16 @@ def run_camera(sock, addr, cam_index, model_kind, mirror, record_path=None):
         fps_n += 1
         if time.time() - fps_t >= 1:
             fps, fps_t, fps_n = fps_n / (time.time() - fps_t), time.time(), 0
-        cv2.putText(frame, f"{fps:.0f} fps", (w - 110, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 2)
+        cv2.putText(frame, f"{fps:.0f} fps (camera {grabber.fps:.0f})", (w - 290, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                    (200, 200, 200), 2)
+        if w > PREVIEW_WIDTH:
+            frame = cv2.resize(frame, (PREVIEW_WIDTH, round(h * PREVIEW_WIDTH / w)), interpolation=cv2.INTER_AREA)
         cv2.imshow("TheraQuest tracker (Q to quit)", frame)
         if cv2.waitKey(1) & 0xFF in (ord("q"), ord("Q")):
             break
 
-    if cap is not None:
-        cap.release()
+    if grabber is not None:
+        grabber.stop().release()
     if recorder:
         recorder.close()
         print(f"Saved {recorder.frames} frames to {recorder.path}")

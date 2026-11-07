@@ -34,7 +34,7 @@ TRACKED, REACQUIRING, UNRELIABLE, PREDICTED, LOST = "tracked", "reacquiring", "u
 HIGH_CONFIDENCE = MIN_VISIBILITY   # at or above: use the detection
 LOW_CONFIDENCE = 0.2               # below: treat the landmark as missing
 HOLD_SECONDS = 0.5                 # how long an estimate may stand in for a landmark
-REACQUIRE_FRAMES = 3               # confident frames in a row before a landmark is trusted again
+REACQUIRE_FRAMES = 2               # confident frames in a row before a landmark is trusted again (DEC-025)
 HISTORY_FRAMES = 15                # motion history kept per landmark
 
 MAX_SPEED = 4.0                    # image widths or heights per second; faster is not a real movement

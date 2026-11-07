@@ -56,8 +56,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M5.9 | M5 | done | Tracking Reliability & Loss Safeguards |
 | M6 | — | active | Camera Tracking Mechanics |
 | M6.1 | M6 | done | Landmark Record & Replay Harness |
-| M6.2 | M6 | active | Facing Direction & Extension Readings |
-| M6.3 | M6 | planned | Camera Setup Assistant |
+| M6.2 | M6 | done | Facing Direction & Extension Readings |
+| M6.3 | M6 | active | Camera Setup Assistant |
 | M6.4 | M6 | planned | Out-of-Plane Live Limb & Ankle Exercises |
 | M6.5 | M6 | planned | Webcam Field Test & Tuning |
 | HW | — | planned | Hardware Integration & Field Validation |
@@ -406,15 +406,19 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** MotionTracking
 
 ### M6.2 — Facing Direction & Extension Readings
-- **Status:** active
+- **Status:** done
 - **Objective:** Give shoulder and hip extension a reading when the face can't be seen, by telling which way the patient faces from MediaPipe's 3D world landmarks (DEC-023).
 - **Deliverables:** facing direction from the world landmarks first, the current nose/ear test as fallback, and a short, time-limited hold of the last known direction; packet fields only added (e.g. the facing source), -999 still sent when nothing is known; tests.
 - **Completion criteria:** tracker tests pass; on real recordings the share of side-view frames with no signed angle is under ~5%, and flexion reads positive and extension negative facing both ways.
+- **Amended 2026-11-07 by the human (slim M6.2, DEC-025):** the recordings showed the facing direction is not the problem, so the world-landmark facing test, the nose fallback and the facing hold were not built (the signed angle needs the shoulder-hip trunk line anyway, so no facing test can help when the hips are hidden). Instead the knee re-trust delay was tuned: `REACQUIRE_FRAMES` 3 -> 2. The human accepted closing M6.2 with the hip above the ~5% target; the remaining hip gap (MediaPipe's low knee confidence) moves to M6.5.
+- **Findings so far (2026-11-06, real recording on the laptop webcam, 126 s, 37 fps):** shoulder: in truly side-on frames (shoulder width under 8% of the image) the current nose/ear test leaves only 2.4% with no signed angle; the 13.2% overall comes from frames where the patient faces or turns toward the camera. Flexion read up to about +88° and extension to about -60° facing both ways. A nose-ahead-of-the-shoulders test (2D or world) is undecided in only 0.2-1.1% of side-on frames and needs no hip. Hip: not measurable, because knees and ankles were in frame in only 11-14% of frames (camera framing). Camera fixes made for this (tracker.py): capture on its own thread, detection on a 640-px copy, the fastest backend chosen per camera (camera 0 gave 13 fps through DirectShow and 60 through Media Foundation), Media Foundation hardware transforms off (opening fell from ~30 s to ~2 s).
+- **Findings (2026-11-06, second real recording, whole body side-on, 138 s, 39 fps, 95% tracking):** shoulder signed angle missing in 3.1% of all frames; hip in 8.3% overall and 9.2% of side-on frames, with sane values (about -24° extension to +75° flexion). Of the 161 side-on frames without a hip reading, 158 are the knee (or hip) not verified and only 3 are an unknown facing direction: half of those knee frames are confident detections still waiting the 3 frames of `REACQUIRE_FRAMES`, the rest are MediaPipe confidence 0.2-0.5. So the hip target depends on knee tracking (tuning in M6.5), not on facing. A separate hip-only recording with the legs half out of frame (ankles in frame 33%) gave wild hip values (±180°) and 4,858 rejected jumps: legs cut off by the frame give unusable hip angles, which M6.3 must catch.
+- **Result (2026-11-07):** with `REACQUIRE_FRAMES` 2, on the whole-body recording: shoulder signed angle missing in 3.0% of frames (met), hip in 7.2% overall and 7.1% side-on (was 9.2%; above the ~5% target, accepted), 95.4% tracking; signs correct facing both ways. On the cut-off-legs recording this lets about 26% more implausible hip angles (over 120 degrees) through than 3 frames did (96 vs 76 of about 2,900 readings); they come from leg mis-detections, mostly with knee and ankle in frame. Also tried: re-trust after 1 frame (hip 4.5%, 132 implausible) and confidence 0.4 (hip 4.8-5.1%, 91-106 implausible), rejected as weakening DEC-022. Tracker tests 77 pass. Camera fixes in `tracker.py`, made while recording: capture on its own thread, detection on a 640-px copy, the fastest camera backend chosen by measured frame rate, Media Foundation hardware transforms off. Note: recordings hold no images (DEC-024), so a different pose model (e.g. `full`) can only be compared live, not on a recording.
 - **Dependencies:** M6.1
 - **Systems:** MotionTracking, ExerciseEvaluation
 
 ### M6.3 — Camera Setup Assistant
-- **Status:** planned
+- **Status:** active
 - **Objective:** Check the camera placement for each exercise before counting starts, instead of only telling the patient where to put the camera.
 - **Deliverables:** tracker setup checks sent in the packet: the joints the exercise needs are inside the frame with a margin, the body's size in frame (distance), front or side view as the exercise needs, enough landmark confidence (lighting); a short setup step in Unity after get-ready (icons and one line, green when every check passes, skippable); Unity reads `trackingState`; tests.
 - **Completion criteria:** tracker and Unity EditMode tests pass; in Play mode, replayed packets show each failed check's message and the step passes when the checks pass.
@@ -433,6 +437,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Status:** planned
 - **Objective:** Test the tracking with a real person in front of the laptop webcam, without a headset, and tune it (the no-headset webcam parts of HW.3, moved here 2026-11-05).
 - **Deliverables:** one guided recording session by the human (normal reps per posture, a joint hidden for about a second, stepping out for over 2 s, facing both ways, webcam unplugged and reconnected); thresholds in `tracker/tracking.py` and the setup checks tuned from the replayed recordings; one final live run; findings recorded.
+- **Added 2026-11-07 (from M6.2):** knee tracking for hip readings: the hip signed angle was still missing in ~7% of side-on frames, mostly MediaPipe knee confidence 0.2-0.5; try the `full` model live and decide whether the hip can reach ~5% without letting implausible angles through. Also look at implausible hip angles (over 120 degrees) from leg mis-detections.
 - **Completion criteria:** with a real person, normal reps give no false pauses, rejected movement or lag; a hidden joint pauses counting with "Move back into view" and an orange limb and then resumes; stepping out over 2 s drops the rep; movement made while hidden never counts; the webcam reconnects; side-view frames with no signed angle are under ~5%; the human confirms.
 - **Dependencies:** M6.1, M6.2, M6.3 (M6.4 for the ankle exercises)
 - **Systems:** MotionTracking, ExerciseEvaluation

@@ -5,7 +5,7 @@
 schema_version: 2
 
 # ISO date of last SHUTDOWN update (YYYY-MM-DD)
-last_updated: 2026-11-05
+last_updated: 2026-11-07
 
 # Who last wrote this file (e.g. cursor-agent, agy-agent, agency:unity-specialist)
 last_agent: claude-code
@@ -14,7 +14,7 @@ last_agent: claude-code
 last_ide: claude-desktop
 
 # ID only — resolve objective/criteria in 50_ROADMAP.md
-current_milestone: M6.2
+current_milestone: M6.3
 
 # Active scene or primary file in focus, if any
 current_scene: Main/TheraQuestVR/unity/Assets/TheraQuest/TheraQuest.unity
@@ -22,8 +22,8 @@ current_scene: Main/TheraQuestVR/unity/Assets/TheraQuest/TheraQuest.unity
 # System file basenames under brain/systems/ (without .md) to load on BOOT
 systems_in_scope:
   - MotionTracking
-  - ExerciseEvaluation
   - VRClinicExperience
+  - SessionOrchestration
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on: []
@@ -48,4 +48,4 @@ known_issues:
 blocked: []
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-11-05 SHUTDOWN: the human started a new program milestone M6 Camera Tracking Mechanics (webcam only, no headset) with five children M6.1-M6.5 in 50_ROADMAP.md, and decisions DEC-023 (3D world landmarks for facing direction and an out-of-plane, display-only live limb; scoring unchanged; default body and height of DEC-021 kept) and DEC-024 (recordings hold landmarks only, never images, git-ignored in tracker/recordings/). HW.3's no-headset webcam parts moved to M6.5. M6.1 Landmark Record & Replay Harness is DONE: tracker/recording.py (Recorder, load, replay, synthetic), tracker.py --record [FILE] / --replay FILE [--fast], tracker/report.py (tracking states, signed -999 share, pauses, rejected jumps), test_replay.py; tracker tests 71 pass; README and MotionTracking.md updated. Not tested: a recording of a real person. Nothing committed this session (branch m5.8-first-person-view, still not merged into main, no remote). TheraQuest.unity holds the human's own uncommitted scene changes: never commit or discard them. NEXT: M6.2 Facing Direction & Extension Readings: in tracker/angles.py get facing from world landmarks first (nose/ear cross product as fallback, short time-limited hold of the last facing), record world landmarks in PoseTracker/packet path, add a facingSource field, tests; a short real recording of side-on shoulder/hip extension by the human (python tracker.py --record) would let the <5% -999 criterion be checked. Repository must stay private (DEC-020)."
+session_summary: "2026-11-07 SHUTDOWN: M6 Camera Tracking Mechanics is active (webcam only, no headset; children M6.1-M6.5 in 50_ROADMAP.md). M6.1 (record/replay: tracker.py --record/--replay, recording.py, report.py) done. M6.2 DONE (slim, the human's choice): two real recordings by the human in tracker/recordings/ (git-ignored, landmarks only, DEC-024): m6-2-side-extension.jsonl (whole body side-on, good) and m6-2-hip-extension.jsonl (legs partly out of frame, bad). The facing direction proved reliable (3 of 1,756 side-on frames unknown), so no new facing test was built (DEC-023 amended); REACQUIRE_FRAMES 3 -> 2 (DEC-025): shoulder signed missing 3.0%, hip 7.1% side-on (accepted above the ~5% target; the knee gap moved to M6.5, including trying the full model live). Camera fixes in tracker.py: threaded capture, detection on a 640-px copy, fastest backend chosen by measured fps (laptop camera 0: 13 fps via DirectShow, 60 via Media Foundation), Media Foundation hardware transforms off (open ~30 s -> ~2 s); live rate now ~25-39 fps. Tracker tests 77 pass. All committed on branch m5.8-first-person-view, not merged into main, no remote. TheraQuest.unity holds the human's own uncommitted scene changes: never commit or discard them. NEXT: M6.3 Camera Setup Assistant: tracker setup checks in the packet (needed joints in frame with a margin, body size for distance, front or side view, confidence for lighting), a short Unity setup step after get-ready (icons and one line, skippable), Unity reads trackingState. Use both recordings to test the checks: legs cut off by the frame give implausible hip angles. Repository must stay private (DEC-020)."

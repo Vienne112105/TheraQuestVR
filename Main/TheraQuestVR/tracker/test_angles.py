@@ -344,6 +344,32 @@ class TrackerHelperTests(unittest.TestCase):
         self.assertEqual([c.args[1] for c in cv2.VideoCapture.call_args_list], [700, 1400])
         caps[0].release.assert_called_once()
 
+    def test_faster_backend_is_chosen(self):
+        cv2, caps = self._fake_cv2([True, True])
+        for c in caps:
+            c.read.return_value = (True, np.full((720, 1280, 3), 90, np.uint8))
+        speeds = {id(caps[0]): 13.0, id(caps[1]): 29.0}
+        with mock.patch.object(self.tracker, "camera_backends", lambda _cv2: (700, 1400)):
+            self.assertIs(self.tracker.open_camera(cv2, 0, rate=lambda c: speeds[id(c)]), caps[1])
+        caps[0].release.assert_called_once()
+        caps[1].release.assert_not_called()
+
+    def test_fast_first_backend_skips_the_rest(self):
+        cv2, caps = self._fake_cv2([True, True])
+        caps[0].read.return_value = (True, np.full((720, 1280, 3), 90, np.uint8))
+        with mock.patch.object(self.tracker, "camera_backends", lambda _cv2: (700, 1400)):
+            self.assertIs(self.tracker.open_camera(cv2, 0, rate=lambda c: 30.0), caps[0])
+        self.assertEqual(cv2.VideoCapture.call_count, 1)
+
+    def test_slower_second_backend_is_released(self):
+        cv2, caps = self._fake_cv2([True, True])
+        for c in caps:
+            c.read.return_value = (True, np.full((720, 1280, 3), 90, np.uint8))
+        speeds = {id(caps[0]): 20.0, id(caps[1]): 10.0}
+        with mock.patch.object(self.tracker, "camera_backends", lambda _cv2: (700, 1400)):
+            self.assertIs(self.tracker.open_camera(cv2, 0, rate=lambda c: speeds[id(c)]), caps[0])
+        caps[1].release.assert_called_once()
+
     def test_reopen_camera_quit_while_waiting(self):
         cv2, _ = self._fake_cv2([False])
         self.assertIsNone(self.tracker.reopen_camera(cv2, mock.Mock(), 0, sleep=lambda _c, _s: True))
@@ -353,6 +379,54 @@ class TrackerHelperTests(unittest.TestCase):
         cv2.waitKey.side_effect = [-1, -1, ord("q")]
         self.assertTrue(self.tracker.wait_keep_responsive(cv2, 5))
         self.assertEqual(cv2.waitKey.call_count, 3)
+
+
+class CaptureTests(unittest.TestCase):
+    """Threaded camera reading and the smaller detection copy (no real camera needed)."""
+
+    def setUp(self):
+        import tracker
+        self.tracker = tracker
+
+    def test_grabber_hands_out_each_new_frame_once(self):
+        import time as _time
+        import numpy as np
+
+        class Cap:
+            n = 0
+
+            def read(self):
+                _time.sleep(0.01)
+                Cap.n += 1
+                return True, np.full((4, 4), Cap.n % 255, np.uint8)
+
+        g = self.tracker.FrameGrabber(Cap())
+        try:
+            ok1, f1 = g.read()
+            ok2, f2 = g.read()
+            self.assertTrue(ok1 and ok2)
+            self.assertNotEqual(int(f1[0, 0]), int(f2[0, 0]))
+        finally:
+            g.stop()
+
+    def test_grabber_reports_a_failed_camera(self):
+        class Dead:
+            def read(self):
+                return False, None
+
+        g = self.tracker.FrameGrabber(Dead())
+        try:
+            self.assertEqual(g.read(), (False, None))
+        finally:
+            g.stop()
+
+    def test_detection_copy_is_at_most_detect_width(self):
+        import cv2
+        import numpy as np
+        small = self.tracker.detection_frame(cv2, np.zeros((720, 1280, 3), np.uint8))
+        self.assertEqual(small.shape[:2], (360, self.tracker.DETECT_WIDTH))
+        frame = np.zeros((480, 640, 3), np.uint8)
+        self.assertIs(self.tracker.detection_frame(cv2, frame), frame)
 
 
 if __name__ == "__main__":
