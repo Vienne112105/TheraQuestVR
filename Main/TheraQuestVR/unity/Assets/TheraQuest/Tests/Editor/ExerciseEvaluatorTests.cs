@@ -827,4 +827,77 @@ namespace TheraQuest.Tests
             Assert.LessOrEqual(peak, 0.9001f);
         }
     }
+
+    /// <summary>M6.3: the camera setup check before each exercise.</summary>
+    public class CameraSetupTests
+    {
+        const string Good = "\"valid\":true,\"framedL\":{\"shoulderElev\":true,\"hipElev\":true,\"kneeFlex\":true}," +
+                            "\"framedR\":{\"shoulderElev\":true,\"hipElev\":true,\"kneeFlex\":false},";
+
+        static MotionPacket Packet(string setup, bool visible = true, string state = "tracking") =>
+            JsonUtility.FromJson<MotionPacket>($"{{\"visible\":{(visible ? "true" : "false")},\"trackingState\":\"{state}\"," +
+                                               $"\"setup\":{{{setup}}}}}");
+
+        static ExerciseDef Ex(string measure = "shoulderElev", string view = "side", string side = "", string posture = "standing") =>
+            new ExerciseDef { measure = measure, view = view, side = side, posture = posture };
+
+        static SetupIssue Issue(ExerciseDef ex, MotionPacket p, bool receiving = true) => CameraSetup.Check(ex, p, receiving).issue;
+
+        [Test]
+        public void AllGoodWhenFramedAtTheRightDistanceAndView()
+        {
+            var p = Packet(Good + "\"view\":\"side\",\"size\":0.3,\"light\":0.95");
+            Assert.AreEqual(SetupIssue.None, Issue(Ex(), p));
+        }
+
+        [Test]
+        public void NoTrackerAndNobodyInViewComeFirst()
+        {
+            Assert.AreEqual(SetupIssue.NoTracker, Issue(Ex(), null, false));
+            Assert.AreEqual(SetupIssue.NotInView, Issue(Ex(), Packet(Good + "\"view\":\"side\",\"size\":0.3,\"light\":0.9", state: "lost")));
+            Assert.AreEqual(SetupIssue.NotInView, Issue(Ex(), JsonUtility.FromJson<MotionPacket>("{\"visible\":true}")), "older tracker, no setup");
+        }
+
+        [Test]
+        public void TheExercisesOwnLimbMustBeInFrame()
+        {
+            var p = Packet(Good + "\"view\":\"side\",\"size\":0.3,\"light\":0.9");
+            Assert.AreEqual(SetupIssue.OutOfFrame, Issue(Ex("kneeFlex", side: "R"), p), "right ankle out of frame");
+            Assert.AreEqual(SetupIssue.None, Issue(Ex("kneeFlex", side: "L"), p));
+            Assert.AreEqual(SetupIssue.None, Issue(Ex("kneeFlex"), p), "either side will do");
+            StringAssert.Contains("leg", CameraSetup.Check(Ex("kneeFlex", side: "R"), p, true).message);
+        }
+
+        [Test]
+        public void DistanceIsCheckedOnlyWhenUpright()
+        {
+            var close = Packet(Good + "\"view\":\"side\",\"size\":0.5,\"light\":0.9");
+            Assert.AreEqual(SetupIssue.TooClose, Issue(Ex(), close));
+            Assert.AreEqual(SetupIssue.None, Issue(Ex(posture: "lying"), close));
+            Assert.AreEqual(SetupIssue.TooFar, Issue(Ex(), Packet(Good + "\"view\":\"side\",\"size\":0.08,\"light\":0.9")));
+        }
+
+        [Test]
+        public void ViewMustMatchTheExercise()
+        {
+            var front = Packet(Good + "\"view\":\"front\",\"size\":0.3,\"light\":0.9");
+            Assert.AreEqual(SetupIssue.WrongView, Issue(Ex(view: "side"), front));
+            Assert.AreEqual(SetupIssue.None, Issue(Ex(view: "front"), front));
+            Assert.AreEqual(SetupIssue.WrongView, Issue(Ex(view: "front"), Packet(Good + "\"view\":\"\",\"size\":0.3,\"light\":0.9")));
+        }
+
+        [Test]
+        public void PoorLightIsReportedLast()
+        {
+            Assert.AreEqual(SetupIssue.PoorLight, Issue(Ex(), Packet(Good + "\"view\":\"side\",\"size\":0.3,\"light\":0.4")));
+        }
+
+        [Test]
+        public void PersonLostFollowsTheTrackingState()
+        {
+            Assert.IsTrue(JsonUtility.FromJson<MotionPacket>("{\"visible\":true,\"trackingState\":\"lost\"}").PersonLost);
+            Assert.IsTrue(JsonUtility.FromJson<MotionPacket>("{\"visible\":false}").PersonLost);
+            Assert.IsFalse(JsonUtility.FromJson<MotionPacket>("{\"visible\":true,\"trackingState\":\"degraded\"}").PersonLost);
+        }
+    }
 }

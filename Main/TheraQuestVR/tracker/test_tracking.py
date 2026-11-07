@@ -293,5 +293,53 @@ class ConfidenceTests(unittest.TestCase):
         self.assertEqual(landmark_confidence(None, None), 1.0)
 
 
+class SetupTests(unittest.TestCase):
+    """Camera setup checks (M6.3): computed from the raw detection, sent as packet["setup"]."""
+
+    def pose_with(self, changes=None, conf=0.99):
+        pts = normalise(base_pose())                     # standing, facing the camera, whole body in frame
+        pts = [(x, y, conf if v > 0 else 0.0) for x, y, v in pts]
+        for i, xy in (changes or {}).items():
+            pts[i] = (xy[0], xy[1], pts[i][2])
+        tracker = PoseTracker()
+        tracker.update(pts, 0.0)
+        return tracker
+
+    def test_nobody_detected_has_no_setup(self):
+        tracker = PoseTracker()
+        tracker.update(None, 0.0)
+        self.assertNotIn("setup", tracker.packet(W, H))
+
+    def test_whole_body_in_frame_facing_camera(self):
+        s = self.pose_with().packet(W, H)["setup"]
+        self.assertTrue(all(s["framedL"].values()) and all(s["framedR"].values()))
+        self.assertEqual(s["view"], "front")
+        self.assertAlmostEqual(s["size"], 140 / H, places=3)
+        self.assertGreater(s["light"], 0.9)
+
+    def test_ankle_below_the_image_is_not_framed(self):
+        s = self.pose_with({27: (360 / W, 1.08)}).packet(W, H)["setup"]
+        self.assertFalse(s["framedL"]["kneeFlex"])
+        self.assertTrue(s["framedL"]["hipElev"])           # the hip angle doesn't need the ankle
+        self.assertTrue(s["framedR"]["kneeFlex"])
+
+    def test_side_on_is_side_view(self):
+        s = self.pose_with({11: (322 / W, 160 / H), 12: (318 / W, 160 / H)}).packet(W, H)["setup"]
+        self.assertEqual(s["view"], "side")
+
+    def test_turned_part_way_is_no_view(self):
+        s = self.pose_with({11: (340 / W, 160 / H), 12: (280 / W, 160 / H)}).packet(W, H)["setup"]
+        self.assertEqual(s["view"], "")                    # 60 / 140 px: between side and front
+
+    def test_low_confidence_shows_as_poor_light(self):
+        s = self.pose_with(conf=0.3).packet(W, H)["setup"]
+        self.assertLess(s["light"], 0.5)
+
+    def test_setup_never_changes_measured_angles(self):
+        tracker = self.pose_with({27: (360 / W, 1.08)})
+        packet = tracker.packet(W, H)
+        self.assertEqual(packet["trackingState"], POSE_REACQUIRING)   # one frame: nothing verified yet
+        self.assertEqual(packet["L"]["kneeFlex"], -1)
+
 if __name__ == "__main__":
     unittest.main()

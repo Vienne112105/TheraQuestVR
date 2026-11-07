@@ -415,7 +415,7 @@ namespace TheraQuest
                     Subtitles.Say("3, 2, 1, go!", 3f, "Countdown beeps");
                 }
                 else hud.SetFeedback($"Exercise {index + 1} of {evaluators.Count}: <b>{ex.name}</b>\nGet ready: {ex.position}\n" +
-                                     $"<size=34>Camera {ex.CameraText} · press {Keys.Start} when ready</size>", Tone.Neutral);
+                                     $"<size=34>{SetupLine(ex)} · press {Keys.Start} when ready</size>", Tone.Neutral);
                 return;
             }
             var ev = CurrentEval;
@@ -440,7 +440,10 @@ namespace TheraQuest
             if (!motion.HasReading && !ev.Resting)
             {
                 repMessageTimer = 0f;   // counting has paused: this always shows right away
-                hud.SetFeedback($"Move back into view\n<size=34>Your {ex.joint.ToLower()} is hidden. Counting is paused</size>", Tone.Warn);
+                var latest = receiver != null ? receiver.Latest : null;
+                hud.SetFeedback(latest != null && latest.PersonLost
+                    ? "Step into the camera's view\n<size=34>Counting is paused</size>"
+                    : $"Move back into view\n<size=34>Your {ex.joint.ToLower()} is hidden. Counting is paused</size>", Tone.Warn);
             }
             else if (repMessageTimer > 0f) repMessageTimer -= dt;
             else
@@ -448,6 +451,19 @@ namespace TheraQuest
                 var (msg, tone) = FeedbackManager.LiveMessage(ev, motion.Fault);
                 hud.SetFeedback(msg, tone);
             }
+        }
+
+        /// <summary>
+        /// Get-ready camera line (M6.3): with the webcam, whether the camera is placed right for this exercise and, if
+        /// not, the one thing to fix first. Start still works, so a patient is never stuck on it.
+        /// </summary>
+        string SetupLine(ExerciseDef ex)
+        {
+            if (motion.source != InputSource.Webcam) return $"Camera {ex.CameraText}";
+            var (issue, message) = CameraSetup.Check(ex, receiver != null ? receiver.Latest : null,
+                                                     receiver != null && receiver.IsReceiving);
+            return issue == SetupIssue.None ? $"<color={UIKit.HexGood}>●</color> {message}"
+                                            : $"<color={UIKit.HexWarn}>●</color> {message} (camera {ex.CameraText})";
         }
 
         void UpdateSourceText()

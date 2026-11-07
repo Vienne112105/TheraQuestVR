@@ -38,6 +38,38 @@ namespace TheraQuest
         }
     }
 
+    /// <summary>Per measured angle: every landmark it needs is detected and inside the image (M6.3).</summary>
+    [Serializable]
+    public class FramedSet
+    {
+        public bool shoulderElev, elbowFlex, hipElev, kneeFlex, kneeExt;
+
+        public bool Get(string measure)
+        {
+            switch (measure)
+            {
+                case "shoulderElev": return shoulderElev;
+                case "elbowFlex": return elbowFlex;
+                case "hipElev": return hipElev;
+                case "kneeFlex": return kneeFlex;
+                case "kneeExt": return kneeExt;
+                default: return false;
+            }
+        }
+    }
+
+    /// <summary>Camera setup checks from the tracker's raw detection (M6.3). Guidance only, never scored.</summary>
+    [Serializable]
+    public class SetupInfo
+    {
+        public bool valid;              // false: the tracker sent no setup checks (nobody detected, or an older tracker)
+        public FramedSet framedL = new FramedSet();
+        public FramedSet framedR = new FramedSet();
+        public string view;             // side | front | "" (turned part way, or can't tell)
+        public float size = -1f;        // torso length / image height: bigger = closer
+        public float light;             // median landmark confidence 0..1: low in poor light
+    }
+
     /// <summary>Top-level angles come from whichever side the camera sees best; L and R hold each side.</summary>
     [Serializable]
     public class MotionPacket : AngleSet
@@ -52,6 +84,10 @@ namespace TheraQuest
         public AngleSet estR;
         public AngleSet L = new AngleSet();
         public AngleSet R = new AngleSet();
+        public SetupInfo setup;
+
+        /// <summary>Nobody is in the camera's view (DEC-022 whole-pose state "lost", or no person at all).</summary>
+        public bool PersonLost => !visible || trackingState == "lost";
 
         /// <param name="operatedSide">"L", "R", or "" for the best-seen side</param>
         public AngleSet For(string operatedSide) => operatedSide == "L" ? L : operatedSide == "R" ? R : this;

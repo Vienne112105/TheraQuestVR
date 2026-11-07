@@ -14,7 +14,7 @@ last_agent: claude-code
 last_ide: claude-desktop
 
 # ID only — resolve objective/criteria in 50_ROADMAP.md
-current_milestone: M6.3
+current_milestone: M6.4
 
 # Active scene or primary file in focus, if any
 current_scene: Main/TheraQuestVR/unity/Assets/TheraQuest/TheraQuest.unity
@@ -22,8 +22,9 @@ current_scene: Main/TheraQuestVR/unity/Assets/TheraQuest/TheraQuest.unity
 # System file basenames under brain/systems/ (without .md) to load on BOOT
 systems_in_scope:
   - MotionTracking
+  - ExerciseEvaluation
   - VRClinicExperience
-  - SessionOrchestration
+  - ClinicalBackend
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on: []
@@ -48,4 +49,4 @@ known_issues:
 blocked: []
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-11-07 SHUTDOWN: M6 Camera Tracking Mechanics is active (webcam only, no headset; children M6.1-M6.5 in 50_ROADMAP.md). M6.1 (record/replay: tracker.py --record/--replay, recording.py, report.py) done. M6.2 DONE (slim, the human's choice): two real recordings by the human in tracker/recordings/ (git-ignored, landmarks only, DEC-024): m6-2-side-extension.jsonl (whole body side-on, good) and m6-2-hip-extension.jsonl (legs partly out of frame, bad). The facing direction proved reliable (3 of 1,756 side-on frames unknown), so no new facing test was built (DEC-023 amended); REACQUIRE_FRAMES 3 -> 2 (DEC-025): shoulder signed missing 3.0%, hip 7.1% side-on (accepted above the ~5% target; the knee gap moved to M6.5, including trying the full model live). Camera fixes in tracker.py: threaded capture, detection on a 640-px copy, fastest backend chosen by measured fps (laptop camera 0: 13 fps via DirectShow, 60 via Media Foundation), Media Foundation hardware transforms off (open ~30 s -> ~2 s); live rate now ~25-39 fps. Tracker tests 77 pass. All committed on branch m5.8-first-person-view, not merged into main, no remote. TheraQuest.unity holds the human's own uncommitted scene changes: never commit or discard them. NEXT: M6.3 Camera Setup Assistant: tracker setup checks in the packet (needed joints in frame with a margin, body size for distance, front or side view, confidence for lighting), a short Unity setup step after get-ready (icons and one line, skippable), Unity reads trackingState. Use both recordings to test the checks: legs cut off by the frame give implausible hip angles. Repository must stay private (DEC-020)."
+session_summary: "2026-11-07 SHUTDOWN: M6 Camera Tracking Mechanics is active (webcam only, no headset; children M6.1-M6.5 in 50_ROADMAP.md). M6.1 record/replay and M6.2 (slim: facing proved reliable, REACQUIRE_FRAMES 3 -> 2, DEC-025, camera speed fixes) are done. M6.3 Camera Setup Assistant DONE: PoseTracker.setup() in tracker/tracking.py adds packet 'setup' (valid, framedL/framedR per measured angle, view side/front/'', size = torso/image height, light = median confidence); Unity CameraSetup.cs checks it per exercise (tracker running, person in view, limb framed, distance when upright, view, light) and the get-ready card shows the first fix (Start always works); Unity reads trackingState (MotionPacket.PersonLost) for 'Step into the camera's view'. Tracker tests 84 pass; Unity EditMode 73 pass (batch mode); Play mode checked with real UDP packets and a replayed recording. Real recordings stay in the git-ignored tracker/recordings/ (DEC-024). The Unity Editor was left open on TheraQuest.unity, unsaved. All work committed on branch m5.8-first-person-view, not merged into main, no remote. TheraQuest.unity holds the human's own uncommitted scene changes: never commit or discard them. NEXT: M6.4 Out-of-Plane Live Limb & Ankle Exercises: display-only out-of-plane angle from the world landmarks for FirstPersonGuide (target limb and scoring unchanged, DEC-023); ankle angle (knee-ankle-foot index, landmarks 29-32 tracked); LIBRARY ankle exercises in server.py with Unity pose geometry; ankle ORIF and ankle sprain protocols use them (placeholder targets, TASK-007; TASK-012). Then M6.5 field test and tuning. Repository must stay private (DEC-020)."

@@ -26,8 +26,8 @@ Coordinates are MediaPipe's normalised 0..1 image coordinates; times are seconds
 import math
 from collections import deque
 
-from angles import (L_ANKLE, L_ELBOW, L_HIP, L_KNEE, L_SHOULDER, L_WRIST, MIN_VISIBILITY, R_ANKLE, R_ELBOW, R_HIP,
-                    R_KNEE, R_SHOULDER, R_WRIST, empty_packet, measure)
+from angles import (JOINTS, L_ANKLE, L_ELBOW, L_HIP, L_KNEE, L_SHOULDER, L_WRIST, MIN_VISIBILITY, R_ANKLE, R_ELBOW,
+                    R_HIP, R_KNEE, R_SHOULDER, R_WRIST, empty_packet, measure)
 
 TRACKED, REACQUIRING, UNRELIABLE, PREDICTED, LOST = "tracked", "reacquiring", "unreliable", "predicted", "lost"
 
@@ -61,6 +61,11 @@ CORE = {
 CORE_NEEDED = 4                    # verified landmarks on the better side for the pose to count as tracking
 REDETECT_AFTER = 3.0               # seconds of a detected pose with no verified joint before forcing a fresh detection
 REDETECT_EVERY = 10.0              # rebuilding the detector is slow: at most this often
+
+# Camera setup checks (M6.3), from the detector's raw landmarks. Unity decides what each exercise needs.
+FRAME_MARGIN = 0.01                # a landmark this close to the image edge, or past it, is out of frame
+SIDE_VIEW_RATIO = 0.35             # shoulder width / torso length below this: side-on to the camera
+FRONT_VIEW_RATIO = 0.55            # above this: facing the camera; in between: turned part way
 
 
 class OneEuroFilter:
@@ -240,6 +245,7 @@ class PoseTracker:
         self._pose_seen = False
         self._bad_since = None
         self._last_redetect = None
+        self._raw = None
         self.state = POSE_LOST
 
     def reset(self):
@@ -249,6 +255,7 @@ class PoseTracker:
         self._last_t = None
         self._pose_seen = False
         self._bad_since = None
+        self._raw = None
         self.state = POSE_LOST
 
     def update(self, points, t):
@@ -256,6 +263,7 @@ class PoseTracker:
         dt = t - self._last_t if self._last_t is not None else 1.0 / 30.0
         self._last_t = t
         self._pose_seen = points is not None
+        self._raw = points
         for i, track in enumerate(self.tracks):
             if points is None:
                 track.update(0.0, 0.0, 0.0, dt)
@@ -296,6 +304,37 @@ class PoseTracker:
         """Every landmark that has any position, verified or not. For display only, never for scoring."""
         return [(t.x, t.y, 1.0) if t.has_position else (t.x, t.y, 0.0) for t in self.tracks]
 
+    def setup(self, width, height):
+        """Camera setup checks from this frame's raw detection (M6.3), or None when nobody is detected.
+          valid              always true (lets Unity tell a packet with setup checks from an older tracker's)
+          framedL / framedR  per measured angle: every landmark it needs is detected and inside the image
+          view               "side" | "front" | "" (turned part way, or can't tell)
+          size               torso length / image height (distance: bigger = closer), -1 if unknown
+          light              median confidence of the landmarks inside the image (low in poor light), 0..1
+        These only guide the patient's setup; scoring still uses verified landmarks only (DEC-022)."""
+        raw = self._raw
+        if raw is None:
+            return None
+
+        def inside(i):
+            x, y, c = raw[i]
+            return c >= LOW_CONFIDENCE and FRAME_MARGIN <= x <= 1 - FRAME_MARGIN and FRAME_MARGIN <= y <= 1 - FRAME_MARGIN
+
+        framed = {side: {name: all(inside(i) for i in idxs[side]) for name, idxs in JOINTS.items()} for side in ("L", "R")}
+        px = [(x * width, y * height) for x, y, _ in raw]
+        mid = lambda a, b: ((px[a][0] + px[b][0]) / 2, (px[a][1] + px[b][1]) / 2)
+        view, size = "", -1.0
+        if all(inside(i) for i in (L_SHOULDER, R_SHOULDER, L_HIP, R_HIP)):
+            torso = math.dist(mid(L_SHOULDER, R_SHOULDER), mid(L_HIP, R_HIP))
+            if torso > 0:
+                ratio = math.dist(px[L_SHOULDER], px[R_SHOULDER]) / torso
+                view = "side" if ratio < SIDE_VIEW_RATIO else "front" if ratio > FRONT_VIEW_RATIO else ""
+                size = round(torso / height, 3)
+        seen = sorted(raw[i][2] for idxs in CORE.values() for i in idxs if inside(i))
+        light = round(seen[len(seen) // 2], 2) if seen else 0.0
+        return {"valid": True, "framedL": framed["L"], "framedR": framed["R"], "view": view, "size": size,
+                "light": light}
+
     def packet(self, width, height):
         """The packet for Unity. Measured angles come only from verified landmarks; when part of the body
         is only estimated, "estL" / "estR" carry its angles separately, for display."""
@@ -303,6 +342,9 @@ class PoseTracker:
         verified = any(self.tracks[i].reliable for idxs in CORE.values() for i in idxs)
         packet = measure(scoring, width, height) if verified else empty_packet()
         packet["trackingState"] = self.state
+        setup = self.setup(width, height)
+        if setup is not None:
+            packet["setup"] = setup
         partial = any(not self.tracks[i].reliable for idxs in CORE.values() for i in idxs)
         if partial and self.state != POSE_LOST:
             estimate = measure(self.estimate_points(), width, height)

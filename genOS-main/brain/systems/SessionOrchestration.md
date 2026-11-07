@@ -27,6 +27,7 @@ Coordinates the patient workout lifecycle: patient profile selection, prescripti
 ## Invariants
 - Offline sessions must never be dropped; they must be written to disk and uploaded on subsequent app launches. Queued sessions the server refuses as another patient's are moved to a separate rejected file, not deleted.
 - Sessions cannot advance to the next exercise without completing the configured set-rest countdown.
+- The camera setup check on the get-ready card (M6.3) never blocks: the patient can always press Start.
 - A session never runs on a hardcoded program: only a server-issued or cached server program (with its phase VR gate) may be used.
 - The input source is locked for the whole session; walking is disabled while an exercise runs.
 - A session interrupted by quitting the app is queued as ended early, not lost.

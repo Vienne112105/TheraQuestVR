@@ -57,8 +57,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M6 | — | active | Camera Tracking Mechanics |
 | M6.1 | M6 | done | Landmark Record & Replay Harness |
 | M6.2 | M6 | done | Facing Direction & Extension Readings |
-| M6.3 | M6 | active | Camera Setup Assistant |
-| M6.4 | M6 | planned | Out-of-Plane Live Limb & Ankle Exercises |
+| M6.3 | M6 | done | Camera Setup Assistant |
+| M6.4 | M6 | active | Out-of-Plane Live Limb & Ankle Exercises |
 | M6.5 | M6 | planned | Webcam Field Test & Tuning |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
@@ -418,15 +418,16 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** MotionTracking, ExerciseEvaluation
 
 ### M6.3 — Camera Setup Assistant
-- **Status:** active
+- **Status:** done
 - **Objective:** Check the camera placement for each exercise before counting starts, instead of only telling the patient where to put the camera.
 - **Deliverables:** tracker setup checks sent in the packet: the joints the exercise needs are inside the frame with a margin, the body's size in frame (distance), front or side view as the exercise needs, enough landmark confidence (lighting); a short setup step in Unity after get-ready (icons and one line, green when every check passes, skippable); Unity reads `trackingState`; tests.
 - **Completion criteria:** tracker and Unity EditMode tests pass; in Play mode, replayed packets show each failed check's message and the step passes when the checks pass.
+- **Verification (2026-11-07):** tracker tests 84 pass (7 new setup tests); Unity EditMode tests 73 pass (7 new `CameraSetupTests`, batch mode). Thresholds set from the M6.2 recordings: side view below 0.35 shoulder width / torso length, front above 0.55; too close above 0.42 torso / image height (the whole-body recording sat at about 0.47, with the ankles below the image), too far below 0.12; poor light below 0.6 median confidence. Distance is checked only standing or seated. In Play mode (offline cached program, webcam source, get-ready card of the heel slide) real UDP packets gave each message: set up, whole leg not in view, wrong view, poor light, nobody in view; the real recording replayed with `tracker.py --replay` gave "Step back so your whole leg is in view" for the heel slide and "Step back a little from the camera" for a standing shoulder exercise. No console errors. With the Editor unfocused its player loop stalls, so the get-ready card itself showed "The camera isn't running" (packets older than 1 s count as not receiving); the messages were read from the same check on the received packets. Saved game data restored afterwards. Not tested: a live person adjusting to the messages (M6.5).
 - **Dependencies:** M6.2
 - **Systems:** MotionTracking, VRClinicExperience, SessionOrchestration
 
 ### M6.4 — Out-of-Plane Live Limb & Ankle Exercises
-- **Status:** planned
+- **Status:** active
 - **Objective:** Let the live limb show movement that leaves the exercise's plane, keeping the default body and height (amends DEC-021, see DEC-023), and track the ankle (TASK-012).
 - **Deliverables:** a display-only out-of-plane angle from the world landmarks, used by the first-person live limb (target limb and scoring unchanged); an ankle angle from the knee, ankle and foot landmarks; ankle exercises in `LIBRARY` (e.g. seated dorsiflexion/plantarflexion, standing heel raise) with Unity pose geometry; the ankle ORIF and ankle sprain protocols use them (targets are placeholders until TASK-007); tests.
 - **Completion criteria:** server, tracker and Unity EditMode tests pass; the new exercises and the out-of-plane limb work in Play mode with replayed or simulated input.
