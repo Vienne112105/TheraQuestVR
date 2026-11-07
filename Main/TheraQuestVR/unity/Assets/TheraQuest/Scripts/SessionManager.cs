@@ -332,7 +332,7 @@ namespace TheraQuest
                 if (!inSession) figure.Show(ex, motion.Angle, figTone);
             }
             bool guideOn = inSession && ex != null && celebrateTimer <= 0f;
-            if (guideOn) guide.Show(ex, motion.DisplayAngle, figTone);
+            if (guideOn) guide.Show(ex, motion.DisplayAngle, figTone, motion.DisplayTilt);
             else guide.Hide();
             hud.SetCoachWindow(inSession && ex != null && coach != null ? coach.WindowTexture : null,
                                ex != null ? FirstPersonMath.Word(FigureVisualizer.PoseOf(ex)) : "",

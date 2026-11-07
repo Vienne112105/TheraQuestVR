@@ -103,7 +103,7 @@ namespace TheraQuest
         public bool Has3DModels => built.Count > 0;
 
         enum Motion { ShoulderAbd, Scaption, ShoulderFlex, SupineFlex, ShoulderExt, ElbowFlex, WallPushUp, HipAbd, HipExt, HipFlex, March,
-                      KneeFlex, MiniSquat, MiniLunge, KneeExt, SitStand }
+                      KneeFlex, MiniSquat, MiniLunge, KneeExt, SitStand, AnklePump, HeelRaise, SeatedHeelRaise }
         enum Posture { Standing, Seated, Lying, SideLying }
 
         const string PrefKey = "TheraQuest.Coach";
@@ -390,7 +390,8 @@ namespace TheraQuest
                 case "sidelying": return Posture.SideLying;
                 case "seated": return Posture.Seated;
                 case "standing": return Posture.Standing;
-                default: return motion == Motion.KneeExt || motion == Motion.SitStand ? Posture.Seated : Posture.Standing;
+                default: return motion == Motion.KneeExt || motion == Motion.SitStand || motion == Motion.SeatedHeelRaise ? Posture.Seated
+                              : motion == Motion.AnklePump ? Posture.Lying : Posture.Standing;
             }
         }
 
@@ -415,6 +416,9 @@ namespace TheraQuest
                 case "miniLunge": return Motion.MiniLunge;
                 case "kneeExt": return Motion.KneeExt;
                 case "sitToStand": return Motion.SitStand;
+                case "anklePump": return Motion.AnklePump;
+                case "heelRaise": return Motion.HeelRaise;
+                case "seatedHeelRaise": return Motion.SeatedHeelRaise;
             }
             // Unknown pose: go by the tracker angle and camera view.
             bool front = ex.view == "front";
@@ -1005,6 +1009,8 @@ namespace TheraQuest
                     case Motion.ElbowFlex: case Motion.WallPushUp: return (lowerArm[i].position, hand[i].position);
                     case Motion.HipAbd: case Motion.HipFlex: case Motion.HipExt: return (upperLeg[i].position, foot[i].position);
                     case Motion.KneeFlex: case Motion.KneeExt: return (lowerLeg[i].position, foot[i].position);
+                    case Motion.AnklePump: case Motion.HeelRaise: case Motion.SeatedHeelRaise:          // the foot
+                        return (foot[i].position, foot[i].position + foot[i].TransformDirection(toeLocal[i]).normalized * shin * 0.4f);
                     default: return (upperLeg[i].position, lowerLeg[i].position);   // march, mini squat, sit to stand: thigh
                 }
             }
@@ -1134,6 +1140,16 @@ namespace TheraQuest
                         if (p == Posture.Lying) Leg(s, a / 2f, a);                       // heel stays on the mat
                         else Leg(s, 0f, a);
                         break;
+                    case Motion.AnklePump: Leg(s, 0f, 0f, -Mathf.Min(a, 60f)); break;    // lying, toes up
+                    case Motion.SeatedHeelRaise:                                         // seated, toes stay down
+                        Shift(-thigh, -thigh);
+                        Leg(s, 90f, 90f, Mathf.Min(a, 80f));
+                        Leg(o, 90f, 90f);
+                        break;
+                    case Motion.HeelRaise:                                               // both heels up
+                        Leg(s, 3f, 7f, Mathf.Min(a, 80f));
+                        Leg(o, 3f, 7f, Mathf.Min(a, 80f));
+                        break;
                 }
 
                 // Standing legs that the exercise doesn't move: soft knees instead of locked straight. Also with the idle
@@ -1153,6 +1169,8 @@ namespace TheraQuest
                 {
                     float ankle = Mathf.Min(pivot.InverseTransformPoint(foot[0].position).y, pivot.InverseTransformPoint(foot[1].position).y);
                     hips.position += pivot.up * (ankleRest - ankle);
+                    // On the toes the ankles rise by about the heel's lift
+                    if (m == Motion.HeelRaise) hips.position += pivot.up * (shin * 0.35f * Sin(Mathf.Min(a, 80f)));
                 }
 
                 // Arms last, so they hang down even when the trunk leans. Resting arms keep a soft elbow
@@ -1239,12 +1257,13 @@ namespace TheraQuest
             void Lean(float deg) => spine.rotation = Quaternion.AngleAxis(deg, pivot.right) * spine.rotation;
 
             /// <summary>Leg in the sagittal plane: hip flexion and knee bend in degrees.</summary>
-            void Leg(int s, float hipFlex, float kneeBend) => LegDir(s, Sag(hipFlex), Sag(hipFlex - kneeBend));
-            void LegDir(int s, Vector3 thighDir, Vector3 shinDir)
+            /// <param name="ankle">foot angle from its natural pose: + toes down (plantarflexion), - toes up (M6.4)</param>
+            void Leg(int s, float hipFlex, float kneeBend, float ankle = 0f) => LegDir(s, Sag(hipFlex), Sag(hipFlex - kneeBend), ankle);
+            void LegDir(int s, Vector3 thighDir, Vector3 shinDir, float ankle = 0f)
             {
                 Aim(upperLeg[I(s)], lowerLeg[I(s)], thighDir);
                 Aim(lowerLeg[I(s)], foot[I(s)], shinDir);
-                AimFoot(s, shinDir);
+                AimFoot(s, shinDir, ankle);
                 legPosed[I(s)] = true;
             }
 
@@ -1252,7 +1271,7 @@ namespace TheraQuest
             /// Natural ankle: toes point forward (body +Z) at a right angle to the shin, and up (body +Y)
             /// when the shin itself points forward, blending smoothly in between. Lying down, that means toes up.
             /// </summary>
-            void AimFoot(int s, Vector3 shinDir)
+            void AimFoot(int s, Vector3 shinDir, float ankle = 0f)
             {
                 var shin = shinDir.normalized;
                 var fwd = Vector3.forward - Vector3.Dot(Vector3.forward, shin) * shin;
@@ -1260,6 +1279,7 @@ namespace TheraQuest
                 var toes = (fwd + up * Mathf.Clamp01(0.6f - fwd.magnitude)).normalized;
                 // A foot under its knee carries weight: flat on the mat, so the toes don't dip into it
                 toes = Vector3.Slerp(toes, Vector3.forward, Mathf.InverseLerp(-0.8f, -0.95f, shin.y));
+                if (ankle != 0f) toes = (toes * Cos(ankle) + shin * Sin(ankle)).normalized;
                 var f = foot[I(s)];
                 var cur = f.TransformDirection(toeLocal[I(s)]);
                 if (toes.sqrMagnitude > 1e-6f && cur.sqrMagnitude > 1e-6f)

@@ -31,6 +31,8 @@ namespace TheraQuest
         /// <see cref="HasReading"/>, never this (DEC-022).
         /// </summary>
         public float DisplayAngle { get; private set; }
+        /// <summary>Degrees the live limb leans out of the exercise's plane (M6.4, webcam only). Display only.</summary>
+        public float DisplayTilt { get; private set; }
         /// <summary>Side being measured: the exercise's operated side, or the side the camera sees best.</summary>
         public string MeasuredSide { get; private set; }
 
@@ -96,12 +98,24 @@ namespace TheraQuest
             return est != null ? MeasuredAngle(ex, est) : -1f;
         }
 
+        /// <summary>The live limb's lean out of the exercise's plane from the packet's 3D limb directions, or NaN without one.</summary>
+        public static float TiltFrom(ExerciseDef ex, MotionPacket p, string side)
+        {
+            if (ex == null || p == null) return float.NaN;
+            string pose = FigureVisualizer.PoseOf(ex);
+            if (FirstPersonMath.PlaneNormal(pose, 1) == Vector3.zero) return 0f;
+            var dirs = side == "L" ? p.dirL : side == "R" ? p.dirR : null;
+            if (dirs == null || !dirs.TryGet(FirstPersonMath.MovesLeg(pose), out var dir)) return float.NaN;
+            return FirstPersonMath.OutOfPlane(pose, side == "L" ? -1 : 1, dir);
+        }
+
         public void Sample(ExerciseDef ex, float dt)
         {
             float raw = 0f;
             Fault = null;
             HasReading = true;
             float target = ex != null ? ex.targetAngle : 90f;
+            if (source != InputSource.Webcam) DisplayTilt = 0f;
 
             switch (source)
             {
@@ -109,6 +123,8 @@ namespace TheraQuest
                     var p = receiver != null ? receiver.Latest : null;
                     var s = p?.For(ex != null ? ex.side : "");
                     MeasuredSide = ex != null && !string.IsNullOrEmpty(ex.side) ? ex.side : p?.side;
+                    float tilt = TiltFrom(ex, p, MeasuredSide);
+                    if (!float.IsNaN(tilt)) DisplayTilt = tilt;   // none sent: the limb keeps its lean
                     float measured = p != null && s != null ? MeasuredAngle(ex, s) : -1f;
                     if (receiver == null || !receiver.IsReceiving || p == null || !p.visible || measured < 0f)
                     {

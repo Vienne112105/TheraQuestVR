@@ -279,6 +279,26 @@ class BackendTests(ServerTestCase):
     def test_rules_fallback_for_codes_no_longer_in_library(self):
         r = server.exercise_rules("retiredCode", "hipElev", "front")
         self.assertEqual((r["pose"], r["posture"], r["checks"]), ("hipAbd", "standing", []))
+        r = server.exercise_rules("retiredCode", "ankleDF", "side")
+        self.assertEqual((r["pose"], r["posture"]), ("anklePump", "lying"))
+
+    def test_ankle_protocols_use_ankle_exercises(self):
+        """M6.4: the ankle protocols' VR phases measure the ankle itself, side-on, with a normal range shown."""
+        ankle = {code for code, e in server.LIBRARY.items() if e[1] == "Ankle"}
+        self.assertEqual(ankle, {"anklePump", "seatedHeelRaise", "heelRaise"})
+        for code in ankle:
+            self.assertIn(server.LIBRARY[code][2], ("ankleDF", "anklePF"))
+            self.assertEqual(server.LIBRARY[code][3], "side")
+            self.assertLessEqual(server.LIBRARY[code][7], server.NORMAL_ROM[code][1])   # safety max within normal ROM
+        for name in ("Ankle fracture ORIF (MGB)", "Lateral ankle sprain (MGB)"):
+            phases = next(p for n, _, _, p in server.PROTOCOLS if n == name)
+            for ph in phases:
+                if ph[2]:   # VR phase
+                    with self.subTest(protocol=name, phase=ph[0]):
+                        self.assertTrue({e[0] for e in ph[10]} & ankle)
+        orif_phase1 = next(p for n, _, _, p in server.PROTOCOLS if n == "Ankle fracture ORIF (MGB)")[0]
+        for e in orif_phase1[10]:   # non-weight bearing: lying down only
+            self.assertIn(server.LIBRARY[e[0]][13]["posture"], ("lying", "sidelying"))
 
     # ------------------------------------------------ per-rep events (M4.5)
     def rep(self, eid, attempt, **extra):

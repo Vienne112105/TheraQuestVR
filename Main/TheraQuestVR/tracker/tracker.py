@@ -372,16 +372,17 @@ def run_camera(sock, addr, cam_index, model_kind, mirror, record_path=None):
             ts = last_ts + 1
         last_ts = ts
         result = landmarker.detect_for_video(image, ts)
+        raw_pose, raw_world = raw_landmarks(result)
         if record_path:
             if recorder is None:
                 recorder = recording.Recorder(record_path, w, h, model_kind)
-            recorder.frame(ts / 1000, *raw_landmarks(result))
+            recorder.frame(ts / 1000, raw_pose, raw_world)
 
         # Landmark Tracking: trust, smoothing, short-term prediction (tracking.py, DEC-022)
         pts = None
-        if result.pose_landmarks:
-            pts = [(l.x, l.y, landmark_confidence(l.visibility, l.presence)) for l in result.pose_landmarks[0]]
-        pose.update(pts, ts / 1000)
+        if raw_pose is not None:
+            pts = [(x, y, landmark_confidence(v, p)) for x, y, v, p in raw_pose]
+        pose.update(pts, ts / 1000, raw_world)
         if pose.should_redetect(ts / 1000):
             # MediaPipe re-detects by itself when it finds nobody; a pose it keeps reporting but we
             # can't track may be a bad lock, so restart it to force a fresh detection.

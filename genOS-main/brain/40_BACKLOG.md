@@ -26,10 +26,11 @@ Durable ad-hoc queue for non-milestone work (bugs, ideas). AI-owned. See `AGENTS
 - [TASK-009] (low) `AGENTS.md` does not list the TBF status or unscheduled milestone IDs (`HW`); only [[50_ROADMAP]] explains them. `60_AGENTS.md` still lists milestone agents for M1 and M4.
 - [TASK-010] (low) Check whether Unity `6000.6.5f1` is an LTS release ([[00_PROJECT]] says Unity 6 LTS); move to an LTS version if not.
 - [TASK-011] (low) One script that runs all test suites (server, tracker, evaluation, Unity EditMode in batch mode) and reports the results.
-- [TASK-012] Add ankle exercises to the webcam tracker and the exercise `LIBRARY` (e.g. seated ankle dorsiflexion/plantarflexion, standing heel raise), so the ankle protocols (ankle ORIF, lateral ankle sprain) can measure ankle work in VR instead of listing it as done without the camera. Requested by the human 2026-10-26. Scheduled in M6.4.
 - [TASK-013] (research) The MGB and BWH protocol documents are copyrighted ("all rights reserved"); the built-in protocols are short paraphrases with citations. Before publishing the thesis or distributing the app, confirm this use is acceptable or ask the institutions for permission.
 
 ## Done
+
+- [TASK-012] Ankle exercises in the webcam tracker and the exercise `LIBRARY` (2026-11-07, M6.4): ankle pump (lying), seated and standing heel raise, used by the ankle ORIF and lateral ankle sprain protocols. Targets are placeholders until TASK-007.
 
 - [TASK-014] Room decorations and the seated-exercise chair are 3D models (2026-10-27): Low Poly Gym Pack (reodesuxz) and Kenney Furniture Kit (CC0), chosen by the human; walls, windows, posters and the exercise-spot marker stay built from primitives. (ref: DEC-019)
 

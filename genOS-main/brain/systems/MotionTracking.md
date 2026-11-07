@@ -35,6 +35,7 @@ Captures single-webcam RGB video feed, performs real-time 2D human pose estimati
 - The UDP payload stays backward compatible: new fields are added, existing ones never change meaning.
 - The pose model is downloaded to a temp file, verified, and only then moved into place (pinned version).
 - Camera setup checks (`setup` in the packet, M6.3) come from the raw detection and only guide the patient's setup; nothing scored ever reads them.
+- The limb directions (`dirL` / `dirR`, M6.4) come from the world landmarks of verified joints and only lean the first-person live limb; nothing scored ever reads them (DEC-023).
 - Recordings (`--record`) hold landmark numbers only, never images, and stay in the git-ignored `tracker/recordings/` (DEC-024). A replay goes through the same tracking and measuring code as the live camera, so it gives the same packets every run.
 
 ## Notes

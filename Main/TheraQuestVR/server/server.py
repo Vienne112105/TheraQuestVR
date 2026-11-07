@@ -128,9 +128,9 @@ BADGES = {
 POSTURES = ("standing", "seated", "lying", "sidelying")
 POSES = ("shoulderAbd", "scaption", "shoulderFlex", "supineFlex", "shoulderExt", "elbowFlex", "wallPushUp",
          "hipAbd", "hipExt", "slr", "march", "heelSlide", "hamstringCurl", "miniSquat", "miniLunge", "kneeExt",
-         "sitToStand")
+         "sitToStand", "anklePump", "seatedHeelRaise", "heelRaise")
 DIRECTIONS = ("flex", "ext", "abd", None)
-CHECK_METRICS = ("trunkLean", "elbowDrift", "shoulderElev", "elbowFlex", "hipElev", "kneeFlex", "kneeExt")
+CHECK_METRICS = ("trunkLean", "elbowDrift", "shoulderElev", "elbowFlex", "hipElev", "kneeFlex", "kneeExt", "ankleDF", "anklePF")
 
 
 def _rules(posture, pose, direction=None, checks=()):
@@ -238,6 +238,17 @@ LIBRARY = {
     "scaptionHold": ("Scaption hold (Full can)", "Shoulder", "shoulderElev", "front", "Standing, arm slightly forward, thumb up",
                      90, 10, 110, 3, 2, 8, 30, "Raise arm to shoulder height in scaption plane and hold",
                      _rules("standing", "scaption", "abd", UPRIGHT)),
+    # Ankle (M6.4): ankleDF / anklePF are the shin against the heel-to-toes line, 0 at a right angle (side view).
+    # Targets are starting points for the therapist to confirm (TASK-007).
+    "anklePump":    ("Ankle pump (toes up)", "Ankle", "ankleDF", "side", "Lying on your back, legs straight",
+                     15, 5, 20, 0, 2, 8, 30, "Pull your toes up toward you, then relax",
+                     _rules("lying", "anklePump", None, NO_CHECKS)),
+    "seatedHeelRaise": ("Seated heel raise", "Ankle", "anklePF", "side", "Sitting tall, feet flat on the floor",
+                     30, 10, 45, 0, 2, 8, 30, "Keep your toes down and lift your heel",
+                     _rules("seated", "seatedHeelRaise", None, NO_CHECKS)),
+    "heelRaise":    ("Standing heel raise", "Ankle", "anklePF", "side", "Standing, holding a chair for balance",
+                     30, 10, 50, 0, 2, 8, 30, "Rise up onto your toes, then lower slowly",
+                     _rules("standing", "heelRaise", None, NO_CHECKS)),
     "standingHipFlex": ("Standing hip flexion hold", "Hip", "hipElev", "side", "Standing, holding a chair for balance",
                      70, 10, 95, 3, 2, 8, 30, "Lift your knee high and hold steady for balance",
                      _rules("standing", "march", "flex", NO_BACK_LEAN)),
@@ -264,6 +275,8 @@ NORMAL_ROM = {
     "heelSlide": ("Knee flexion 0-135°", 135), "hamstringCurl": ("Knee flexion 0-135°", 135),
     "miniSquat": ("Knee flexion 0-135°", 135), "miniLunge": ("Knee flexion 0-135°", 135),
     "kneeWallSlide": ("Knee flexion 0-135°", 135), "wallSquatHold": ("Knee flexion 0-135°", 135),
+    "anklePump": ("Ankle dorsiflexion 0-20°", 20),
+    "seatedHeelRaise": ("Ankle plantarflexion 0-50°", 50), "heelRaise": ("Ankle plantarflexion 0-50°", 50),
 }
 
 # Protocols from the published documents, loaded into the protocol tables.
@@ -277,7 +290,7 @@ NORMAL_ROM = {
 #   phase:    (name, weeks, vr, goals, precautions, ROM goal, other exercises, max pain increase,
 #              check soreness < 2 h, max swelling cm or None,
 #              [(code, target, tol, safety max, hold s, sets, reps, rest s)])
-PROTOCOL_VERSION = "3"   # 3: seven protocols added (M5.7); unchanged built-ins are kept on reload
+PROTOCOL_VERSION = "4"   # 3: seven protocols added (M5.7); 4: ankle exercises (M6.4); unchanged built-ins are kept on reload
 OHSU_RULES = "Progress when 2x8 reps are done with pain up by no more than 2 points, swelling up by under 2 cm and soreness gone within 2 hours"
 PROTOCOLS = [
     ("Total knee replacement (OHSU)", "Post-op total knee arthroplasty",
@@ -536,7 +549,7 @@ PROTOCOLS = [
          "arm bike, quad sets, abdominal bracing, clamshells, prone hip extension and hamstring curls, seated heel and toe raises, "
          "arch doming, joint position training",
          0, False, None,
-         [("slr", 45, 5, 60, 0, 2, 8, 30), ("sidelyingHipAbd", 25, 5, 40, 0, 2, 8, 30)]),
+         [("anklePump", 15, 5, 20, 0, 2, 8, 30), ("slr", 45, 5, 60, 0, 2, 8, 30), ("sidelyingHipAbd", 25, 5, 40, 0, 2, 8, 30)]),
         ("Phase II - Intermediate post-op", "Weeks 7-12", True,
          "Full ankle and foot ROM; progress strengthening; normal gait on all surfaces, weaning from the boot; return to "
          "regular activities except sport",
@@ -547,7 +560,8 @@ PROTOCOLS = [
          "Standing dorsiflexion stretch on a step, calf stretches, banded ankle exercises in 4 directions, heel raise progression, "
          "stationary bike, treadmill, hip and leg machines, ball bridges, wobble board and single-leg balance",
          0, False, None,
-         [("hipAbd", 25, 5, 40, 0, 2, 8, 30), ("hipExt", 20, 5, 30, 0, 2, 8, 30), ("hamstringCurl", 90, 10, 110, 0, 2, 8, 30),
+         [("seatedHeelRaise", 30, 10, 45, 0, 2, 8, 30), ("heelRaise", 30, 10, 50, 0, 2, 8, 30),
+          ("hipAbd", 25, 5, 40, 0, 2, 8, 30), ("hipExt", 20, 5, 30, 0, 2, 8, 30), ("hamstringCurl", 90, 10, 110, 0, 2, 8, 30),
           ("miniSquat", 30, 10, 45, 0, 2, 8, 30)]),
         ("Phase III - Late post-op", "Weeks 13-16", True,
          "Good balance and control on the injured leg in all planes; progress strengthening; proper movement patterns",
@@ -556,8 +570,9 @@ PROTOCOLS = [
          "Joint mobilizations as needed, calf machine, single-leg heel raises, hip hikes, single-leg press, slide-board lunges, "
          "lateral step ups, step downs, single-leg squats, single-leg balance on unstable surfaces",
          0, False, None,
-         [("miniLunge", 45, 10, 60, 0, 2, 8, 30), ("miniSquat", 45, 10, 60, 0, 2, 8, 30), ("sitToStand", 85, 10, 0, 0, 2, 8, 45),
-          ("kneeWallSlide", 60, 10, 75, 0, 2, 8, 30), ("march", 70, 10, 100, 0, 2, 8, 30), ("hipAbd", 30, 5, 45, 0, 2, 8, 30)]),
+         [("heelRaise", 35, 10, 50, 0, 2, 8, 30), ("miniLunge", 45, 10, 60, 0, 2, 8, 30), ("miniSquat", 45, 10, 60, 0, 2, 8, 30),
+          ("sitToStand", 85, 10, 0, 0, 2, 8, 45), ("kneeWallSlide", 60, 10, 75, 0, 2, 8, 30), ("march", 70, 10, 100, 0, 2, 8, 30),
+          ("hipAbd", 30, 5, 45, 0, 2, 8, 30)]),
         ("Phase IV - Transitional", "Weeks 17-20", False,
          "Progress to plyometrics, sport-specific movement and low-impact fitness",
          "Progress with no swelling or pain after exercise, heel rise test over 90% of the other side and 30 minutes of fast "
@@ -664,7 +679,8 @@ PROTOCOLS = [
          "Knee-to-wall dorsiflexion, calf stretches, joint mobilization, banded ankle exercises in 4 directions, double and "
          "single-leg heel raises, toe raises, tandem stance and walking, single-leg stance, wobble board",
          0, False, None,
-         [("hipAbd", 25, 5, 40, 0, 2, 8, 30), ("hipExt", 20, 5, 30, 0, 2, 8, 30), ("kneeExt", 85, 10, 0, 0, 2, 8, 30),
+         [("anklePump", 15, 5, 20, 0, 2, 8, 30), ("heelRaise", 30, 10, 50, 0, 2, 8, 30),
+          ("hipAbd", 25, 5, 40, 0, 2, 8, 30), ("hipExt", 20, 5, 30, 0, 2, 8, 30), ("kneeExt", 85, 10, 0, 0, 2, 8, 30),
           ("hamstringCurl", 90, 10, 110, 0, 2, 8, 30), ("miniSquat", 45, 10, 60, 0, 2, 8, 30)]),
         ("Phase III - Late", "Weeks 7-10", True,
          "Optimize strength and balance; begin plyometrics and return to running",
@@ -673,8 +689,8 @@ PROTOCOLS = [
          "Full ankle ROM",
          "Single-leg reach on firm and unstable surfaces, ball toss balance, double-leg hopping, lateral bounding, agility ladder",
          0, False, None,
-         [("miniLunge", 60, 10, 80, 0, 2, 8, 30), ("wallSquatHold", 60, 10, 85, 5, 2, 8, 30), ("sitToStand", 85, 10, 0, 0, 2, 8, 45),
-          ("kneeWallSlide", 90, 10, 100, 0, 2, 8, 30), ("hipAbd", 30, 5, 45, 0, 2, 8, 30)]),
+         [("heelRaise", 35, 10, 50, 0, 2, 8, 30), ("miniLunge", 60, 10, 80, 0, 2, 8, 30), ("wallSquatHold", 60, 10, 85, 5, 2, 8, 30),
+          ("sitToStand", 85, 10, 0, 0, 2, 8, 45), ("kneeWallSlide", 90, 10, 100, 0, 2, 8, 30), ("hipAbd", 30, 5, 45, 0, 2, 8, 30)]),
         ("Phase IV - Return to sport", "Weeks 11-16", False,
          "Full foot and ankle strength; motor control in higher-level activity; return to normal activities",
          "Y-balance and hop tests at least 90% of the other side; no pain or swelling with plyometrics",
@@ -1647,8 +1663,8 @@ def exercise_rules(code, measure, view):
         return {"posture": r["posture"], "pose": r["pose"], "direction": r["direction"] or "", "checks": r["checks"]}
     front = view == "front"
     pose = {"elbowFlex": "elbowFlex", "hipElev": "hipAbd" if front else "slr", "kneeFlex": "heelSlide",
-            "kneeExt": "kneeExt"}.get(measure, "shoulderAbd" if front else "shoulderFlex")
-    return {"posture": "seated" if pose == "kneeExt" else "lying" if pose in ("slr", "heelSlide") else "standing",
+            "kneeExt": "kneeExt", "ankleDF": "anklePump", "anklePF": "heelRaise"}.get(measure, "shoulderAbd" if front else "shoulderFlex")
+    return {"posture": "seated" if pose == "kneeExt" else "lying" if pose in ("slr", "heelSlide", "anklePump") else "standing",
             "pose": pose, "direction": "", "checks": []}
 
 

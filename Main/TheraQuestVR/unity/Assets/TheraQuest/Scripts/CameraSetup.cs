@@ -36,6 +36,7 @@ namespace TheraQuest
         }
 
         public static string LimbWord(string measure) =>
-            measure == "hipElev" || measure == "kneeFlex" || measure == "kneeExt" ? "leg" : "arm";
+            measure == "ankleDF" || measure == "anklePF" ? "foot"
+            : measure == "hipElev" || measure == "kneeFlex" || measure == "kneeExt" ? "leg" : "arm";
     }
 }

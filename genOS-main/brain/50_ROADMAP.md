@@ -58,8 +58,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M6.1 | M6 | done | Landmark Record & Replay Harness |
 | M6.2 | M6 | done | Facing Direction & Extension Readings |
 | M6.3 | M6 | done | Camera Setup Assistant |
-| M6.4 | M6 | active | Out-of-Plane Live Limb & Ankle Exercises |
-| M6.5 | M6 | planned | Webcam Field Test & Tuning |
+| M6.4 | M6 | done | Out-of-Plane Live Limb & Ankle Exercises |
+| M6.5 | M6 | active | Webcam Field Test & Tuning |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -427,18 +427,21 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** MotionTracking, VRClinicExperience, SessionOrchestration
 
 ### M6.4 — Out-of-Plane Live Limb & Ankle Exercises
-- **Status:** active
+- **Status:** done
 - **Objective:** Let the live limb show movement that leaves the exercise's plane, keeping the default body and height (amends DEC-021, see DEC-023), and track the ankle (TASK-012).
 - **Deliverables:** a display-only out-of-plane angle from the world landmarks, used by the first-person live limb (target limb and scoring unchanged); an ankle angle from the knee, ankle and foot landmarks; ankle exercises in `LIBRARY` (e.g. seated dorsiflexion/plantarflexion, standing heel raise) with Unity pose geometry; the ankle ORIF and ankle sprain protocols use them (targets are placeholders until TASK-007); tests.
 - **Completion criteria:** server, tracker and Unity EditMode tests pass; the new exercises and the out-of-plane limb work in Play mode with replayed or simulated input.
+- **Result (2026-11-07):** Tracker: `ankleDF` / `anklePF` in `angles.py` measure the shin (ankle to knee) against the heel-to-toes line (landmarks 29-32), 0 at a right angle; a 4-landmark `JOINTS` entry, so per-side angles, best side and the setup framing checks cover it. The packet adds `dirL` / `dirR`: unit directions of the upper arm and thigh in the body frame (+x patient's right, +y up, +z forward) from the world landmarks, sent only from verified landmarks, display only. Server: `anklePump` (lying, toes up, `ankleDF`, target 15, safety 20), `seatedHeelRaise` and `heelRaise` (`anklePF`, target 30, safety 45/50) with poses and normal ROM (dorsiflexion 0-20°, plantarflexion 0-50°); ankle ORIF phases I-III and lateral ankle sprain phases II-III use them (phase I of the ORIF only lying, as its precautions say); `PROTOCOL_VERSION` 4. Targets are placeholders (TASK-007). Unity: ankle fields in the packet models, the foot turns in `FirstPersonMath.Limbs`, the coach (`HumanoidCoach`) and the old figure, the view frames the foot, the setup line says "foot". The live limb leans out of the exercise's plane for one limb swinging from the shoulder or hip (`FirstPersonMath.OutOfPlane` / `Tilt`, from `MotionInput.DisplayTilt`), with a dead zone of 15° for arms and 8° for legs and a 35° cap; the target limb and scoring never use it (DEC-023).
+- **Verification (2026-11-07):** tracker tests 94 pass (10 new: ankle angles, limb directions facing the camera and side-on, directions only with world landmarks); server tests 68 pass (1 new; it caught the ankle pump's safety max above normal dorsiflexion, fixed to 20); Unity EditMode tests 79 pass (6 new `AnkleAndTiltTests`). On the real whole-body side-on recording, side-view frames read arms about 20° out of the plane while hanging (median; they hang outside the hips) and legs about 4°, which set the dead zones; ankles had a reading in only 394 of 5,392 frames there (feet mostly below the image), and standing read about 14° of plantarflexion (median), so the ankle's neutral needs checking live. In Play mode, guides built for the heel raise, ankle pump, seated heel raise and a shoulder flexion with and without a 30° lean rendered as expected, with no console errors. Not tested: the coach's ankle motion on screen, and a real person (M6.5).
 - **Dependencies:** M6.2
 - **Systems:** MotionTracking, ExerciseEvaluation, VRClinicExperience
 
 ### M6.5 — Webcam Field Test & Tuning
-- **Status:** planned
+- **Status:** active
 - **Objective:** Test the tracking with a real person in front of the laptop webcam, without a headset, and tune it (the no-headset webcam parts of HW.3, moved here 2026-11-05).
 - **Deliverables:** one guided recording session by the human (normal reps per posture, a joint hidden for about a second, stepping out for over 2 s, facing both ways, webcam unplugged and reconnected); thresholds in `tracker/tracking.py` and the setup checks tuned from the replayed recordings; one final live run; findings recorded.
 - **Added 2026-11-07 (from M6.2):** knee tracking for hip readings: the hip signed angle was still missing in ~7% of side-on frames, mostly MediaPipe knee confidence 0.2-0.5; try the `full` model live and decide whether the hip can reach ~5% without letting implausible angles through. Also look at implausible hip angles (over 120 degrees) from leg mis-detections.
+- **Added 2026-11-07 (from M6.4):** the ankle's neutral reading (a standing recording read about 14° plantarflexion; feet must be fully in frame), the out-of-plane dead zones (15° arms, 8° legs) and cap, and a look at the coach's ankle motion.
 - **Completion criteria:** with a real person, normal reps give no false pauses, rejected movement or lag; a hidden joint pauses counting with "Move back into view" and an orange limb and then resumes; stepping out over 2 s drops the rep; movement made while hidden never counts; the webcam reconnects; side-view frames with no signed angle are under ~5%; the human confirms.
 - **Dependencies:** M6.1, M6.2, M6.3 (M6.4 for the ankle exercises)
 - **Systems:** MotionTracking, ExerciseEvaluation

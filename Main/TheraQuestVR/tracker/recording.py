@@ -109,7 +109,7 @@ def replay(path, realtime=False, sleep=time.sleep):
             pts = None
             if rec.get("pose") is not None:
                 pts = [(x, y, landmark_confidence(v, p)) for x, y, v, p in rec["pose"]]
-            pose.update(pts, t)
+            pose.update(pts, t, rec.get("world"))
             packet = pose.packet(width, height)
         packet["ts"] = round(t, 3)
         yield rec, packet, pose

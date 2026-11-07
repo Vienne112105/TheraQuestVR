@@ -14,7 +14,7 @@ last_agent: claude-code
 last_ide: claude-desktop
 
 # ID only — resolve objective/criteria in 50_ROADMAP.md
-current_milestone: M6.4
+current_milestone: M6.5
 
 # Active scene or primary file in focus, if any
 current_scene: Main/TheraQuestVR/unity/Assets/TheraQuest/TheraQuest.unity
@@ -24,7 +24,7 @@ systems_in_scope:
   - MotionTracking
   - ExerciseEvaluation
   - VRClinicExperience
-  - ClinicalBackend
+  - SessionOrchestration
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on: []
@@ -49,4 +49,4 @@ known_issues:
 blocked: []
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-11-07 SHUTDOWN: M6 Camera Tracking Mechanics is active (webcam only, no headset; children M6.1-M6.5 in 50_ROADMAP.md). M6.1 record/replay and M6.2 (slim: facing proved reliable, REACQUIRE_FRAMES 3 -> 2, DEC-025, camera speed fixes) are done. M6.3 Camera Setup Assistant DONE: PoseTracker.setup() in tracker/tracking.py adds packet 'setup' (valid, framedL/framedR per measured angle, view side/front/'', size = torso/image height, light = median confidence); Unity CameraSetup.cs checks it per exercise (tracker running, person in view, limb framed, distance when upright, view, light) and the get-ready card shows the first fix (Start always works); Unity reads trackingState (MotionPacket.PersonLost) for 'Step into the camera's view'. Tracker tests 84 pass; Unity EditMode 73 pass (batch mode); Play mode checked with real UDP packets and a replayed recording. Real recordings stay in the git-ignored tracker/recordings/ (DEC-024). The Unity Editor was left open on TheraQuest.unity, unsaved. All work committed on branch m5.8-first-person-view, not merged into main, no remote. TheraQuest.unity holds the human's own uncommitted scene changes: never commit or discard them. NEXT: M6.4 Out-of-Plane Live Limb & Ankle Exercises: display-only out-of-plane angle from the world landmarks for FirstPersonGuide (target limb and scoring unchanged, DEC-023); ankle angle (knee-ankle-foot index, landmarks 29-32 tracked); LIBRARY ankle exercises in server.py with Unity pose geometry; ankle ORIF and ankle sprain protocols use them (placeholder targets, TASK-007; TASK-012). Then M6.5 field test and tuning. Repository must stay private (DEC-020)."
+session_summary: "2026-11-07 SHUTDOWN: M6 Camera Tracking Mechanics is active (webcam only, no headset; children M6.1-M6.5 in 50_ROADMAP.md). M6.1 record/replay, M6.2 (slim, DEC-025), M6.3 camera setup assistant are done. M6.4 Out-of-Plane Live Limb & Ankle Exercises DONE: tracker ankleDF/anklePF (shin against heel-to-toes, landmarks 29-32) and packet dirL/dirR (upper arm and thigh directions in the body frame from world landmarks, display only); server anklePump, seatedHeelRaise, heelRaise in LIBRARY/POSES/NORMAL_ROM, used by the ankle ORIF and lateral ankle sprain protocols (placeholder targets, TASK-007), PROTOCOL_VERSION 4; Unity ankle poses in FirstPersonMath, HumanoidCoach and FigureVisualizer, and the live limb leans out of the exercise's plane (dead zone 15 deg arms, 8 deg legs, cap 35). TASK-012 done. Tests: tracker 94, server 68, Unity EditMode 79, all pass; Play mode checked the new guide limbs. Not checked: the coach's ankle motion on screen. The Unity Editor was left open on TheraQuest.unity, unsaved. All work committed on branch m5.8-first-person-view, not merged into main, no remote. TheraQuest.unity holds the human's own uncommitted scene changes: never commit or discard them. NEXT: M6.5 Webcam Field Test & Tuning with the human in front of the laptop webcam: guided recording session, tune tracking thresholds and setup checks, knee tracking for the hip (try the full model live), the ankle's neutral reading (a standing recording read ~14 deg plantarflexion), the out-of-plane dead zones, the coach's ankle motion. Repository must stay private (DEC-020)."

@@ -41,8 +41,59 @@ namespace TheraQuest
         {
             if (!string.IsNullOrEmpty(ex.posture)) return ex.posture;
             string pose = FigureVisualizer.PoseOf(ex);
-            return pose == "kneeExt" || pose == "sitToStand" ? "seated"
-                 : pose == "slr" || pose == "heelSlide" || pose == "supineFlex" ? "lying" : "standing";
+            return pose == "kneeExt" || pose == "sitToStand" || pose == "seatedHeelRaise" ? "seated"
+                 : pose == "slr" || pose == "heelSlide" || pose == "supineFlex" || pose == "anklePump" ? "lying" : "standing";
+        }
+
+        /// <summary>Exercises that move the ankle (M6.4): the view frames the foot.</summary>
+        public static bool AnklePose(string pose) => pose == "anklePump" || pose == "heelRaise" || pose == "seatedHeelRaise";
+
+        // ---- Out-of-plane live limb (M6.4, DEC-023). The webcam's angle lies in the exercise's plane; the tracker's 3D
+        // limb directions show how far the limb leans out of it. Display only: the target limb and scoring never use it.
+        public const float ArmDeadZone = 15f, LegDeadZone = 8f, MaxTilt = 35f;
+
+        /// <summary>
+        /// The normal of the exercise's plane, pointing the way a positive lean goes (out to the side for forward and back
+        /// movements, forward for sideways ones), or zero for poses whose live limb never leans.
+        /// </summary>
+        public static Vector3 PlaneNormal(string pose, int s)
+        {
+            switch (pose)
+            {
+                case "shoulderFlex": case "shoulderExt": case "slr": case "hipExt": case "march": return new Vector3(s, 0f, 0f);
+                case "shoulderAbd": case "hipAbd": return Vector3.forward;
+                case "scaption": return new Vector3(-0.5f * s, 0f, 0.866f);
+                default: return Vector3.zero;
+            }
+        }
+
+        public static bool MovesLeg(string pose) => pose == "slr" || pose == "hipExt" || pose == "march" || pose == "hipAbd";
+
+        /// <summary>
+        /// Degrees the limb (dir, body frame) leans out of the exercise's plane, after a dead zone (arms hang a little
+        /// outside the hips, and the camera's depth is noisy) and capped at MaxTilt.
+        /// </summary>
+        public static float OutOfPlane(string pose, int s, Vector3 dir)
+        {
+            var n = PlaneNormal(pose, s);
+            if (n == Vector3.zero || dir.sqrMagnitude < 1e-6f) return 0f;
+            float deg = Mathf.Asin(Mathf.Clamp(Vector3.Dot(dir.normalized, n), -1f, 1f)) * Mathf.Rad2Deg;
+            float lean = Mathf.Max(0f, Mathf.Abs(deg) - (MovesLeg(pose) ? LegDeadZone : ArmDeadZone));
+            return Mathf.Sign(deg) * Mathf.Min(lean, MaxTilt);
+        }
+
+        /// <summary>The chain leaned deg out of the exercise's plane, turning about its top joint.</summary>
+        public static Chain Tilt(Chain c, string pose, int s, float deg)
+        {
+            var n = PlaneNormal(pose, s);
+            var v = c.mid - c.root;
+            if (n == Vector3.zero || Mathf.Abs(deg) < 0.01f || v.sqrMagnitude < 1e-8f) return c;
+            var inPlane = Vector3.ProjectOnPlane(v, n).normalized;
+            var q = Quaternion.FromToRotation(inPlane, inPlane * Cos(deg) + n * Sin(deg));
+            c.mid = c.root + q * (c.mid - c.root);
+            c.end = c.root + q * (c.end - c.root);
+            c.tip = c.root + q * (c.tip - c.root);
+            return c;
         }
 
         public static bool IsLying(string posture) => posture == "lying" || posture == "sidelying";
@@ -98,6 +149,8 @@ namespace TheraQuest
                 case "miniLunge": return "Lower";
                 case "kneeExt": return "Straighten";
                 case "sitToStand": return "Stand up";
+                case "anklePump": return "Toes up";
+                case "heelRaise": case "seatedHeelRaise": return "Heels up";
                 default: return "Raise up";
             }
         }
@@ -117,7 +170,8 @@ namespace TheraQuest
             return c;
         }
 
-        static Chain Leg(int s, Vector3 thigh, Vector3 shin, Vector3 shift = default)
+        /// <param name="ankle">foot angle from a right angle to the shin: + toes down (plantarflexion), - toes up</param>
+        static Chain Leg(int s, Vector3 thigh, Vector3 shin, Vector3 shift = default, float ankle = 0f)
         {
             var c = new Chain { leg = true, root = new Vector3(s * 0.10f, -0.72f, -0.06f) + shift };
             c.mid = c.root + thigh * Thigh;
@@ -125,6 +179,7 @@ namespace TheraQuest
             // Toes forward at a right angle to the shin, or up when the shin itself points forward
             var toes = Vector3.ProjectOnPlane(Vector3.forward, shin);
             if (toes.sqrMagnitude < 0.04f) toes = Vector3.ProjectOnPlane(Vector3.up, shin);
+            toes = toes.normalized * Cos(ankle) + shin.normalized * Sin(ankle);
             c.tip = c.end + toes.normalized * Foot;
             return c;
         }
@@ -166,6 +221,14 @@ namespace TheraQuest
                     var rise = new Vector3(0f, Thigh * Cos(f), Thigh * (1f - Sin(f)));
                     return new[] { Leg(s, Sag(f), Sag(0f), rise), Leg(o, Sag(f), Sag(0f), rise) };
                 }
+                // Ankles (M6.4): the leg holds still and the foot turns. The angle is from a right angle to the shin
+                case "anklePump": return new[] { Leg(s, Sag(0f), Sag(0f), default, -Mathf.Min(a, 60f)) };          // lying, toes up
+                case "seatedHeelRaise": return new[] { Leg(s, Sag(90f), Sag(0f), default, Mathf.Min(a, 80f)) };   // toes stay down
+                case "heelRaise":                                                                                // both heels up
+                {
+                    float f = Mathf.Min(a, 80f);
+                    return new[] { Leg(s, Sag(0f), Sag(0f), default, f), Leg(o, Sag(0f), Sag(0f), default, f) };
+                }
                 default: return new[] { Arm(s, Sag(a), Sag(a)) };                                     // shoulderFlex
             }
         }
@@ -175,8 +238,9 @@ namespace TheraQuest
     /// First-person exercise guide (M5.8, DEC-021). Two see-through limbs extend from the patient's default body:
     ///   target - stays at the prescribed angle, and is the exercise's threshold (it replaces the old gold marker)
     ///   live   - follows the tracker's angle, because the real arm can't be seen in a headset
-    /// The patient moves the live limb into the target; both turn green there. The webcam gives one angle, so the live
-    /// limb always moves in the exercise's plane. Limbs that end behind the patient also show in a side mirror, drawn by
+    /// The patient moves the live limb into the target; both turn green there. The webcam gives one angle in the
+    /// exercise's plane; for one limb swinging from the shoulder or hip the live limb also leans out of that plane, from
+    /// the tracker's 3D limb direction (M6.4, display only). Limbs that end behind the patient also show in a side mirror, drawn by
     /// a small camera that alone sees a plain head and body (the mirror layer). Added at runtime by SessionManager.
     /// </summary>
     public class FirstPersonGuide : MonoBehaviour
@@ -200,7 +264,7 @@ namespace TheraQuest
         string pose = "";
         int side = 1;
         bool behind, shown;
-        float liveAngle, liveVel;
+        float liveAngle, liveVel, liveTilt, tiltVel;
 
         /// <summary>The side view while it is needed, else null.</summary>
         public Texture MirrorTexture => shown && behind ? mirrorTex : null;
@@ -317,6 +381,8 @@ namespace TheraQuest
             cam.localRotation = Quaternion.LookRotation(new Vector3(-side, 0f, 0f), Vector3.up);
             liveAngle = 0f;
             liveVel = 0f;
+            liveTilt = 0f;
+            tiltVel = 0f;
         }
 
         /// <summary>Room points the view should frame, from the start of the movement to the target.</summary>
@@ -329,17 +395,21 @@ namespace TheraQuest
         Vector3 AimPoint(float angle)
         {
             var c = FirstPersonMath.Limbs(pose, side, angle)[0];
-            // Legs: between knee and ankle (a squat's feet barely move); arms: the hand
+            // Ankles: the foot; other legs: between knee and ankle (a squat's feet barely move); arms: the hand
+            if (FirstPersonMath.AnklePose(pose)) return root.TransformPoint((c.end + c.tip) / 2f);
             return root.TransformPoint(c.leg ? (c.mid + c.end) / 2f : c.tip);
         }
 
-        public void Show(ExerciseDef ex, float angle, Tone tone)
+        /// <param name="tilt">degrees the live limb leans out of the exercise's plane (display only, M6.4)</param>
+        public void Show(ExerciseDef ex, float angle, Tone tone, float tilt = 0f)
         {
-            if (!shown) { shown = true; root.gameObject.SetActive(true); liveAngle = angle; }
+            if (!shown) { shown = true; root.gameObject.SetActive(true); liveAngle = angle; liveTilt = tilt; }
             mirrorCam.enabled = behind;
             float dt = Time.deltaTime;   // 0 while paused: everything holds still
             liveAngle = Mathf.SmoothDamp(liveAngle, angle, ref liveVel, 0.12f, Mathf.Infinity, Mathf.Max(dt, 1e-5f));
+            liveTilt = Mathf.SmoothDamp(liveTilt, tilt, ref tiltVel, 0.2f, Mathf.Infinity, Mathf.Max(dt, 1e-5f));
             var chains = FirstPersonMath.Limbs(pose, side, liveAngle);
+            chains[0] = FirstPersonMath.Tilt(chains[0], pose, side, liveTilt);
             for (int i = 0; i < chains.Length; i++) Place(live[i], chains, i);
             var c = FeedbackManager.ToneColor(tone);
             targetMat.color = tone == Tone.Good ? new Color(c.r, c.g, c.b, 0.45f) : TargetColor;

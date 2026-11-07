@@ -9,7 +9,7 @@ from unittest import mock
 
 import numpy as np
 
-from angles import SIGNED_INVALID, empty_packet, measure, angle_at
+from angles import SIGNED_INVALID, angle_at, empty_packet, limb_directions, measure
 
 W, H = 640, 480
 
@@ -24,6 +24,8 @@ def base_pose():
         23: (360, 300), 24: (280, 300),   # hips
         25: (360, 380), 26: (280, 380),   # knees
         27: (360, 460), 28: (280, 460),   # ankles
+        29: (360, 468), 30: (280, 468),   # heels (feet toward the camera: heel and toes close together)
+        31: (360, 472), 32: (280, 472),   # toes
     }
     p = list(p)
     for i, (x, y) in pts.items():
@@ -241,7 +243,7 @@ class M44Tests(unittest.TestCase):
         old = {"visible", "side", "shoulderElev", "elbowFlex", "hipElev", "kneeFlex",
                "kneeExt", "trunkLean", "elbowDrift", "L", "R"}
         side_old = {"shoulderElev", "elbowFlex", "hipElev", "kneeFlex", "kneeExt"}
-        new = {"shoulderElevSigned", "hipElevSigned"}
+        new = {"shoulderElevSigned", "hipElevSigned", "ankleDF", "anklePF"}   # signed: M4.4, ankle: M6.4
         for pkt in (measure(normalise(base_pose()), W, H), empty_packet()):
             self.assertEqual(set(pkt), old | new)
             for s in ("L", "R"):
@@ -427,6 +429,92 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(small.shape[:2], (360, self.tracker.DETECT_WIDTH))
         frame = np.zeros((480, 640, 3), np.uint8)
         self.assertIs(self.tracker.detection_frame(cv2, frame), frame)
+
+
+def side_foot(toes_up=0.0):
+    """Side view facing image right: shin straight down from the knee, foot forward from the heel,
+    tilted up by toes_up degrees (negative = pointed down). Only the left leg is visible."""
+    p = [(0.0, 0.0, 0.0)] * 33
+    knee, ankle, heel = (300, 300), (300, 400), (290, 410)
+    t = math.radians(toes_up)
+    toe = (heel[0] + 60 * math.cos(t), heel[1] - 60 * math.sin(t))
+    for i, xy in {11: (300, 100), 23: (300, 220), 25: knee, 27: ankle, 29: heel, 31: toe}.items():
+        p[i] = (xy[0], xy[1], 0.99)
+    return normalise(p)
+
+
+class AnkleTests(unittest.TestCase):
+    """Ankle angles (M6.4): the shin against the heel-to-toes line, 0 at a right angle."""
+
+    def test_foot_at_right_angle_is_zero(self):
+        m = measure(side_foot(0), W, H)["L"]
+        self.assertAlmostEqual(m["ankleDF"], 0, delta=0.5)
+        self.assertAlmostEqual(m["anklePF"], 0, delta=0.5)
+
+    def test_toes_up_is_dorsiflexion(self):
+        m = measure(side_foot(15), W, H)["L"]
+        self.assertAlmostEqual(m["ankleDF"], 15, delta=0.5)
+        self.assertEqual(m["anklePF"], 0)
+
+    def test_toes_down_is_plantarflexion(self):
+        m = measure(side_foot(-30), W, H)["L"]
+        self.assertAlmostEqual(m["anklePF"], 30, delta=0.5)
+        self.assertEqual(m["ankleDF"], 0)
+
+    def test_hidden_heel_is_not_measured(self):
+        p = side_foot(10)
+        p[29] = (p[29][0], p[29][1], 0.1)
+        m = measure(p, W, H)["L"]
+        self.assertEqual(m["ankleDF"], -1.0)
+        self.assertEqual(m["anklePF"], -1.0)
+
+
+def world_pose(facing="camera", arm=(0.0, 1.0, 0.0)):
+    """World landmarks (metres; x right, y down, z away from the camera) of a person standing upright,
+    with the left upper arm along `arm` (world axes). facing: "camera" or "right" (image right, side-on)."""
+    w = [(0.0, 0.0, 0.0, 0.99, 0.99)] * 33
+    if facing == "camera":
+        lsh, rsh, lhip, rhip = (0.2, -0.5, 0), (-0.2, -0.5, 0), (0.1, 0, 0), (-0.1, 0, 0)
+    else:   # facing +x (turned to their left): the right shoulder is toward the camera (-z)
+        lsh, rsh, lhip, rhip = (0, -0.5, 0.2), (0, -0.5, -0.2), (0, 0, 0.1), (0, 0, -0.1)
+    pts = {11: lsh, 12: rsh, 23: lhip, 24: rhip,
+           13: tuple(lsh[k] + 0.3 * arm[k] for k in range(3)), 14: (rsh[0], rsh[1] + 0.3, rsh[2]),
+           25: (lhip[0], 0.4, lhip[2]), 26: (rhip[0], 0.4, rhip[2])}
+    w = list(w)
+    for i, (x, y, z) in pts.items():
+        w[i] = (x, y, z, 0.99, 0.99)
+    return w
+
+
+class LimbDirectionTests(unittest.TestCase):
+    """Display-only limb directions in the body frame (M6.4): +x patient's right, +y up, +z forward."""
+
+    def arm(self, facing, arm):
+        return limb_directions(world_pose(facing, arm), lambda i: True)["L"]["arm"]
+
+    def assertDir(self, got, want):
+        for g, w in zip(got, want):
+            self.assertAlmostEqual(g, w, delta=0.01)
+
+    def test_hanging_arm_points_down(self):
+        self.assertDir(self.arm("camera", (0, 1, 0)), (0, -1, 0))
+        self.assertDir(limb_directions(world_pose(), lambda i: True)["L"]["leg"], (0, -1, 0))
+
+    def test_arm_forward_points_forward_facing_camera(self):
+        self.assertDir(self.arm("camera", (0, 0, -1)), (0, 0, 1))      # toward the camera
+
+    def test_arm_out_to_the_left_side(self):
+        self.assertDir(self.arm("camera", (1, 0, 0)), (-1, 0, 0))      # patient's left is image right
+
+    def test_side_on_forward_and_sideways(self):
+        self.assertDir(self.arm("right", (1, 0, 0)), (0, 0, 1))        # forward is image right
+        self.assertDir(self.arm("right", (0, 0, 1)), (-1, 0, 0))       # out to the left: away from the camera
+
+    def test_unusable_trunk_or_limb(self):
+        self.assertIsNone(limb_directions(world_pose(), lambda i: i != 23))
+        dirs = limb_directions(world_pose(), lambda i: i != 13)
+        self.assertNotIn("arm", dirs["L"])
+        self.assertIn("leg", dirs["L"])
 
 
 if __name__ == "__main__":

@@ -27,7 +27,7 @@ import math
 from collections import deque
 
 from angles import (JOINTS, L_ANKLE, L_ELBOW, L_HIP, L_KNEE, L_SHOULDER, L_WRIST, MIN_VISIBILITY, R_ANKLE, R_ELBOW,
-                    R_HIP, R_KNEE, R_SHOULDER, R_WRIST, empty_packet, measure)
+                    R_HIP, R_KNEE, R_SHOULDER, R_WRIST, empty_packet, limb_directions, measure)
 
 TRACKED, REACQUIRING, UNRELIABLE, PREDICTED, LOST = "tracked", "reacquiring", "unreliable", "predicted", "lost"
 
@@ -246,6 +246,7 @@ class PoseTracker:
         self._bad_since = None
         self._last_redetect = None
         self._raw = None
+        self._world = None
         self.state = POSE_LOST
 
     def reset(self):
@@ -256,14 +257,17 @@ class PoseTracker:
         self._pose_seen = False
         self._bad_since = None
         self._raw = None
+        self._world = None
         self.state = POSE_LOST
 
-    def update(self, points, t):
-        """points: 33 (x, y, confidence) tuples from the detector, or None when no pose was found."""
+    def update(self, points, t, world=None):
+        """points: 33 (x, y, confidence) tuples from the detector, or None when no pose was found.
+        world: the same 33 landmarks in metres (x, y, z, ...), for the display-only limb directions."""
         dt = t - self._last_t if self._last_t is not None else 1.0 / 30.0
         self._last_t = t
         self._pose_seen = points is not None
         self._raw = points
+        self._world = world if points is not None else None
         for i, track in enumerate(self.tracks):
             if points is None:
                 track.update(0.0, 0.0, 0.0, dt)
@@ -342,6 +346,10 @@ class PoseTracker:
         verified = any(self.tracks[i].reliable for idxs in CORE.values() for i in idxs)
         packet = measure(scoring, width, height) if verified else empty_packet()
         packet["trackingState"] = self.state
+        # Display only (M6.4): which way the upper arms and thighs point in 3D, from verified landmarks
+        if verified and self._world is not None:
+            for side, dirs in (limb_directions(self._world, lambda i: self.tracks[i].reliable) or {}).items():
+                packet["dir" + side] = dirs
         setup = self.setup(width, height)
         if setup is not None:
             packet["setup"] = setup

@@ -18,6 +18,8 @@ namespace TheraQuest
         public float hipElev = -1f;
         public float kneeFlex = -1f;
         public float kneeExt = -1f;
+        public float ankleDF = -1f;    // M6.4: toes up from a right angle to the shin
+        public float anklePF = -1f;    // M6.4: toes down / heel up
         // Side view only: + = limb in front of the trunk (flexion), - = behind it (extension)
         public float shoulderElevSigned = SignedInvalid;
         public float hipElevSigned = SignedInvalid;
@@ -33,6 +35,8 @@ namespace TheraQuest
                 case "hipElev": return hipElev;
                 case "kneeFlex": return kneeFlex;
                 case "kneeExt": return kneeExt;
+                case "ankleDF": return ankleDF;
+                case "anklePF": return anklePF;
                 default: return -1f;
             }
         }
@@ -42,7 +46,7 @@ namespace TheraQuest
     [Serializable]
     public class FramedSet
     {
-        public bool shoulderElev, elbowFlex, hipElev, kneeFlex, kneeExt;
+        public bool shoulderElev, elbowFlex, hipElev, kneeFlex, kneeExt, ankleDF, anklePF;
 
         public bool Get(string measure)
         {
@@ -53,6 +57,8 @@ namespace TheraQuest
                 case "hipElev": return hipElev;
                 case "kneeFlex": return kneeFlex;
                 case "kneeExt": return kneeExt;
+                case "ankleDF": return ankleDF;
+                case "anklePF": return anklePF;
                 default: return false;
             }
         }
@@ -70,6 +76,26 @@ namespace TheraQuest
         public float light;             // median landmark confidence 0..1: low in poor light
     }
 
+    /// <summary>
+    /// Which way the upper arm (shoulder to elbow) and thigh (hip to knee) point in 3D, as unit vectors in the body's
+    /// frame: +x the patient's right, +y up, +z forward (M6.4). Display only: tilts the live limb out of the exercise's
+    /// plane, never scored. Empty when the tracker couldn't measure that limb.
+    /// </summary>
+    [Serializable]
+    public class LimbDirs
+    {
+        public float[] arm;
+        public float[] leg;
+
+        /// <summary>The limb's direction, or false when it wasn't sent.</summary>
+        public bool TryGet(bool legLimb, out UnityEngine.Vector3 dir)
+        {
+            var a = legLimb ? leg : arm;
+            dir = a != null && a.Length >= 3 ? new UnityEngine.Vector3(a[0], a[1], a[2]) : UnityEngine.Vector3.zero;
+            return dir.sqrMagnitude > 0.25f;
+        }
+    }
+
     /// <summary>Top-level angles come from whichever side the camera sees best; L and R hold each side.</summary>
     [Serializable]
     public class MotionPacket : AngleSet
@@ -85,6 +111,8 @@ namespace TheraQuest
         public AngleSet L = new AngleSet();
         public AngleSet R = new AngleSet();
         public SetupInfo setup;
+        public LimbDirs dirL;          // display only (M6.4)
+        public LimbDirs dirR;
 
         /// <summary>Nobody is in the camera's view (DEC-022 whole-pose state "lost", or no person at all).</summary>
         public bool PersonLost => !visible || trackingState == "lost";
@@ -126,7 +154,7 @@ namespace TheraQuest
         public string code;       // exercise type from the server LIBRARY (shoulderAbd, slr, miniSquat, ...)
         public string name;
         public string joint;
-        public string measure;    // tracker angle: shoulderElev | elbowFlex | hipElev | kneeFlex | kneeExt
+        public string measure;    // tracker angle: shoulderElev | elbowFlex | hipElev | kneeFlex | kneeExt | ankleDF | anklePF
         public string view;       // camera position: front | side
         public string position;   // start position
         public string side;       // operated side: L | R | "" = whichever the camera sees best

@@ -335,6 +335,18 @@ class SetupTests(unittest.TestCase):
         s = self.pose_with(conf=0.3).packet(W, H)["setup"]
         self.assertLess(s["light"], 0.5)
 
+    def test_limb_directions_only_with_world_landmarks(self):
+        from test_angles import world_pose
+        tracker = PoseTracker()
+        pts = [(x, y, 0.99 if v > 0 else 0.0) for x, y, v in normalise(base_pose())]
+        for i in range(3):
+            tracker.update(pts, i / 30)
+        self.assertNotIn("dirL", tracker.packet(W, H))
+        tracker.update(pts, 3 / 30, world_pose())
+        pkt = tracker.packet(W, H)
+        self.assertAlmostEqual(pkt["dirL"]["arm"][1], -1, delta=0.01)
+        self.assertIn("leg", pkt["dirR"])
+
     def test_setup_never_changes_measured_angles(self):
         tracker = self.pose_with({27: (360 / W, 1.08)})
         packet = tracker.packet(W, H)

@@ -238,8 +238,8 @@ namespace TheraQuest
                 case "lying": return Posture.Lying;
                 case "sidelying": return Posture.SideLying;
                 case "standing": return Posture.Standing;
-                default: return pose == "kneeExt" || pose == "sitToStand" ? Posture.Seated
-                              : pose == "slr" || pose == "heelSlide" || pose == "supineFlex" ? Posture.Lying : Posture.Standing;
+                default: return pose == "kneeExt" || pose == "sitToStand" || pose == "seatedHeelRaise" ? Posture.Seated
+                              : pose == "slr" || pose == "heelSlide" || pose == "supineFlex" || pose == "anklePump" ? Posture.Lying : Posture.Standing;
             }
         }
 
@@ -277,11 +277,12 @@ namespace TheraQuest
             else if (ex.joint == "Shoulder") Ghost(body, rUpperArm.localPosition, UpperArm + Forearm);
             else if (pose == "hipAbd" || pose == "slr" || pose == "hipExt") Ghost(body, rThigh.localPosition, Thigh + Shin);
             else if (pose == "march") Ghost(body, rThigh.localPosition, Thigh);
+            else if (FirstPersonMath.AnklePose(pose)) Ghost(rShin, new Vector3(0f, -Shin, 0f), 0.16f);   // the foot (M6.4)
             else Ghost(rThigh, rShin.localPosition, Shin);   // knee exercises: target knee angle
 
             // Colour the moving limb (done after the ghost is re-parented; SetActiveLimb skips it).
             if (ex.joint == "Elbow") SetActiveLimb(rForearm);
-            else if (pose == "kneeExt" || pose == "hamstringCurl") SetActiveLimb(rShin);
+            else if (pose == "kneeExt" || pose == "hamstringCurl" || FirstPersonMath.AnklePose(pose)) SetActiveLimb(rShin);
             else if (ex.joint == "Hip" || ex.joint == "Knee") SetActiveLimb(rThigh);
             else SetActiveLimb(rUpperArm);
         }
@@ -310,6 +311,8 @@ namespace TheraQuest
                 case "shoulderExt": case "hipExt": return Flex(-target);
                 case "heelSlide": case "miniSquat": case "miniLunge": case "hamstringCurl": return Bend(target);
                 case "kneeExt": case "sitToStand": return Bend(90f - target);
+                case "anklePump": return Flex(90f + target);                              // the foot, from the shin
+                case "heelRaise": case "seatedHeelRaise": return Flex(90f - target);
                 default: return Flex(target);   // shoulderFlex, supineFlex, elbowFlex, wallPushUp, march, slr
             }
         }
@@ -345,6 +348,12 @@ namespace TheraQuest
                     rThigh.localRotation = lThigh.localRotation = Flex(a / 2f);
                     rShin.localRotation = lShin.localRotation = Bend(a);
                     body.localPosition = new Vector3(0, -(Thigh + Shin) * (1f - Mathf.Cos(a / 2f * Mathf.Deg2Rad)), 0);
+                    break;
+                case "anklePump": case "heelRaise": break;                                           // the figure has no feet: still
+                case "seatedHeelRaise":
+                    rThigh.localRotation = lThigh.localRotation = Flex(90);
+                    rShin.localRotation = lShin.localRotation = Bend(90);
+                    body.localPosition = new Vector3(0, -0.40f, 0.05f);
                     break;
                 case "sitToStand":                                                                   // 0 = seated, 90 = standing
                     float hip = 90f - Mathf.Clamp(a, 0f, 90f), r = hip * Mathf.Deg2Rad;

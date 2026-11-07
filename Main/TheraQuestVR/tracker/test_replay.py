@@ -43,7 +43,7 @@ class ReplayTests(unittest.TestCase):
         expected = []
         for rec in records:
             pts = None if rec["pose"] is None else [(x, y, landmark_confidence(v, p)) for x, y, v, p in rec["pose"]]
-            live.update(pts, rec["t"])
+            live.update(pts, rec["t"], rec["world"])
             pkt = live.packet(header["width"], header["height"])
             pkt["ts"] = round(rec["t"], 3)
             expected.append(pkt)

@@ -900,4 +900,101 @@ namespace TheraQuest.Tests
             Assert.IsFalse(JsonUtility.FromJson<MotionPacket>("{\"visible\":true,\"trackingState\":\"degraded\"}").PersonLost);
         }
     }
+
+    /// <summary>Ankle exercises and the out-of-plane live limb (M6.4).</summary>
+    public class AnkleAndTiltTests
+    {
+        static FirstPersonMath.Chain Main(string pose, float angle, int side = 1) => FirstPersonMath.Limbs(pose, side, angle)[0];
+
+        /// <summary>Angle between the shin (ankle to knee) and the foot (ankle to toes), degrees.</summary>
+        static float FootAngle(FirstPersonMath.Chain c) => Vector3.Angle(c.mid - c.end, c.tip - c.end);
+
+        [Test]
+        public void AnkleFieldsAndLimbDirectionsParse()
+        {
+            var p = JsonUtility.FromJson<MotionPacket>(
+                "{\"visible\":true,\"ankleDF\":12.5,\"L\":{\"anklePF\":30}," +
+                "\"setup\":{\"valid\":true,\"framedL\":{\"ankleDF\":true,\"anklePF\":true}}," +
+                "\"dirL\":{\"arm\":[0.0,-1.0,0.0],\"leg\":[0.1,-0.99,0.0]}}");
+            Assert.AreEqual(12.5f, p.Get("ankleDF"), 0.001f);
+            Assert.AreEqual(30f, p.L.Get("anklePF"), 0.001f);
+            Assert.IsTrue(p.setup.framedL.Get("anklePF"));
+            Assert.IsFalse(p.setup.framedR.Get("ankleDF"));
+            Assert.IsTrue(p.dirL.TryGet(false, out var arm));
+            Assert.AreEqual(-1f, arm.y, 0.001f);
+            Assert.IsTrue(p.dirL.TryGet(true, out _));
+            Assert.IsFalse(p.dirR != null && p.dirR.TryGet(false, out _), "no direction sent for the right side");
+            Assert.AreEqual("foot", CameraSetup.LimbWord("anklePF"));
+            Assert.AreEqual("leg", CameraSetup.LimbWord("kneeFlex"));
+        }
+
+        [Test]
+        public void FootTurnsByTheAnkleAngle()
+        {
+            Assert.AreEqual(90f, FootAngle(Main("heelRaise", 0f)), 0.5f);
+            Assert.AreEqual(120f, FootAngle(Main("heelRaise", 30f)), 0.5f, "toes point down");
+            Assert.Less(Main("heelRaise", 30f).tip.y, Main("heelRaise", 0f).tip.y);
+            Assert.AreEqual(2, FirstPersonMath.Limbs("heelRaise", 1, 30f).Length, "both heels");
+            Assert.AreEqual(120f, FootAngle(Main("seatedHeelRaise", 30f)), 0.5f);
+            Assert.AreEqual(75f, FootAngle(Main("anklePump", 15f)), 0.5f, "toes come up");
+            Assert.AreEqual(Main("anklePump", 0f).end, Main("anklePump", 15f).end, "the leg holds still");
+        }
+
+        [Test]
+        public void AnklePosesHaveAPostureWordAndFootView()
+        {
+            Assert.AreEqual("lying", FirstPersonMath.PostureOf(new ExerciseDef { pose = "anklePump" }));
+            Assert.AreEqual("seated", FirstPersonMath.PostureOf(new ExerciseDef { pose = "seatedHeelRaise" }));
+            Assert.AreEqual("standing", FirstPersonMath.PostureOf(new ExerciseDef { pose = "heelRaise" }));
+            Assert.AreEqual("Toes up", FirstPersonMath.Word("anklePump"));
+            Assert.AreEqual("Heels up", FirstPersonMath.Word("heelRaise"));
+            foreach (var pose in new[] { "anklePump", "heelRaise", "seatedHeelRaise" })
+            {
+                Assert.IsTrue(FirstPersonMath.AnklePose(pose), pose);
+                Assert.IsFalse(FirstPersonMath.BehindBody(pose), pose);
+                Assert.AreEqual(Vector3.zero, FirstPersonMath.PlaneNormal(pose, 1), "the foot never leans");
+            }
+            Assert.IsFalse(FirstPersonMath.AnklePose("kneeExt"));
+        }
+
+        static Vector3 Dir(float outDeg, float x = 1f) =>
+            new Vector3(x * Mathf.Sin(outDeg * Mathf.Deg2Rad), -Mathf.Cos(outDeg * Mathf.Deg2Rad), 0f);
+
+        [Test]
+        public void LeanOutOfThePlaneHasADeadZoneAndACap()
+        {
+            Assert.AreEqual(15f, FirstPersonMath.OutOfPlane("shoulderFlex", 1, Dir(30f)), 0.1f, "30 out, minus the arm's dead zone");
+            Assert.AreEqual(0f, FirstPersonMath.OutOfPlane("shoulderFlex", 1, Dir(12f)), 0.001f, "a hanging arm sits outside the hip");
+            Assert.AreEqual(-15f, FirstPersonMath.OutOfPlane("shoulderFlex", 1, Dir(30f, -1f)), 0.1f, "across the body");
+            Assert.AreEqual(15f, FirstPersonMath.OutOfPlane("shoulderFlex", -1, Dir(30f, -1f)), 0.1f, "left arm: out is -x");
+            Assert.AreEqual(22f, FirstPersonMath.OutOfPlane("slr", 1, Dir(30f)), 0.1f, "legs have a smaller dead zone");
+            Assert.AreEqual(FirstPersonMath.MaxTilt, FirstPersonMath.OutOfPlane("shoulderFlex", 1, Vector3.right), 0.001f);
+            Assert.AreEqual(15f, FirstPersonMath.OutOfPlane("shoulderAbd", 1, new Vector3(0f, -0.866f, 0.5f)), 0.1f, "frontal: forward");
+            Assert.AreEqual(0f, FirstPersonMath.OutOfPlane("elbowFlex", 1, Vector3.right), "the elbow never leans");
+        }
+
+        [Test]
+        public void TiltKeepsTheLimbsShapeAndInPlaneAngle()
+        {
+            var c = Main("shoulderFlex", 90f);
+            var t = FirstPersonMath.Tilt(c, "shoulderFlex", 1, 30f);
+            Assert.AreEqual(c.root, t.root);
+            Assert.AreEqual((c.end - c.root).magnitude, (t.end - t.root).magnitude, 0.001f);
+            Assert.AreEqual(30f, Mathf.Asin((t.mid - t.root).normalized.x) * Mathf.Rad2Deg, 0.1f, "leans out to the right");
+            var flat = Vector3.ProjectOnPlane(t.mid - t.root, Vector3.right);
+            Assert.AreEqual(90f, Vector3.Angle(flat, Vector3.down), 0.1f, "the webcam's angle is kept in the plane");
+            var none = FirstPersonMath.Tilt(c, "elbowFlex", 1, 30f);
+            Assert.AreEqual(c.end, none.end);
+        }
+
+        [Test]
+        public void TiltComesFromTheMeasuredSidesDirection()
+        {
+            var p = JsonUtility.FromJson<MotionPacket>("{\"visible\":true,\"dirR\":{\"arm\":[0.5,-0.866,0.0]}}");
+            var flex = new ExerciseDef { pose = "shoulderFlex", side = "R" };
+            Assert.AreEqual(15f, MotionInput.TiltFrom(flex, p, "R"), 0.1f);
+            Assert.IsTrue(float.IsNaN(MotionInput.TiltFrom(flex, p, "L")), "nothing sent for that side");
+            Assert.AreEqual(0f, MotionInput.TiltFrom(new ExerciseDef { pose = "elbowFlex" }, p, "R"));
+        }
+    }
 }

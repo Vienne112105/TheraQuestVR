@@ -21,6 +21,11 @@ several exercises; the camera view decides which plane of motion it sees.
   kneeExt       interior knee angle - 90
                 0 = knee bent to 90, 90 = leg straight. Seated knee extension,
                 sit-to-stand (side view)
+  ankleDF       90 - angle between the shin (ankle->knee) and the foot (heel->toes)
+                0 = foot at a right angle to the shin, rises as the toes come up.
+                Ankle pumps (side view)
+  anklePF       that angle - 90: rises as the toes point down / the heel lifts.
+                Heel raises (side view)
 
 Signed variants (side view only; per side in "L"/"R" and best side at top level):
   shoulderElevSigned  same magnitude as shoulderElev, signed by direction
@@ -42,7 +47,7 @@ top of each other so that no angle exists.
 
 MediaPipe Pose landmark indices used below:
   0 nose, 7/8 ears, 11/12 shoulders, 13/14 elbows, 15/16 wrists, 23/24 hips,
-  25/26 knees, 27/28 ankles
+  25/26 knees, 27/28 ankles, 29/30 heels, 31/32 toes (foot index)
   (odd = patient's LEFT side, even = patient's RIGHT side)
 """
 import math
@@ -54,14 +59,19 @@ L_WRIST, R_WRIST = 15, 16
 L_HIP, R_HIP = 23, 24
 L_KNEE, R_KNEE = 25, 26
 L_ANKLE, R_ANKLE = 27, 28
+L_HEEL, R_HEEL = 29, 30
+L_FOOT, R_FOOT = 31, 32
 
-# Which three landmarks (a, b, c) form the measured angle at joint b, per side.
+# Which landmarks form each measured angle, per side: three (a, b, c) give the angle at joint b; four
+# (a, b, c, d) give the angle between the lines b->a and c->d (the ankle: shin against the foot).
 JOINTS = {
     "shoulderElev": {"L": (L_HIP, L_SHOULDER, L_ELBOW), "R": (R_HIP, R_SHOULDER, R_ELBOW)},
     "elbowFlex":    {"L": (L_SHOULDER, L_ELBOW, L_WRIST), "R": (R_SHOULDER, R_ELBOW, R_WRIST)},
     "hipElev":      {"L": (L_SHOULDER, L_HIP, L_KNEE), "R": (R_SHOULDER, R_HIP, R_KNEE)},
     "kneeFlex":     {"L": (L_HIP, L_KNEE, L_ANKLE), "R": (R_HIP, R_KNEE, R_ANKLE)},
     "kneeExt":      {"L": (L_HIP, L_KNEE, L_ANKLE), "R": (R_HIP, R_KNEE, R_ANKLE)},
+    "ankleDF":      {"L": (L_KNEE, L_ANKLE, L_HEEL, L_FOOT), "R": (R_KNEE, R_ANKLE, R_HEEL, R_FOOT)},
+    "anklePF":      {"L": (L_KNEE, L_ANKLE, L_HEEL, L_FOOT), "R": (R_KNEE, R_ANKLE, R_HEEL, R_FOOT)},
 }
 
 # Signed variants: (joint, limb end) per side, and the unsigned angle they mirror.
@@ -91,6 +101,22 @@ def angle_at(a, b, c):
     return math.degrees(math.acos(cos))
 
 
+def joint_angle(pts):
+    """Interior angle for 3 points (at the middle one) or between the lines p1->p0 and p2->p3 for 4."""
+    if len(pts) == 3:
+        return angle_at(*pts)
+    a, b, c, d = pts
+    return _between(_vec(b, a), _vec(c, d))
+
+
+def _between(v1, v2):
+    n1, n2 = math.hypot(*v1), math.hypot(*v2)
+    if n1 == 0 or n2 == 0:
+        return NOT_VISIBLE
+    cos = max(-1.0, min(1.0, (v1[0] * v2[0] + v1[1] * v2[1]) / (n1 * n2)))
+    return math.degrees(math.acos(cos))
+
+
 def signed_angle(v1, v2):
     """Signed angle in degrees from vector v1 to v2 (-180..180), None if either has zero length."""
     if math.hypot(*v1) == 0 or math.hypot(*v2) == 0:
@@ -106,6 +132,10 @@ def to_rom(name, interior):
     if name in ("elbowFlex", "hipElev", "kneeFlex"):
         return 180.0 - interior
     if name == "kneeExt":
+        return interior - 90.0
+    if name == "ankleDF":
+        return 90.0 - interior
+    if name == "anklePF":
         return interior - 90.0
     raise ValueError(name)
 
@@ -166,7 +196,7 @@ def side_angles(px, side):
     out = {}
     for name in JOINTS:
         idxs = JOINTS[name][side]
-        interior = angle_at(*(px[i] for i in idxs)) if _visible(px, idxs) else NOT_VISIBLE
+        interior = joint_angle([px[i] for i in idxs]) if _visible(px, idxs) else NOT_VISIBLE
         if interior < 0:
             out[name] = NOT_VISIBLE
             continue
@@ -219,4 +249,64 @@ def measure(points, width, height):
     idxs = JOINTS["shoulderElev"][sides["elbowFlex"]]
     drift = angle_at(*(px[i] for i in idxs)) if _visible(px, idxs) else NOT_VISIBLE
     out["elbowDrift"] = round(drift, 1) if drift >= 0 else NOT_VISIBLE
+    return out
+
+
+# Limb directions in the patient's own body frame, from MediaPipe's world landmarks (metres; x right, y down,
+# z away from the camera: a right-handed frame). Display only (DEC-023): Unity tilts the live limb out of the
+# exercise's plane with them; nothing scored ever reads them.
+LIMBS = {"arm": {"L": (L_SHOULDER, L_ELBOW), "R": (R_SHOULDER, R_ELBOW)},
+         "leg": {"L": (L_HIP, L_KNEE), "R": (R_HIP, R_KNEE)}}
+
+
+def _sub(p, q):
+    return (p[0] - q[0], p[1] - q[1], p[2] - q[2])
+
+
+def _dot(p, q):
+    return p[0] * q[0] + p[1] * q[1] + p[2] * q[2]
+
+
+def _unit(v):
+    n = math.sqrt(_dot(v, v))
+    return None if n < 1e-6 else (v[0] / n, v[1] / n, v[2] / n)
+
+
+def body_frame(world):
+    """(right, up, forward) unit vectors of the patient's body in world coordinates, or None when the
+    shoulders and hips sit on top of each other. right = toward the patient's right shoulder."""
+    mid = lambda a, b: tuple((world[a][k] + world[b][k]) / 2 for k in range(3))
+    up = _unit(_sub(mid(L_SHOULDER, R_SHOULDER), mid(L_HIP, R_HIP)))
+    across = _sub(world[R_SHOULDER], world[L_SHOULDER])
+    if up is None:
+        return None
+    d = _dot(across, up)
+    right = _unit((across[0] - d * up[0], across[1] - d * up[1], across[2] - d * up[2]))
+    if right is None:
+        return None
+    # Right-handed world: up x right points out of the patient's chest
+    forward = (up[1] * right[2] - up[2] * right[1], up[2] * right[0] - up[0] * right[2], up[0] * right[1] - up[1] * right[0])
+    return right, up, forward
+
+
+def limb_directions(world, usable):
+    """{"L": {"arm": [x, y, z], "leg": [...]}, "R": {...}}: unit direction of the upper arm (shoulder->elbow)
+    and thigh (hip->knee) in the body frame (+x the patient's right, +y up, +z forward, like Unity's).
+    usable(i) says whether landmark i may be used; a limb or side that can't be measured is left out.
+    None when the trunk can't be used."""
+    if not all(usable(i) for i in (L_SHOULDER, R_SHOULDER, L_HIP, R_HIP)):
+        return None
+    frame = body_frame(world)
+    if frame is None:
+        return None
+    out = {}
+    for side in ("L", "R"):
+        dirs = {}
+        for limb, spec in LIMBS.items():
+            a, b = spec[side]
+            v = _unit(_sub(world[b], world[a])) if usable(a) and usable(b) else None
+            if v is not None:
+                dirs[limb] = [round(_dot(v, axis), 3) for axis in frame]
+        if dirs:
+            out[side] = dirs
     return out
