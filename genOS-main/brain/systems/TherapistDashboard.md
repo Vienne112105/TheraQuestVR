@@ -14,7 +14,7 @@ Delivers a web browser interface for physical therapists to monitor patient adhe
 - Patient chart actions (M5.2): Edit Details (name and condition; the code is fixed) and Archive / Reactivate with a confirmation and an "Archived on …" notice (DEC-014).
 - Attention flags (M5.3): the caseload shows flag chips per patient and sorts "Needs attention first" by default; the chart shows a "Needs attention" notice with each reason and the input sources it counted, and the Clinical Status box is driven by the server's flags (no client-side pain rule).
 - Protocol Phase Editor (M5.2): edit or add phases, criteria and VR exercises of therapist-authored protocols; built-in protocols show a read-only note.
-- Show adherence (rate and completed/scheduled sessions). The server also sends a 14-day calendar with Complete / Incomplete / Missed statuses, phase history and per-exercise stats; the page does not show them yet (left out of M5 by the human; see TASK-001 for the export buttons).
+- Show adherence (rate and completed/scheduled sessions). The server also sends a 14-day calendar with Complete / Incomplete / Missed statuses, phase history and per-exercise stats; the page does not show them yet (left out of M5 by the human). The chart has "Download Telemetry (CSV)" and "Download Reps (CSV)" (TASK-001).
 - Provide an interactive prescription editor and customized Add Movement modal (`#addExerciseModal`) allowing therapists to modify targets, tolerance, repetitions, sets, limb sides, and rest times prior to prescribing.
 - Feature a compressed Protocol Library catalog that displays protocol names and opens a dedicated Phase Inspector widget (`#protocolPhasesWidget`) detailing phases, timelines, clinical goals, precautions, ROM milestones, and exercises with quick-apply controls.
 - Visualize session performance logs with per-exercise accuracy scores and dual-axis Chart.js progression charts with in-place data updates.
@@ -32,7 +32,8 @@ Delivers a web browser interface for physical therapists to monitor patient adhe
 ## Runtime References
 - `Main/TheraQuestVR/server/app.py`: Standalone native desktop application runner using Windows WebView2.
 - `Main/TheraQuestVR/server/dashboard.html`: Single-page responsive HTML5/CSS/JavaScript dashboard featuring a tabbed clinical command center.
-- `Start_Therapist_App.bat`: One-click Windows desktop application launcher.
+- `Main/TheraQuestVR/server/build_app.py`: builds `server/dist/TheraQuest Therapist/TheraQuest Therapist.exe` (PyInstaller one folder, no console, own icon; TASK-020).
+- `Start_Therapist_App.bat`: One-click launcher; runs the built `.exe` when it exists, else `python app.py`.
 
 ## Invariants
 - Only exercises cleared for single-camera active tracking are surfaced for VR prescription; off-camera protocol exercises are cataloged separately under "Without camera".
@@ -44,7 +45,7 @@ Delivers a web browser interface for physical therapists to monitor patient adhe
 - Every value from the API placed into HTML goes through `esc()` (which also escapes `'`); record names are never interpolated into inline `onclick` strings — handlers look records up by id.
 
 ## Notes
-- Delivered as a desktop app, not a website (DEC-013). Runs as a native desktop application via `app.py` (powered by Windows WebView2, eliminating browser address bars/tabs). Strict clinical light mode with clean CSS utility classes and debounced icon rendering.
+- Delivered as a desktop app, not a website (DEC-013). Runs as a native desktop application via `app.py` (powered by Windows WebView2, eliminating browser address bars/tabs). Strict clinical light mode with clean CSS utility classes and debounced icon rendering. The built `.exe` has no console: closing its window stops the backend (Unity's offline queue covers the gap), and output goes to `%LOCALAPPDATA%\TheraQuest\therapist_app.log`. The native window must allow downloads (`webview.settings["ALLOW_DOWNLOADS"]`), or the CSV export buttons do nothing.
 
 ## Future Changes
 - Comparative chart overlays showing patient progress against normative cohort recovery curves.
