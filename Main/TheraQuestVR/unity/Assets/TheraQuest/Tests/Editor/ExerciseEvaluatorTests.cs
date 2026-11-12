@@ -82,9 +82,19 @@ namespace TheraQuest.Tests
         public void TooFastRepIsNotCounted()
         {
             var ev = new ExerciseEvaluator(Ex());
-            var r = Rep(ev, 90f, upSeconds: 0.2f, downSeconds: 0.2f);
+            var r = Rep(ev, 90f, upSeconds: 0.4f, downSeconds: 0.4f);
             Assert.IsTrue(r[0].tooFast);
             Assert.IsFalse(r[0].valid);
+        }
+
+        [Test]
+        public void WebcamBlipIsNotARep()
+        {
+            // M6.5: up past the start line and back under the end line within a few frames
+            var ev = new ExerciseEvaluator(Ex());
+            Assert.AreEqual(0, Rep(ev, 90f, upSeconds: 0.15f, downSeconds: 0.15f).Count);
+            Assert.AreEqual(0, ev.Attempts);
+            Assert.IsFalse(Rep(ev, 90f, upSeconds: 0.6f, downSeconds: 0.6f)[0].tooFast, "an ordinary quick rep is not rushed");
         }
 
         [Test]
@@ -355,7 +365,7 @@ namespace TheraQuest.Tests
         public void TooFastMessageShowsTheDurationWithOneDecimal()
         {
             var ev = new ExerciseEvaluator(ExerciseEvaluatorTests.Ex());
-            var r = ExerciseEvaluatorTests.Rep(ev, 90f, upSeconds: 0.25f, downSeconds: 0.25f);
+            var r = ExerciseEvaluatorTests.Rep(ev, 90f, upSeconds: 0.4f, downSeconds: 0.4f);
             Assert.IsTrue(r[0].tooFast);
             StringAssert.IsMatch(@"Moved too quickly \(\d\.\ds\)", ev.Describe(r[0]));
         }
@@ -901,6 +911,102 @@ namespace TheraQuest.Tests
         }
     }
 
+    /// <summary>Side-on, only the limb doing the exercise is measured, through left/right swaps (M6.5).</summary>
+    public class MovingLimbTests
+    {
+        static MotionPacket Packet(float left, float right) =>
+            new MotionPacket { visible = true, L = new AngleSet { kneeFlex = left }, R = new AngleSet { kneeFlex = right } };
+
+        [Test]
+        public void TheMovingLegIsMeasuredWhateverItIsLabelled()
+        {
+            var curl = new ExerciseDef { pose = "hamstringCurl", measure = "kneeFlex", view = "side", targetAngle = 90f };
+            Assert.AreEqual("R", MotionInput.MovingSide(curl, Packet(8f, 70f)));
+            Assert.AreEqual("L", MotionInput.MovingSide(curl, Packet(72f, 6f)), "labels swapped: still the curling leg");
+            Assert.AreEqual("R", MotionInput.MovingSide(curl, Packet(-1f, 40f)), "one leg hidden");
+            Assert.IsNull(MotionInput.MovingSide(curl, Packet(-1f, -1f)));
+            var squat = new ExerciseDef { pose = "miniSquat", measure = "kneeFlex", view = "side", targetAngle = 30f };
+            Assert.IsNull(MotionInput.MovingSide(squat, Packet(8f, 30f)), "both legs move: the tracker's side");
+        }
+
+        [Test]
+        public void ADropoutHoldsTheAngleButARealLoweringPassesThrough()
+        {
+            var f = new DropoutFilter();
+            const float dt = 1f / 30f;
+            Assert.AreEqual(70f, f.Apply(70f, dt));
+            Assert.AreEqual(70f, f.Apply(20f, dt), "50 degrees in one frame: a dropout");
+            Assert.AreEqual(68f, f.Apply(68f, dt), "back on the leg");
+            for (int i = 0; i < 12; i++) f.Apply(10f, dt);
+            Assert.AreEqual(10f, f.Apply(10f, dt), "a drop lasting longer than the hold is real");
+            Assert.AreEqual(5f, f.Apply(5f, dt));
+            f.Reset();
+            for (float a = 90f; a > 0f; a -= 6f) Assert.AreEqual(a, f.Apply(a, dt), "lowering at 180 degrees a second");
+        }
+    }
+
+    /// <summary>Standing position measured before hip abduction (M6.5).</summary>
+    public class RestBaselineTests
+    {
+        static float Feed(RestBaseline b, float angle, float seconds, float dt = 1f / 30f)
+        {
+            float last = 0f;
+            for (float t = 0f; t < seconds; t += dt) last = b.Adjust(angle, dt);
+            return last;
+        }
+
+        [Test]
+        public void StandingStillSetsTheRestingAngle()
+        {
+            var b = new RestBaseline();
+            Assert.AreEqual(0f, Feed(b, 9f, 0.5f), "nothing counts until the standing position is known");
+            Assert.IsFalse(b.Ready);
+            Feed(b, 9f, 0.7f);
+            Assert.IsTrue(b.Ready);
+            Assert.AreEqual(9f, b.Value, 0.01f);
+            Assert.AreEqual(25f, b.Adjust(34f, 1f / 30f), 0.01f, "the lift is measured from the standing position");
+            Assert.AreEqual(0f, b.Adjust(5f, 1f / 30f), "never below the standing position");
+        }
+
+        [Test]
+        public void MovingOrRaisedLegIsNotTakenAsStanding()
+        {
+            var b = new RestBaseline();
+            for (int i = 0; i < 90; i++) b.Adjust(i % 2 == 0 ? 3f : 12f, 1f / 30f);   // wobbling
+            Assert.IsFalse(b.Ready);
+            Feed(b, 40f, 2f);                                                          // leg held out
+            Assert.IsFalse(b.Ready);
+        }
+
+        [Test]
+        public void ARepDoesNotMoveTheRestingAngleButStandingStillAgainRefreshesIt()
+        {
+            var b = new RestBaseline();
+            Feed(b, 8f, 1.2f);
+            Feed(b, 35f, 1.5f);                      // holding the leg out is not standing
+            Assert.AreEqual(8f, b.Value, 0.01f);
+            Feed(b, 11f, 1.2f);                      // back near the standing position, still
+            Assert.AreEqual(11f, b.Value, 0.01f);
+            Assert.IsTrue(RestBaseline.Uses(new ExerciseDef { pose = "hipAbd" }));
+            Assert.IsTrue(RestBaseline.Uses(new ExerciseDef { pose = "hamstringCurl" }), "every exercise (M6.5)");
+        }
+
+        [Test]
+        public void RestingLimitStaysUnderTheStartLine()
+        {
+            Assert.AreEqual(25f, RestBaseline.RestLimit(new ExerciseDef { targetAngle = 90f }));
+            Assert.AreEqual(15f, RestBaseline.RestLimit(new ExerciseDef { targetAngle = 25f }), 0.01f);
+            Assert.AreEqual(10f, RestBaseline.RestLimit(new ExerciseDef { targetAngle = 10f }));
+            var b = new RestBaseline();
+            b.Reset(new ExerciseDef { targetAngle = 25f });
+            Feed(b, 18f, 2f);                        // above 60% of the target: already moving, not resting
+            Assert.IsFalse(b.Ready);
+            Feed(b, 6f, 1.2f);
+            Assert.IsTrue(b.Ready);
+            Assert.AreEqual(6f, b.Value, 0.01f);
+        }
+    }
+
     /// <summary>Ankle exercises and the out-of-plane live limb (M6.4).</summary>
     public class AnkleAndTiltTests
     {
@@ -963,13 +1069,13 @@ namespace TheraQuest.Tests
         [Test]
         public void LeanOutOfThePlaneHasADeadZoneAndACap()
         {
-            Assert.AreEqual(15f, FirstPersonMath.OutOfPlane("shoulderFlex", 1, Dir(30f)), 0.1f, "30 out, minus the arm's dead zone");
-            Assert.AreEqual(0f, FirstPersonMath.OutOfPlane("shoulderFlex", 1, Dir(12f)), 0.001f, "a hanging arm sits outside the hip");
-            Assert.AreEqual(-15f, FirstPersonMath.OutOfPlane("shoulderFlex", 1, Dir(30f, -1f)), 0.1f, "across the body");
-            Assert.AreEqual(15f, FirstPersonMath.OutOfPlane("shoulderFlex", -1, Dir(30f, -1f)), 0.1f, "left arm: out is -x");
-            Assert.AreEqual(22f, FirstPersonMath.OutOfPlane("slr", 1, Dir(30f)), 0.1f, "legs have a smaller dead zone");
+            Assert.AreEqual(10f, FirstPersonMath.OutOfPlane("shoulderFlex", 1, Dir(30f)), 0.1f, "30 out, minus the arm's dead zone");
+            Assert.AreEqual(0f, FirstPersonMath.OutOfPlane("shoulderFlex", 1, Dir(18f)), 0.001f, "a hanging arm sits outside the hip");
+            Assert.AreEqual(-10f, FirstPersonMath.OutOfPlane("shoulderFlex", 1, Dir(30f, -1f)), 0.1f, "across the body");
+            Assert.AreEqual(10f, FirstPersonMath.OutOfPlane("shoulderFlex", -1, Dir(30f, -1f)), 0.1f, "left arm: out is -x");
+            Assert.AreEqual(18f, FirstPersonMath.OutOfPlane("slr", 1, Dir(30f)), 0.1f, "legs have a smaller dead zone");
             Assert.AreEqual(FirstPersonMath.MaxTilt, FirstPersonMath.OutOfPlane("shoulderFlex", 1, Vector3.right), 0.001f);
-            Assert.AreEqual(15f, FirstPersonMath.OutOfPlane("shoulderAbd", 1, new Vector3(0f, -0.866f, 0.5f)), 0.1f, "frontal: forward");
+            Assert.AreEqual(10f, FirstPersonMath.OutOfPlane("shoulderAbd", 1, new Vector3(0f, -0.866f, 0.5f)), 0.1f, "frontal: forward");
             Assert.AreEqual(0f, FirstPersonMath.OutOfPlane("elbowFlex", 1, Vector3.right), "the elbow never leans");
         }
 
@@ -992,7 +1098,7 @@ namespace TheraQuest.Tests
         {
             var p = JsonUtility.FromJson<MotionPacket>("{\"visible\":true,\"dirR\":{\"arm\":[0.5,-0.866,0.0]}}");
             var flex = new ExerciseDef { pose = "shoulderFlex", side = "R" };
-            Assert.AreEqual(15f, MotionInput.TiltFrom(flex, p, "R"), 0.1f);
+            Assert.AreEqual(10f, MotionInput.TiltFrom(flex, p, "R"), 0.1f);
             Assert.IsTrue(float.IsNaN(MotionInput.TiltFrom(flex, p, "L")), "nothing sent for that side");
             Assert.AreEqual(0f, MotionInput.TiltFrom(new ExerciseDef { pose = "elbowFlex" }, p, "R"));
         }

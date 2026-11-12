@@ -184,10 +184,15 @@ def side_signed(px, side):
     return out
 
 
-def best_side(points, name):
-    """Pick the side whose three landmarks the camera sees most clearly."""
+def best_side(points, name, prefer=None, margin=0.0):
+    """Pick the side whose landmarks the camera sees most clearly. A preferred side is kept unless the other
+    side is seen better by more than `margin` (M6.5: stops the reading flipping between the near and far limb)."""
     vl = _visibility(points, JOINTS[name]["L"])
     vr = _visibility(points, JOINTS[name]["R"])
+    if prefer == "L" and vl >= vr - margin:
+        return "L", vl
+    if prefer == "R" and vr >= vl - margin:
+        return "R", vr
     return ("L", vl) if vl >= vr else ("R", vr)
 
 
@@ -213,7 +218,7 @@ def empty_packet():
             "L": dict(blank), "R": dict(blank)}
 
 
-def measure(points, width, height):
+def measure(points, width, height, prefer=None):
     """
     points: list of 33 (x, y, visibility) tuples with x, y normalised 0..1
             (exactly what MediaPipe returns).
@@ -222,13 +227,32 @@ def measure(points, width, height):
       top-level angles  from whichever side the camera sees best (per angle)
       "L" / "R"         every angle for that side, used when the therapist
                         sets the operated side
+    prefer: optional {angle name: (side, margin)}: keep that side for the top-level angle while it can be
+            measured and the other side isn't seen better by more than margin. margin None = always that side,
+            even when it can't be measured (-1): side-on, the far limb is hidden and must never stand in.
+            side "max" = whichever side reads the larger angle (facing the camera: the limb that moves).
+            A third item `lead` with margin None: the other side is taken instead when it reads more than `lead`
+            degrees above the preferred one (side-on: the far leg doing the exercise, e.g. a hamstring curl).
     """
     px = [(p[0] * width, p[1] * height, p[2]) for p in points]
     per_side = {"L": side_angles(px, "L"), "R": side_angles(px, "R")}
     out = {"visible": True}
     sides = {}
     for name in JOINTS:
-        side, _ = best_side(px, name)
+        want, margin, *more = (prefer or {}).get(name, (None, 0.0))
+        lead = more[0] if more else None
+        if want == "max":
+            l, r = per_side["L"][name], per_side["R"][name]
+            side = "L" if l >= r else "R"
+        elif want and margin is None:
+            side = want
+            other = "R" if want == "L" else "L"
+            if lead is not None and per_side[other][name] > max(per_side[want][name], 0.0) + lead:
+                side = other
+        else:
+            if want and per_side[want][name] < 0:
+                want = None   # the preferred side can't be measured now
+            side, _ = best_side(px, name, want, margin)
         sides[name] = side
         out[name] = per_side[side][name]
     for name, spec in SIGNED.items():

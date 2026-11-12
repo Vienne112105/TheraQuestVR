@@ -335,6 +335,24 @@ class SetupTests(unittest.TestCase):
         s = self.pose_with(conf=0.3).packet(W, H)["setup"]
         self.assertLess(s["light"], 0.5)
 
+    def test_facing_camera_measures_the_moving_leg(self):
+        """M6.5: facing the camera, a hip abduction is read from the leg that moves, not the standing one."""
+        import math
+        p = base_pose()
+        hip = p[23][:2]
+        for i, length in ((25, 80), (27, 160)):   # left knee and ankle swung 25 degrees out (image right)
+            t = math.radians(25)
+            p[i] = (hip[0] + math.sin(t) * length, hip[1] + math.cos(t) * length, 0.99)
+        p[29], p[31] = (p[27][0], p[27][1] + 8, 0.99), (p[27][0], p[27][1] + 12, 0.99)
+        pts = [(x, y, 0.99 if v > 0 else 0.0) for x, y, v in normalise(p)]
+        tracker = PoseTracker()
+        for i in range(4):
+            tracker.update(pts, i / 30)
+        pkt = tracker.packet(W, H)
+        self.assertEqual(pkt["setup"]["view"], "front")
+        self.assertAlmostEqual(pkt["hipElev"], 25, delta=1.5)
+        self.assertLess(pkt["R"]["hipElev"], 3)
+
     def test_limb_directions_only_with_world_landmarks(self):
         from test_angles import world_pose
         tracker = PoseTracker()

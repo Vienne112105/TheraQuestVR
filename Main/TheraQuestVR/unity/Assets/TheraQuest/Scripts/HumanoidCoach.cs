@@ -1277,6 +1277,9 @@ namespace TheraQuest
                 var fwd = Vector3.forward - Vector3.Dot(Vector3.forward, shin) * shin;
                 var up = Vector3.up - Vector3.Dot(Vector3.up, shin) * shin;
                 var toes = (fwd + up * Mathf.Clamp01(0.6f - fwd.magnitude)).normalized;
+                // M6.5: a shin swung behind the knee (hamstring curl) keeps the foot at a right angle to it, toes
+                // toward the floor; the blend above turned the toes up as the shin passed horizontal
+                if (shin.z < 0f) toes = Vector3.Cross(shin, Vector3.right).normalized;
                 // A foot under its knee carries weight: flat on the mat, so the toes don't dip into it
                 toes = Vector3.Slerp(toes, Vector3.forward, Mathf.InverseLerp(-0.8f, -0.95f, shin.y));
                 if (ankle != 0f) toes = (toes * Cos(ankle) + shin * Sin(ankle)).normalized;

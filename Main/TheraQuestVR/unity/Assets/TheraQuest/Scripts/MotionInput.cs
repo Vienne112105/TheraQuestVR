@@ -33,6 +33,12 @@ namespace TheraQuest
         public float DisplayAngle { get; private set; }
         /// <summary>Degrees the live limb leans out of the exercise's plane (M6.4, webcam only). Display only.</summary>
         public float DisplayTilt { get; private set; }
+        /// <summary>Still measuring the patient's resting position for this exercise (M6.5): counting waits.</summary>
+        public bool Calibrating { get; private set; }
+
+        readonly RestBaseline rest = new RestBaseline();
+        readonly DropoutFilter dropout = new DropoutFilter();
+        string restFor;
         /// <summary>Side being measured: the exercise's operated side, or the side the camera sees best.</summary>
         public string MeasuredSide { get; private set; }
 
@@ -89,6 +95,24 @@ namespace TheraQuest
             return AngleSet.SignedValid(signed) && signed < 0f ? 0f : a;
         }
 
+        /// <summary>True when the exercise moves one limb (the guide draws one limb for it).</summary>
+        public static bool OneLimb(ExerciseDef ex) =>
+            ex != null && FirstPersonMath.Limbs(FigureVisualizer.PoseOf(ex), 1, 0f).Length == 1;
+
+        /// <summary>
+        /// Side-on, which side to measure for an exercise with no operated side (M6.5). With the legs (or arms) one
+        /// behind the other the tracker often swaps which is left and which is right, or snaps both onto the near one,
+        /// so a side picked once can't be trusted. For an exercise moving one limb, the moving limb is the one reading
+        /// the larger angle: the still one stays near its resting angle whatever it is labelled. Null = the tracker's side.
+        /// </summary>
+        public static string MovingSide(ExerciseDef ex, MotionPacket p)
+        {
+            if (p == null || !OneLimb(ex)) return null;
+            float l = MeasuredAngle(ex, p.L), r = MeasuredAngle(ex, p.R);
+            if (l < 0f && r < 0f) return null;
+            return l >= r ? "L" : "R";
+        }
+
         /// <summary>The tracker's estimate of the exercise's angle for display, or -1 when it has none.</summary>
         public static float EstimatedAngle(ExerciseDef ex, MotionPacket p)
         {
@@ -115,14 +139,18 @@ namespace TheraQuest
             Fault = null;
             HasReading = true;
             float target = ex != null ? ex.targetAngle : 90f;
-            if (source != InputSource.Webcam) DisplayTilt = 0f;
+            if (source != InputSource.Webcam) { DisplayTilt = 0f; Calibrating = false; }
 
             switch (source)
             {
                 case InputSource.Webcam:
                     var p = receiver != null ? receiver.Latest : null;
-                    var s = p?.For(ex != null ? ex.side : "");
-                    MeasuredSide = ex != null && !string.IsNullOrEmpty(ex.side) ? ex.side : p?.side;
+                    string key = ex != null ? ex.code + "|" + ex.side : "";
+                    if (restFor != key) { rest.Reset(ex); dropout.Reset(); restFor = key; }
+                    string useSide = ex != null && !string.IsNullOrEmpty(ex.side) ? ex.side
+                                   : p != null && p.visible && p.setup != null && p.setup.view == "side" ? MovingSide(ex, p) : null;
+                    var s = p?.For(useSide ?? "");
+                    MeasuredSide = useSide ?? p?.side;
                     float tilt = TiltFrom(ex, p, MeasuredSide);
                     if (!float.IsNaN(tilt)) DisplayTilt = tilt;   // none sent: the limb keeps its lean
                     float measured = p != null && s != null ? MeasuredAngle(ex, s) : -1f;
@@ -130,11 +158,26 @@ namespace TheraQuest
                     {
                         HasReading = false;
                         hadReading = false;
+                        dropout.Reset();
                         float estimate = receiver != null && receiver.IsReceiving ? EstimatedAngle(ex, p) : -1f;
                         DisplayAngle = estimate >= 0f ? estimate : Angle;   // no estimate: the limb stays where it was
                         return;
                     }
                     raw = measured;
+                    if (RestBaseline.Uses(ex))
+                    {
+                        raw = rest.Adjust(measured, dt);
+                        Calibrating = !rest.Ready;
+                        if (Calibrating)
+                        {
+                            HasReading = false;   // counting waits for the resting position
+                            hadReading = false;
+                            DisplayAngle = 0f;
+                            return;
+                        }
+                    }
+                    else Calibrating = false;
+                    raw = dropout.Apply(raw, dt);
                     Fault = PostureFault(ex, p, s);
                     break;
 
@@ -181,5 +224,95 @@ namespace TheraQuest
         static float Ease(float x) => 0.5f - 0.5f * Mathf.Cos(Mathf.Clamp01(x) * Mathf.PI);
 
         public string SourceLabel => source == InputSource.Webcam ? "webcam" : source == InputSource.Keyboard ? "keyboard" : "simulated";
+    }
+    /// <summary>
+    /// The patient's own resting angle in the exercise's start position (M6.5: hip abduction first, then every webcam
+    /// exercise). At rest the webcam rarely reads exactly 0, so the exercise first waits for the angle to hold
+    /// steady for StillSeconds, takes that as the resting position, and from then on measures the movement above it;
+    /// a rep ends when the leg comes back near it. Every later still moment near the resting position refreshes it.
+    /// </summary>
+    public class RestBaseline
+    {
+        public const float StillSeconds = 1f, StillSpread = 4f, MaxRest = 25f, RefreshBand = 8f;
+
+        float winTime, winMin, winMax, winSum;
+        int winN;
+
+        public bool Ready { get; private set; }
+        public float Value { get; private set; }
+
+        /// <summary>Highest angle taken as resting for this baseline (MaxRest unless Reset gave the exercise).</summary>
+        public float Limit { get; private set; } = MaxRest;
+
+        public static bool Uses(ExerciseDef ex) => ex != null;
+
+        /// <summary>The highest resting angle for an exercise: never past its start line (60% of the target), never
+        /// above MaxRest, and at least 10° so a small target still tolerates the webcam's resting offset.</summary>
+        public static float RestLimit(ExerciseDef ex) =>
+            ex == null ? MaxRest : Mathf.Min(MaxRest, Mathf.Max(10f, 0.6f * ex.targetAngle));
+
+        public void Reset(ExerciseDef ex = null)
+        {
+            Limit = RestLimit(ex);
+            Ready = false;
+            Value = 0f;
+            winN = 0;
+        }
+
+        /// <summary>Feed one measured angle; returns the angle above the resting position (0 until it is known).</summary>
+        public float Adjust(float raw, float dt)
+        {
+            bool resting = raw <= (Ready ? Mathf.Min(Value + RefreshBand, Limit) : Limit);
+            if (!resting) winN = 0;
+            else
+            {
+                if (winN == 0 || Mathf.Max(winMax, raw) - Mathf.Min(winMin, raw) > StillSpread)
+                {
+                    winN = 0; winTime = 0f; winSum = 0f; winMin = winMax = raw;   // start a new still stretch here
+                }
+                winMin = Mathf.Min(winMin, raw);
+                winMax = Mathf.Max(winMax, raw);
+                winSum += raw;
+                winN++;
+                winTime += dt;
+                if (winTime >= StillSeconds)
+                {
+                    Value = winSum / winN;
+                    Ready = true;
+                    winN = 0;
+                }
+            }
+            return Ready ? Mathf.Max(0f, raw - Value) : 0f;
+        }
+    }
+    /// <summary>
+    /// Holds the reading through a webcam dropout (M6.5): when the legs overlap side-on, the moving leg's landmarks can
+    /// snap onto the still leg for a few frames, and the angle falls by tens of degrees in one frame. No limb moves that
+    /// fast (over Rate degrees a second), so such a drop keeps the last angle for up to HoldSeconds; one that lasts
+    /// longer is real and is let through.
+    /// </summary>
+    public class DropoutFilter
+    {
+        public const float Drop = 25f, Rate = 600f, HoldSeconds = 0.3f;
+        float last = -1f, held;
+
+        public void Reset()
+        {
+            last = -1f;
+            held = 0f;
+        }
+
+        public float Apply(float angle, float dt)
+        {
+            float fall = last - angle;
+            if (last >= 0f && fall > Drop && fall / Mathf.Max(dt, 1e-4f) > Rate && held < HoldSeconds)
+            {
+                held += dt;
+                return last;
+            }
+            held = 0f;
+            last = angle;
+            return angle;
+        }
     }
 }

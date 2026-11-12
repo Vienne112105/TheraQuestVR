@@ -441,7 +441,11 @@ namespace TheraQuest
             {
                 repMessageTimer = 0f;   // counting has paused: this always shows right away
                 var latest = receiver != null ? receiver.Latest : null;
-                hud.SetFeedback(latest != null && latest.PersonLost
+                if (motion.Calibrating)
+                    hud.SetFeedback(FigureVisualizer.PoseOf(ex) == "hipAbd"
+                        ? "Stand still, legs together\n<size=34>Measuring your standing position</size>"
+                        : "Hold still in the start position\n<size=34>Measuring your resting position</size>", Tone.Neutral);
+                else hud.SetFeedback(latest != null && latest.PersonLost
                     ? "Step into the camera's view\n<size=34>Counting is paused</size>"
                     : $"Move back into view\n<size=34>Your {ex.joint.ToLower()} is hidden. Counting is paused</size>", Tone.Warn);
             }

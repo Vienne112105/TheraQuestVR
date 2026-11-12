@@ -44,6 +44,7 @@ namespace TheraQuest
         public event Action<float> HoldCompleted;
 
         bool inRep, pastMax, holdFiredThisRep;
+        bool mustLower;   // a rep was dropped mid-movement: the limb must come back down before the next one starts
         float peak, bestHold, outOfBand, elapsed, trackingGap;
         string repFault;
 
@@ -71,11 +72,16 @@ namespace TheraQuest
             if (trackingGap > MaxTrackingGap)
             {
                 inRep = false;
+                mustLower = true;
                 HoldTime = bestHold = outOfBand = 0f;
                 RepDuration = 0f;
                 holdFiredThisRep = false;
             }
         }
+
+        /// <summary>Time from passing 60% of the target to dropping under 25% (M6.5, from real webcam reps): shorter is
+        /// noise and is dropped; under TooFastSeconds the rep is rushed.</summary>
+        public const float MinRepSeconds = 0.35f, TooFastSeconds = 0.6f;
 
         public void Update(float angle, string fault, float dt)
         {
@@ -95,6 +101,7 @@ namespace TheraQuest
             if (!inRep)
             {
                 State = LiveState.Idle;
+                if (mustLower) { if (angle < down) mustLower = false; return; }
                 if (angle > up)
                 {
                     inRep = true;
@@ -138,7 +145,10 @@ namespace TheraQuest
             if (angle < down)
             {
                 inRep = false;
-                FinishRep();
+                // M6.5: a webcam blip can cross the start and end lines within a few frames. No real repetition is
+                // that quick, so it is dropped as noise: no attempt, no feedback.
+                if (RepDuration >= MinRepSeconds) FinishRep();
+                else State = LiveState.Idle;
             }
         }
 
@@ -150,7 +160,7 @@ namespace TheraQuest
                 ? Mathf.RoundToInt(100f - (err / tol) * 15f)
                 : Mathf.RoundToInt(Mathf.Max(0f, 85f - (err - tol) * 3f));
             bool held = Exercise.holdSeconds <= 0f || bestHold >= Exercise.holdSeconds;
-            bool tooFast = RepDuration < 0.85f && Exercise.targetAngle >= 30f;
+            bool tooFast = RepDuration < TooFastSeconds && Exercise.targetAngle >= 30f;
             var r = new RepResult
             {
                 peak = peak,
@@ -213,6 +223,7 @@ namespace TheraQuest
             ValidReps = 0;
             RestRemaining = 0f;
             inRep = false;
+            mustLower = false;
             HoldTime = bestHold = outOfBand = 0f;
             RepDuration = 0f;
             holdFiredThisRep = false;

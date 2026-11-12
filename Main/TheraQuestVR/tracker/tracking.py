@@ -42,9 +42,11 @@ JUMP_SLACK = 0.08                  # jump allowance on top of MAX_SPEED, for det
 MAX_DT = 0.25                      # a long stall between frames must not unlock huge jumps or predictions
 COAST_DECAY_SECONDS = 0.3          # predicted velocity fades with this time constant
 
-# One Euro filter: little smoothing when moving fast (no lag), more when nearly still (no jitter)
-EURO_MIN_CUTOFF = 1.5
-EURO_BETA = 6.0
+# One Euro filter: little smoothing when moving fast (no lag), more when nearly still (no jitter).
+# M6.5: 1.5 / 6.0 left a standing knee jittering (95th percentile 13.7 degrees a frame); 1.0 / 1.5 gives 8.7 for
+# about 2 frames more lag, which Unity's lighter display smoothing gives back.
+EURO_MIN_CUTOFF = 1.0
+EURO_BETA = 1.5
 EURO_D_CUTOFF = 1.0
 
 # Kalman filter noise (normalised units). A low-confidence detection counts far less than a good one.
@@ -66,6 +68,19 @@ REDETECT_EVERY = 10.0              # rebuilding the detector is slow: at most th
 FRAME_MARGIN = 0.01                # a landmark this close to the image edge, or past it, is out of frame
 SIDE_VIEW_RATIO = 0.35             # shoulder width / torso length below this: side-on to the camera
 FRONT_VIEW_RATIO = 0.55            # above this: facing the camera; in between: turned part way
+
+# Which side's limb to measure (M6.5). Side-on, the far limb is mostly hidden behind the body but MediaPipe still
+# guesses it, and picking the clearer side frame by frame flipped the knee reading between the legs (about 24 degrees
+# each time). So the side nearest the camera (world-landmark depth) is measured while it can be; otherwise the current
+# side is kept unless the other is clearly better seen.
+NEAR_SET_M = 0.08                  # depth gap (metres) between the body's sides that makes one side the near side
+NEAR_CLEAR_M = 0.03                # below this gap neither side is nearer (facing the camera)
+SIDE_KEEP_MARGIN = 0.15            # confidence the other side must gain before the measured side switches
+# Side-on, the far limb is measured instead when it reads clearly more than the near one: the patient is moving the
+# far leg (field test: the far leg's hamstring curl read ~90 while the near, standing leg read ~10). Standing still,
+# the far limb never read 35 above the near one in the recording; once switched, it stays while 15 above.
+FAR_LEAD_DEG = 35.0
+FAR_KEEP_DEG = 15.0
 
 
 class OneEuroFilter:
@@ -247,6 +262,8 @@ class PoseTracker:
         self._last_redetect = None
         self._raw = None
         self._world = None
+        self._near = None
+        self._sides = {}
         self.state = POSE_LOST
 
     def reset(self):
@@ -258,6 +275,8 @@ class PoseTracker:
         self._bad_since = None
         self._raw = None
         self._world = None
+        self._near = None
+        self._sides = {}
         self.state = POSE_LOST
 
     def update(self, points, t, world=None):
@@ -339,18 +358,49 @@ class PoseTracker:
         return {"valid": True, "framedL": framed["L"], "framedR": framed["R"], "view": view, "size": size,
                 "light": light}
 
+    def near_side(self):
+        """"L" / "R": the side of the body nearer the camera, from the world landmarks' depth, with hysteresis;
+        None facing the camera or without world landmarks."""
+        w = self._world
+        if w is None or not all(self.tracks[i].reliable for i in (L_SHOULDER, R_SHOULDER, L_HIP, R_HIP)):
+            return self._near
+        gap = (w[R_SHOULDER][2] + w[R_HIP][2] - w[L_SHOULDER][2] - w[L_HIP][2]) / 2   # > 0: left is nearer
+        if abs(gap) >= NEAR_SET_M:
+            self._near = "L" if gap > 0 else "R"
+        elif abs(gap) < NEAR_CLEAR_M:
+            self._near = None
+        return self._near
+
+    def _preferences(self, view):
+        """Which side to measure. Side-on: only the limb nearer the camera (the far one is hidden). Facing the
+        camera: the limb that moves, i.e. the larger reading (the standing leg in a hip abduction reads 0).
+        Otherwise keep the current side unless the other is clearly better seen."""
+        near = self.near_side()
+        if view == "side" and near:
+            return {name: (near, None, FAR_KEEP_DEG if self._sides.get(name, near) != near else FAR_LEAD_DEG)
+                    for name in JOINTS}
+        if view == "front":
+            return {name: ("max", 0.0) for name in JOINTS}
+        return {name: (side, SIDE_KEEP_MARGIN) for name, side in self._sides.items()}
+
     def packet(self, width, height):
         """The packet for Unity. Measured angles come only from verified landmarks; when part of the body
         is only estimated, "estL" / "estR" carry its angles separately, for display."""
         scoring = self.scoring_points()
         verified = any(self.tracks[i].reliable for idxs in CORE.values() for i in idxs)
-        packet = measure(scoring, width, height) if verified else empty_packet()
+        setup = self.setup(width, height)
+        view = setup["view"] if setup else ""
+        packet = measure(scoring, width, height, self._preferences(view)) if verified else empty_packet()
+        if verified:
+            for name in JOINTS:
+                if packet[name] >= 0:
+                    self._sides[name] = "L" if packet["L"][name] == packet[name] else "R"
+
         packet["trackingState"] = self.state
         # Display only (M6.4): which way the upper arms and thighs point in 3D, from verified landmarks
         if verified and self._world is not None:
             for side, dirs in (limb_directions(self._world, lambda i: self.tracks[i].reliable) or {}).items():
                 packet["dir" + side] = dirs
-        setup = self.setup(width, height)
         if setup is not None:
             packet["setup"] = setup
         partial = any(not self.tracks[i].reliable for idxs in CORE.values() for i in idxs)

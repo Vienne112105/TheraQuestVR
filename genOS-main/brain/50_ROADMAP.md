@@ -54,12 +54,12 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M5.7 | M5 | done | Additional Built-in Clinical Protocols |
 | M5.8 | M5 | done | First-Person Exercise View & Default Height |
 | M5.9 | M5 | done | Tracking Reliability & Loss Safeguards |
-| M6 | — | active | Camera Tracking Mechanics |
+| M6 | — | done | Camera Tracking Mechanics |
 | M6.1 | M6 | done | Landmark Record & Replay Harness |
 | M6.2 | M6 | done | Facing Direction & Extension Readings |
 | M6.3 | M6 | done | Camera Setup Assistant |
 | M6.4 | M6 | done | Out-of-Plane Live Limb & Ankle Exercises |
-| M6.5 | M6 | active | Webcam Field Test & Tuning |
+| M6.5 | M6 | done | Webcam Field Test & Tuning |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -71,7 +71,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 
 ## Suggested sequence
 
-`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience, first-person view and tracking safeguards; their human checks moved to HW) ➔ `M6` (active: camera tracking mechanics, webcam only, no headset)
+`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience, first-person view and tracking safeguards; their human checks moved to HW) ➔ `M6` (done: camera tracking mechanics, webcam only, no headset)
 
 Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided (it takes the next free `M` number when scheduled).
 
@@ -382,7 +382,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 
 ## M6 — Camera Tracking Mechanics
 
-- **Status:** active
+- **Status:** done
 - **Objective:** Make the single-webcam tracking more complete and better tested without needing a headset (requested by the human 2026-11-05): repeatable offline testing from recorded landmarks, readings for extension exercises when the facing direction is unclear, a camera setup check before counting, a live limb that shows out-of-plane movement, ankle exercises, and real-webcam tuning of the M5.9 safeguards.
 - **Success criteria:**
   - A recorded session can be replayed through the tracker and gives the same packets every time.
@@ -437,12 +437,15 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** MotionTracking, ExerciseEvaluation, VRClinicExperience
 
 ### M6.5 — Webcam Field Test & Tuning
-- **Status:** active
+- **Status:** done
 - **Objective:** Test the tracking with a real person in front of the laptop webcam, without a headset, and tune it (the no-headset webcam parts of HW.3, moved here 2026-11-05).
 - **Deliverables:** one guided recording session by the human (normal reps per posture, a joint hidden for about a second, stepping out for over 2 s, facing both ways, webcam unplugged and reconnected); thresholds in `tracker/tracking.py` and the setup checks tuned from the replayed recordings; one final live run; findings recorded.
 - **Added 2026-11-07 (from M6.2):** knee tracking for hip readings: the hip signed angle was still missing in ~7% of side-on frames, mostly MediaPipe knee confidence 0.2-0.5; try the `full` model live and decide whether the hip can reach ~5% without letting implausible angles through. Also look at implausible hip angles (over 120 degrees) from leg mis-detections.
 - **Added 2026-11-07 (from M6.4):** the ankle's neutral reading (a standing recording read about 14° plantarflexion; feet must be fully in frame), the out-of-plane dead zones (15° arms, 8° legs) and cap, and a look at the coach's ankle motion.
 - **Completion criteria:** with a real person, normal reps give no false pauses, rejected movement or lag; a hidden joint pauses counting with "Move back into view" and an orange limb and then resumes; stepping out over 2 s drops the rep; movement made while hidden never counts; the webcam reconnects; side-view frames with no signed angle are under ~5%; the human confirms.
+- **Findings (2026-11-09, guided recording `m6-5-lite.jsonl`, lite model, 718 s, 20,407 frames):** side-view signed angle missing in 0.3% of frames (shoulder) and 0.7% (hip), under the ~5% target, so the full model was not needed (the human skipped the full-model recording). The view thresholds (0.35 / 0.55) sit in the gap of the shoulder/torso histogram and stay. The ankle reads about 3° standing with the feet framed (the earlier 14° came from feet out of frame). Hanging arms read 17° out of plane (90th percentile 20°), legs 5° (12°), so the dead zones became 20° / 12°. Hip readings over 120° occur only seated. Heel raise peaks: 20-32° one way, 15-16° the other, 19-29° seated (the human kept the 30° ±10° target). With nobody in view the tracker drops to about 8 fps (harmless).
+- **Result (2026-11-12):** Tracker: One Euro 1.0 / 1.5 (standing-knee jitter 95th percentile 13.7° -> 8.7°). Side selection (DEC-026): side-on the limb nearer the camera (world-landmark depth, set at 0.08 m, cleared under 0.03 m), unless the far limb reads more than 35° above it (kept while 15° above); facing the camera the larger reading; otherwise the current side unless the other is seen better by 0.15 (knee flips on the recording 62 -> 0). Unity: reps under 0.35 s are noise, under 0.6 s too fast; after a gap drops a rep the limb must come down before a new one; every webcam exercise first measures the patient's resting angle (still for 1 s, at most 60% of the target and 25°) and scores movement above it; side-on, a one-limb exercise measures whichever limb reads the larger angle (the tracker swaps left and right when the legs overlap); a fall of over 25° in one frame is held up to 0.3 s; live limb display smoothing 0.06 s; the hamstring curl's foot stays at a right angle to the shin (guide and coach). Server: the hamstring curl's thigh check is 30° (a normal curl swings the thigh about 28° back). P-001's program was changed for standing and seated testing (heel slide and side-lying hip abduction off, hamstring curl and standing hip abduction on, knee extension target 50 ±10; database backed up first).
+- **Verification (2026-11-12):** tracker tests 96 pass, server tests 68 pass, Unity EditMode tests 86 pass. Replays of the recording: knee side flips 62 -> 0, far-leg curls read 89-96° instead of about 10°. Several live runs with the human at the laptop webcam, each problem fixed and run again; the human confirmed the final run ("All working") and closed M6.5. Hidden joint, stepping out and the webcam unplug were part of the guided recording and the live checklist; they were not rechecked one by one after the last tuning.
 - **Dependencies:** M6.1, M6.2, M6.3 (M6.4 for the ankle exercises)
 - **Systems:** MotionTracking, ExerciseEvaluation
 

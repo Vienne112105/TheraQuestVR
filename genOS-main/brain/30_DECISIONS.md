@@ -42,6 +42,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-023 | accepted | 2026-11-05 | 3D World Landmarks for Facing Direction and the Out-of-Plane Live Limb |
 | DEC-024 | accepted | 2026-11-05 | Tracking Recordings Hold Landmarks Only and Stay Local |
 | DEC-025 | accepted | 2026-11-07 | Landmarks Are Trusted Again After 2 Confident Frames |
+| DEC-026 | accepted | 2026-11-12 | Which Limb Is Measured, Resting Baseline and Rep Timing |
 
 ---
 
@@ -241,3 +242,10 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Reason:** M6.2's real recordings showed that missing hip readings in side view came from the knee waiting to be trusted again, not from the facing direction. Replaying a whole-body recording with other settings: 3 frames (DEC-022's starting value) left the hip without a reading in 9.2% of side-on frames, 2 frames 7.1%, 1 frame 4.5%; confidence 0.4 instead of 0.5 gave 4.8-5.1%. Each easing also let more implausible hip angles through on a recording with the legs partly out of frame (76 with 3 frames, 96 with 2, 132 with 1). The human chose 2 frames.
 - **Impact:** `REACQUIRE_FRAMES` in `tracker/tracking.py` is 2: a landmark seen confidently again is measured from its second frame in a row (about 50-70 ms at 30-40 fps). The confidence threshold stays 0.5 and every other DEC-022 rule stands. The hip signed reading is still missing in about 7% of side-on frames; the rest is handled in M6.5 with the other thresholds.
 - **Supersedes:** DEC-022's "Trust returns only after 3 confident frames" (the rest of DEC-022 stands)
+
+### DEC-026: Which Limb Is Measured, Resting Baseline and Rep Timing
+- **Status:** accepted
+- **Date:** 2026-11-12
+- **Reason:** M6.5's live runs with the human: side-on the reading jumped between the near and the hidden far limb, the far leg's hamstring curl read about 10°, the tracker swapped left and right whenever the legs overlapped, slow reps were called too fast, and standing hip abduction never read 0 at rest. The human asked for a standing (resting) baseline for hip abduction and then for every exercise, and for only the moving limb to be tracked side-on.
+- **Impact:** Tracker (`tracking.py`, `angles.py`): side-on the near limb is measured (world-landmark depth), unless the far one reads more than 35° above it; facing the camera the larger reading; otherwise the current side is kept unless the other is clearly better seen. Unity (`MotionInput`): with no operated side, side-on, an exercise moving one limb measures whichever limb reads the larger angle, whatever the tracker labels it; each webcam exercise waits for the patient to hold still for 1 s, takes that angle as resting (at most 60% of the target and 25°) and scores movement above it, refreshed whenever they rest again; a fall of over 25° within one frame is held up to 0.3 s. `ExerciseEvaluator`: a rep shorter than 0.35 s is dropped as noise, under 0.6 s is too fast. Scored angles still come only from verified landmarks (DEC-022); the baseline only subtracts the patient's own resting reading.
+- **Supersedes:** none (the 0.85 s too-fast cutoff and the best-side-per-frame choice were starting values)

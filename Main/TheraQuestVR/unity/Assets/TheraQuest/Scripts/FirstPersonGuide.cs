@@ -50,7 +50,7 @@ namespace TheraQuest
 
         // ---- Out-of-plane live limb (M6.4, DEC-023). The webcam's angle lies in the exercise's plane; the tracker's 3D
         // limb directions show how far the limb leans out of it. Display only: the target limb and scoring never use it.
-        public const float ArmDeadZone = 15f, LegDeadZone = 8f, MaxTilt = 35f;
+        public const float ArmDeadZone = 20f, LegDeadZone = 12f, MaxTilt = 35f;   // M6.5: 90th percentile of a resting limb
 
         /// <summary>
         /// The normal of the exercise's plane, pointing the way a positive lean goes (out to the side for forward and back
@@ -178,7 +178,10 @@ namespace TheraQuest
             c.end = c.mid + shin * Shin;
             // Toes forward at a right angle to the shin, or up when the shin itself points forward
             var toes = Vector3.ProjectOnPlane(Vector3.forward, shin);
-            if (toes.sqrMagnitude < 0.04f) toes = Vector3.ProjectOnPlane(Vector3.up, shin);
+            // M6.5: a shin swung behind the knee (hamstring curl) keeps the foot at a right angle to it, toes toward
+            // the floor; projecting "forward" there shrinks to nothing at 90 degrees and flipped the toes up.
+            if (shin.z < 0f) toes = Vector3.Cross(shin.normalized, Vector3.right);
+            else if (toes.sqrMagnitude < 0.04f) toes = Vector3.ProjectOnPlane(Vector3.up, shin);
             toes = toes.normalized * Cos(ankle) + shin.normalized * Sin(ankle);
             c.tip = c.end + toes.normalized * Foot;
             return c;
@@ -406,7 +409,7 @@ namespace TheraQuest
             if (!shown) { shown = true; root.gameObject.SetActive(true); liveAngle = angle; liveTilt = tilt; }
             mirrorCam.enabled = behind;
             float dt = Time.deltaTime;   // 0 while paused: everything holds still
-            liveAngle = Mathf.SmoothDamp(liveAngle, angle, ref liveVel, 0.12f, Mathf.Infinity, Mathf.Max(dt, 1e-5f));
+            liveAngle = Mathf.SmoothDamp(liveAngle, angle, ref liveVel, 0.06f, Mathf.Infinity, Mathf.Max(dt, 1e-5f));   // M6.5: the tracker smooths now
             liveTilt = Mathf.SmoothDamp(liveTilt, tilt, ref tiltVel, 0.2f, Mathf.Infinity, Mathf.Max(dt, 1e-5f));
             var chains = FirstPersonMath.Limbs(pose, side, liveAngle);
             chains[0] = FirstPersonMath.Tilt(chains[0], pose, side, liveTilt);

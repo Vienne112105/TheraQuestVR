@@ -129,6 +129,16 @@ class AngleTests(unittest.TestCase):
         m = measure(normalise(p), W, H)
         self.assertAlmostEqual(m["kneeFlex"], 45, delta=1.0)
 
+    def test_far_leg_doing_the_exercise_is_measured(self):
+        # M6.5: side-on with the near side "R", the far (left) leg curls 90: its reading wins over the standing leg
+        p = base_pose()
+        p[27] = (*rot(p[25][:2], 80, 90, -1), 0.99)
+        m = measure(normalise(p), W, H, {"kneeFlex": ("R", None, 35.0)})
+        self.assertAlmostEqual(m["kneeFlex"], 90, delta=1.0)
+        p[27] = (*rot(p[25][:2], 80, 30, -1), 0.99)     # only 30 above the near leg: stay near
+        m = measure(normalise(p), W, H, {"kneeFlex": ("R", None, 35.0)})
+        self.assertLess(m["kneeFlex"], 3)
+
     def test_both_sides_reported(self):
         p = base_pose()
         sh = p[12][:2]

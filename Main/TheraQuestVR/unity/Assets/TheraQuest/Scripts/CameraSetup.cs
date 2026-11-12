@@ -30,7 +30,8 @@ namespace TheraQuest
             if (upright && s.size > TooCloseSize) return (SetupIssue.TooClose, "Step back a little from the camera");
             if (upright && s.size >= 0f && s.size < TooFarSize) return (SetupIssue.TooFar, "Come a little closer to the camera");
             string want = ex != null && ex.view == "front" ? "front" : "side";
-            if (s.view != want) return (SetupIssue.WrongView, want == "side" ? "Turn side-on to the camera" : "Face the camera");
+            if (s.view != want)   // side-on the camera measures only the near limb (M6.5)
+                return (SetupIssue.WrongView, want == "side" ? $"Turn side-on, moving {LimbWord(ex?.measure)} nearest the camera" : "Face the camera");
             if (s.light < MinLight) return (SetupIssue.PoorLight, "Turn on more light");
             return (SetupIssue.None, "Camera is set up");
         }

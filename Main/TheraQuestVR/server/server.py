@@ -148,7 +148,7 @@ NO_SIDE_LEAN = (_check("trunkLean", 12, "Don't lean to the side"),)
 NO_BACK_LEAN = (_check("trunkLean", 12, "Stand tall, don't lean back"),)
 ELBOW_IN = (_check("elbowDrift", 30, "Keep your elbow at your side"),)
 KNEE_STRAIGHT = (_check("kneeFlex", 15, "Keep your knee straight"),)
-THIGH_DOWN = (_check("hipElev", 20, "Keep your thigh pointing down"),)
+THIGH_DOWN = (_check("hipElev", 30, "Keep your thigh pointing down"),)   # M6.5: a normal curl swings the thigh ~28° back
 CHEST_UP = (_check("trunkLean", 35, "Keep your chest up"),)
 
 # Exercise library: every movement the tracker can measure with one webcam (2D, one plane of motion).

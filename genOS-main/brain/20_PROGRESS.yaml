@@ -5,7 +5,7 @@
 schema_version: 2
 
 # ISO date of last SHUTDOWN update (YYYY-MM-DD)
-last_updated: 2026-11-07
+last_updated: 2026-11-12
 
 # Who last wrote this file (e.g. cursor-agent, agy-agent, agency:unity-specialist)
 last_agent: claude-code
@@ -14,7 +14,7 @@ last_agent: claude-code
 last_ide: claude-desktop
 
 # ID only — resolve objective/criteria in 50_ROADMAP.md
-current_milestone: M6.5
+current_milestone: null
 
 # Active scene or primary file in focus, if any
 current_scene: Main/TheraQuestVR/unity/Assets/TheraQuest/TheraQuest.unity
@@ -25,6 +25,8 @@ systems_in_scope:
   - ExerciseEvaluation
   - VRClinicExperience
   - SessionOrchestration
+  - ClinicalBackend
+  - AvatarCoach
 
 # Sole in-progress list (do not duplicate into Backlog)
 working_on: []
@@ -49,4 +51,4 @@ known_issues:
 blocked: []
 
 # Self-contained SHUTDOWN summary: what completed, what remains, what next agent should do
-session_summary: "2026-11-07 SHUTDOWN: M6 Camera Tracking Mechanics is active (webcam only, no headset; children M6.1-M6.5 in 50_ROADMAP.md). M6.1 record/replay, M6.2 (slim, DEC-025), M6.3 camera setup assistant are done. M6.4 Out-of-Plane Live Limb & Ankle Exercises DONE: tracker ankleDF/anklePF (shin against heel-to-toes, landmarks 29-32) and packet dirL/dirR (upper arm and thigh directions in the body frame from world landmarks, display only); server anklePump, seatedHeelRaise, heelRaise in LIBRARY/POSES/NORMAL_ROM, used by the ankle ORIF and lateral ankle sprain protocols (placeholder targets, TASK-007), PROTOCOL_VERSION 4; Unity ankle poses in FirstPersonMath, HumanoidCoach and FigureVisualizer, and the live limb leans out of the exercise's plane (dead zone 15 deg arms, 8 deg legs, cap 35). TASK-012 done. Tests: tracker 94, server 68, Unity EditMode 79, all pass; Play mode checked the new guide limbs. Not checked: the coach's ankle motion on screen. The Unity Editor was left open on TheraQuest.unity, unsaved. All work committed on branch m5.8-first-person-view, not merged into main, no remote. TheraQuest.unity holds the human's own uncommitted scene changes: never commit or discard them. NEXT: M6.5 Webcam Field Test & Tuning with the human in front of the laptop webcam: guided recording session, tune tracking thresholds and setup checks, knee tracking for the hip (try the full model live), the ankle's neutral reading (a standing recording read ~14 deg plantarflexion), the out-of-plane dead zones, the coach's ankle motion. Repository must stay private (DEC-020)."
+session_summary: "2026-11-12 SHUTDOWN: M6 Camera Tracking Mechanics is DONE (all children M6.1-M6.5 done), so no milestone is active (current_milestone null) and pending_human_tests is empty. M6.5 Webcam Field Test & Tuning DONE: guided recording (lite model, tracker/recordings/m6-5-lite.jsonl, git-ignored) analysed; side-view signed angles missing 0.3% shoulder / 0.7% hip, so the full model was skipped. Tuned: One Euro 1.0/1.5, out-of-plane dead zones 20/12 deg, rep timing (0.35 s noise, 0.6 s too fast), side selection and moving-limb measuring, resting baseline for every webcam exercise, dropout hold, hamstring curl thigh check 30 deg and foot display (DEC-026, details in 50_ROADMAP.md M6.5). P-001's program was changed on the server for standing and seated testing (heelSlide and sidelyingHipAbd off, hamstringCurl and hipAbd on, kneeExt target 50 +-10). Tests: tracker 96, server 68, Unity EditMode 86, all pass; the human confirmed the final live run. All work committed on branch m5.8-first-person-view, not merged into main, no remote; merging is the human's call. TheraQuest.unity holds the human's own uncommitted scene changes: never commit or discard them. NEXT: the human chooses the next milestone. Options: (1) high-priority backlog TASK-003..TASK-006, (2) research data TASK-007 (real exercise targets) and TASK-008, (3) hardware milestone HW once a headset is available, (4) small items TASK-015 (MSMF retry), TASK-016 (full model for overlapping legs), the source of the five old rep sounds. Repository must stay private (DEC-020)."

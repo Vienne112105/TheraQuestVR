@@ -35,6 +35,8 @@ Evaluates real-time patient kinematics against prescribed clinical rehabilitatio
 - Only verified tracker readings are evaluated (DEC-022). Without one, counting pauses, the hold timer stops and the rep's peak stays what was measured; a gap over 2 s drops the open rep without counting an attempt. The tracker's estimates are for display and never reach the evaluator.
 - An extension exercise scores only when the signed angle shows the limb behind the trunk; with no signed reading it has no reading at all.
 - Unity holds no per-exercise rules keyed by code: posture checks, direction and pose come from the program.
+- A webcam exercise counts only after the patient's resting angle is known, and scores the movement above it (DEC-026).
+- A rep shorter than `ExerciseEvaluator.MinRepSeconds` is noise: no attempt and no feedback.
 
 ## Notes
 - Posture thresholds were derived from clinical physical therapy literature to avoid hip/spine substitution patterns during isolated limb exercises.

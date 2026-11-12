@@ -26,6 +26,8 @@ Durable ad-hoc queue for non-milestone work (bugs, ideas). AI-owned. See `AGENTS
 - [TASK-009] (low) `AGENTS.md` does not list the TBF status or unscheduled milestone IDs (`HW`); only [[50_ROADMAP]] explains them. `60_AGENTS.md` still lists milestone agents for M1 and M4.
 - [TASK-010] (low) Check whether Unity `6000.6.5f1` is an LTS release ([[00_PROJECT]] says Unity 6 LTS); move to an LTS version if not.
 - [TASK-011] (low) One script that runs all test suites (server, tracker, evaluation, Unity EditMode in batch mode) and reports the results.
+- [TASK-015] (low) The tracker falls back to the DSHOW camera backend (black or slow frames) when MSMF is still busy from a previous run; retry MSMF for a few seconds before falling back. Seen in M6.5.
+- [TASK-016] (low) Side-on, overlapping legs still confuse the lite pose model at moments; try `--model full` live if curls or marches miscount. Seen in M6.5.
 - [TASK-013] (research) The MGB and BWH protocol documents are copyrighted ("all rights reserved"); the built-in protocols are short paraphrases with citations. Before publishing the thesis or distributing the app, confirm this use is acceptable or ask the institutions for permission.
 
 ## Done
