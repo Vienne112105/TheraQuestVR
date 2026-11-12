@@ -2211,6 +2211,13 @@ function renderProgressChart() {
   });
 }
 
+// M7.1: only webcam sessions count for adherence, readiness, flags and XP; the rest are labelled
+function sourceLabel(src) {
+  if (src === "webcam") return "Webcam";
+  const name = { keyboard: "Keyboard", simulated: "Simulated" }[src] || "Unknown source";
+  return `${name} (not counted)`;
+}
+
 function renderSessionHistory() {
   $("sessionHistoryBody").innerHTML = activeData.sessions.length ? activeData.sessions.map(s => `
     <tr>
@@ -2218,7 +2225,8 @@ function renderSessionHistory() {
       <td><span class="tag-status ${s.status === 'complete' ? 'complete' : 'incomplete'}">
         <i aria-hidden="true" data-lucide="${s.status === 'complete' ? 'check' : 'clock'}" style="width:12px;height:12px"></i>
         ${esc(s.status)}
-      </span></td>
+      </span>
+      <div class="attention-sources">${esc(sourceLabel(s.input_source))}</div></td>
       <td>${s.valid} / ${s.attempts} reps</td>
       <td style="font-weight:600;color:var(--teal)">${s.accuracy}%</td>
       <td>${formatPainNotes(s)}</td>

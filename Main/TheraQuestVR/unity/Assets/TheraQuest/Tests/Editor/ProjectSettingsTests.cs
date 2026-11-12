@@ -11,5 +11,15 @@ namespace TheraQuest.Tests
         {
             Assert.AreEqual("TheraQuest", Application.companyName);
         }
+
+        [TestCase("webcam", true, "")]
+        [TestCase("keyboard", false, "Practice: not counted")]
+        [TestCase("simulated", false, "Practice: not counted")]
+        [TestCase("", false, "Practice: not counted")]
+        public void PracticeLine_OnlyForNonWebcam(string source, bool counted, string line)
+        {
+            Assert.AreEqual(counted, ProgressViews.IsCounted(source));
+            Assert.AreEqual(line, ProgressViews.PracticeLine(source));
+        }
     }
 }

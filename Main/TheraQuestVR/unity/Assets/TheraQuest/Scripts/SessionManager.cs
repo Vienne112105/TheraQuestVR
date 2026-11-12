@@ -697,6 +697,8 @@ namespace TheraQuest
                 var sb = new StringBuilder();
                 sb.AppendLine($"<color={UIKit.HexGood}>✓</color>  <b>{valid}</b> good reps   ·   <color={UIKit.HexGold}>★</color>  <b>{game.Points}</b> points");
                 if (unsafeReps > 0) sb.AppendLine($"<color={UIKit.HexBad}>!</color>  {unsafeReps} {(unsafeReps == 1 ? "rep" : "reps")} went past the STOP line");
+                string practice = ProgressViews.PracticeLine(sessionSource);
+                if (practice != "") sb.AppendLine($"<color={UIKit.HexMuted}>{practice}</color>");
 
                 int xpAfter;
                 List<string> newBadges;
@@ -712,8 +714,8 @@ namespace TheraQuest
                 }
                 else
                 {
-                    xpAfter = xpBefore + game.Points;   // what the server will add once the session is sent
-                    newBadges = ProgressViews.BadgeCodes(game.EarnedThisSession);
+                    xpAfter = xpBefore + (ProgressViews.IsCounted(sessionSource) ? game.Points : 0);   // what the server will add once sent
+                    newBadges = ProgressViews.IsCounted(sessionSource) ? ProgressViews.BadgeCodes(game.EarnedThisSession) : new List<string>();
                 }
                 sb.Append($"<color={UIKit.HexMuted}>{(resp != null ? "Saved" : "Saved, sent later")}  ·  Press {Keys.Start} to continue</color>");
                 if (completed)

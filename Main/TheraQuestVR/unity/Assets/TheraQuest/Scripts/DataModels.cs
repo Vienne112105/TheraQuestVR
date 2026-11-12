@@ -305,6 +305,7 @@ namespace TheraQuest
         public string status;
         public string[] notes = new string[0];
         public string[] new_badges = new string[0];
+        public bool counted = true;  // false for a practice (non-webcam) session, M7.1
         public int xpGained;        // structured rewards for the summary screen (M5.5)
         public int levelBefore;
         public int levelAfter;

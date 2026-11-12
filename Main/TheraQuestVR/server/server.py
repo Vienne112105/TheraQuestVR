@@ -1053,13 +1053,22 @@ def py_dow(d):
     return (d.weekday() + 1) % 7
 
 
+# --------------------------------------------- which sessions count (M7.1, TASK-003)
+# Only real webcam sessions drive clinical and game rules (adherence, streak, readiness, flags, XP, badges,
+# progression). Keyboard, simulated and unknown-source sessions stay on record, labelled, but count for nothing.
+COUNTED_SOURCES = ("webcam",)
+_COUNTED_SQL = "(" + ",".join(f"'{s}'" for s in COUNTED_SOURCES) + ")"     # constants, never user input
+
+
 # ----------------------------------------------------- adherence analytics
 def day_statuses(con, patient_id, program, days=14, today=None, created_at=None):
     today = today or date.today()
     sched = schedule(program)
     start = today - timedelta(days=days - 1)
-    rows = con.execute("""SELECT session_date, status FROM adherence_record
-                          WHERE patient_id=? AND session_date>=?""", (patient_id, start.isoformat())).fetchall()
+    rows = con.execute(f"""SELECT a.session_date, a.status FROM adherence_record a
+                           JOIN session s ON s.session_id = a.session_id
+                           WHERE a.patient_id=? AND a.session_date>=? AND s.input_source IN {_COUNTED_SQL}""",
+                       (patient_id, start.isoformat())).fetchall()
     if not created_at:
         row = con.execute("SELECT created_at FROM patient WHERE patient_id=?", (patient_id,)).fetchone()
         created = row[0][:10] if row else "1970-01-01"
@@ -1129,16 +1138,16 @@ def _sources(rows):
 def attention_flags(con, p, program, today=None):
     """
     Flags for one patient, most urgent first: [{code, label, detail, sources}]. `sources` counts the input
-    sources of the sessions behind the flag; keyboard and simulated sessions still count (TASK-003).
+    sources of the sessions behind the flag; only counted (webcam) sessions are looked at (M7.1).
     """
     today = today or date.today()
     since = (today - timedelta(days=ATTENTION_DAYS - 1)).isoformat()
-    rows = [dict(r) for r in con.execute("""
+    rows = [dict(r) for r in con.execute(f"""
         SELECT s.session_id, s.started_at, s.input_source, s.pain_before, s.pain_after,
                COALESCE(SUM(r.attempts),0) AS attempts, COALESCE(SUM(r.unsafe_reps),0) AS unsafe,
                CASE WHEN SUM(r.attempts)>0 THEN SUM(r.avg_accuracy*r.attempts)/SUM(r.attempts) ELSE 0 END AS accuracy
         FROM session s LEFT JOIN performance_record r ON r.session_id = s.session_id
-        WHERE s.patient_id=? AND s.started_at>=?
+        WHERE s.patient_id=? AND s.started_at>=? AND s.input_source IN {_COUNTED_SQL}
         GROUP BY s.session_id ORDER BY s.started_at DESC, s.session_id DESC""", (p["patient_id"], since))]
     flags = []
 
@@ -1254,11 +1263,11 @@ def readiness(con, p):
         return out
 
     n, acc, pain = ph["min_sessions"], ph["min_accuracy"], ph["max_pain_increase"]
-    rows = con.execute("""
+    rows = con.execute(f"""
         SELECT s.started_at, s.pain_before, s.pain_after, s.soreness_over_2h, s.swelling_cm, MIN(r.avg_accuracy) AS min_acc,
                COALESCE(SUM(r.unsafe_reps),0) AS unsafe
         FROM session s LEFT JOIN performance_record r ON r.session_id = s.session_id
-        WHERE s.patient_id=? AND s.status='complete' AND s.started_at>=?
+        WHERE s.patient_id=? AND s.status='complete' AND s.started_at>=? AND s.input_source IN {_COUNTED_SQL}
         GROUP BY s.session_id ORDER BY s.started_at DESC LIMIT ?""", (p["patient_id"], p["phase_started_at"], n)).fetchall()
     enough = len(rows) >= n
 
@@ -1610,14 +1619,16 @@ def vr_progress(con, p):
     The patient's own progress for the in-game Progress page (M5.5): recent sessions, totals and every badge,
     earned or not. Sent with the VR program, so the VR app caches it with the program for offline use.
     """
-    rows = con.execute("""
+    rows = con.execute(f"""
         SELECT s.started_at, s.status, s.points, s.stars,
                COALESCE(SUM(r.valid_reps),0) AS valid, COALESCE(SUM(r.attempts),0) AS attempts,
                CASE WHEN SUM(r.attempts)>0 THEN SUM(r.avg_accuracy*r.attempts)/SUM(r.attempts) ELSE 0 END AS accuracy
         FROM session s LEFT JOIN performance_record r ON r.session_id = s.session_id
-        WHERE s.patient_id=? GROUP BY s.session_id ORDER BY s.started_at DESC, s.session_id DESC LIMIT ?""",
+        WHERE s.patient_id=? AND s.input_source IN {_COUNTED_SQL}
+        GROUP BY s.session_id ORDER BY s.started_at DESC, s.session_id DESC LIMIT ?""",
                        (p["patient_id"], PROGRESS_SESSIONS)).fetchall()
-    total, complete = con.execute("SELECT COUNT(*), COALESCE(SUM(status='complete'),0) FROM session WHERE patient_id=?",
+    total, complete = con.execute(f"""SELECT COUNT(*), COALESCE(SUM(status='complete'),0) FROM session
+                                      WHERE patient_id=? AND input_source IN {_COUNTED_SQL}""",
                                   (p["patient_id"],)).fetchone()
     owned = {r[0] for r in con.execute("SELECT badge_code FROM patient_badge WHERE patient_id=?", (p["patient_id"],))}
     return {
@@ -1767,12 +1778,13 @@ def save_session(con, body):
     session_uuid = body.get("session_uuid") or None
     if session_uuid is not None:
         session_uuid = str(session_uuid)[:64]
-        prev = con.execute("SELECT session_id, patient_id, status FROM session WHERE session_uuid=?", (session_uuid,)).fetchone()
+        prev = con.execute("SELECT session_id, patient_id, status, input_source FROM session WHERE session_uuid=?", (session_uuid,)).fetchone()
         if prev:
             if prev["patient_id"] != pid:
                 raise Conflict("session_uuid already used by another patient")
             return {"session_id": prev["session_id"], "status": prev["status"], "notes": [], "new_badges": [],
-                    "patient": get_program(con, pid)["patient"], "duplicate": True}
+                    "patient": get_program(con, pid)["patient"], "duplicate": True,
+                    "counted": prev["input_source"] in COUNTED_SOURCES}
 
     prog = con.execute("SELECT * FROM rehabilitation_program WHERE program_id=?", (p["program_id"],)).fetchone()
     in_program = {e["exercise_id"]: e for e in con.execute("SELECT * FROM exercise WHERE program_id=?", (prog["program_id"],))}
@@ -1808,6 +1820,7 @@ def save_session(con, body):
     if source not in INPUT_SOURCES + ("",):
         raise BadRequest(f"input_source must be one of {', '.join(INPUT_SOURCES)}")
     source = source or "unknown"     # uploads from clients older than M4.3; never counted as webcam data
+    counted = source in COUNTED_SOURCES
     rep_events = _rep_events(body.get("rep_events"))
     points = _int_field(body, "points", 0, 100000)
     stars = _int_field(body, "stars", 0, 3)
@@ -1841,7 +1854,7 @@ def save_session(con, body):
                      _float_field(r, "mean_angle_error", 0, 360), unsafe, json.dumps(feedback), int(prescribed)))
         # Progression Controller: >=85% accuracy and no unsafe reps on a completed session
         # -> next stage (+2 reps per set, capped)
-        if prescribed and complete and unsafe == 0 and accuracy >= 85:
+        if counted and prescribed and complete and unsafe == 0 and accuracy >= 85:
             nxt = min(prog["max_reps"], e["reps"] + 2 * e["stage"])
             if nxt > effective_reps(e, prog["max_reps"]):
                 con.execute("UPDATE exercise SET stage = stage + 1 WHERE exercise_id=?", (eid,))
@@ -1863,24 +1876,29 @@ def save_session(con, body):
     con.execute("""INSERT INTO adherence_record(patient_id, session_id, session_date, status, completion_flag)
                    VALUES (?,?,?,?,?)""", (pid, sid, session_day, status, 1 if complete else 0))
 
-    # Gamification persistence (one atomic update, so two uploads at once can't lose XP)
+    # Gamification persistence (one atomic update, so two uploads at once can't lose XP).
+    # A practice session (keyboard, simulated, unknown source) is stored but earns no XP and no badges (M7.1).
+    gained = points if counted else 0
+    if not counted:
+        notes.append("Practice session: not counted (only webcam sessions count)")
     old_level = level_from_xp(p["xp"])["level"]
-    con.execute("UPDATE patient SET xp = xp + ? WHERE patient_id=?", (points, pid))
+    con.execute("UPDATE patient SET xp = xp + ? WHERE patient_id=?", (gained, pid))
     new_xp = con.execute("SELECT xp FROM patient WHERE patient_id=?", (pid,)).fetchone()[0]
     new_level = level_from_xp(new_xp)["level"]
     if new_level > old_level:
         notes.append(f"Level up! Reached level {new_level}")
 
-    earned = [b for b in (body.get("badges_earned") or []) if isinstance(b, str)]
-    if complete:
-        earned.append("first")
-    if streak(con, pid, prog) >= 3:
-        earned.append("streak3")
-    adh = adherence_rate(day_statuses(con, pid, prog))
-    if adh["rate"] >= 80 and adh["scheduled"] >= 4:
-        earned.append("adh80")
-    if new_level >= 5:
-        earned.append("lv5")
+    earned = [b for b in (body.get("badges_earned") or []) if isinstance(b, str)] if counted else []
+    if counted:
+        if complete:
+            earned.append("first")
+        if streak(con, pid, prog) >= 3:
+            earned.append("streak3")
+        adh = adherence_rate(day_statuses(con, pid, prog))
+        if adh["rate"] >= 80 and adh["scheduled"] >= 4:
+            earned.append("adh80")
+        if new_level >= 5:
+            earned.append("lv5")
     new_badges = []
     for b in earned:
         if b in BADGES:
@@ -1891,7 +1909,7 @@ def save_session(con, body):
     con.commit()
     return {"session_id": sid, "status": status, "notes": notes, "new_badges": new_badges,
             # Structured rewards for the summary screen (M5.5); `notes` keeps the same facts as text
-            "xpGained": points, "levelBefore": old_level, "levelAfter": new_level,
+            "counted": counted, "xpGained": gained, "levelBefore": old_level, "levelAfter": new_level,
             "patient": get_program(con, pid)["patient"]}
 
 
@@ -1992,13 +2010,14 @@ def dashboard(con, patient_id, session_limit=SESSION_PAGE):
         FROM session s LEFT JOIN performance_record r ON r.session_id = s.session_id
         WHERE s.patient_id=? GROUP BY s.session_id ORDER BY s.started_at DESC, s.session_id DESC LIMIT ?""", (patient_id, session_limit)).fetchall()
     sessions = [dict(r) for r in sessions]
-    recent = [s for s in sessions if s["started_at"][:10] >= since]
+    recent = [s for s in sessions if s["started_at"][:10] >= since and s["input_source"] in COUNTED_SOURCES]
     att = sum(s["attempts"] for s in recent)
-    per_ex = con.execute("""
+    per_ex = con.execute(f"""
         SELECT e.name, COUNT(r.record_id) AS n, COALESCE(SUM(r.unsafe_reps),0) AS unsafe,
                CASE WHEN SUM(r.attempts)>0 THEN SUM(r.avg_accuracy*r.attempts)/SUM(r.attempts) ELSE 0 END AS accuracy,
                CASE WHEN SUM(r.attempts)>0 THEN SUM(r.mean_angle_error*r.attempts)/SUM(r.attempts) ELSE 0 END AS mean_err
-        FROM exercise e LEFT JOIN performance_record r ON r.exercise_id = e.exercise_id
+        FROM exercise e LEFT JOIN (SELECT pr.* FROM performance_record pr JOIN session s ON s.session_id = pr.session_id
+                                   WHERE s.input_source IN {_COUNTED_SQL}) r ON r.exercise_id = e.exercise_id
         WHERE e.program_id=? AND e.active=1 GROUP BY e.exercise_id ORDER BY e.sort_order""", (prog["program_id"],)).fetchall()
     return {
         **info,

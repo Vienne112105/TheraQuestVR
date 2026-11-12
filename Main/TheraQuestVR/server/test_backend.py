@@ -529,7 +529,7 @@ class ProtocolPhaseEditTests(ServerTestCase):
 
 
 class AttentionFlagTests(ServerTestCase):
-    """M5.3: per-patient attention flags (pain, accuracy, missed days, unsafe reps) with the sources they counted."""
+    """M5.3: per-patient attention flags (pain, accuracy, missed days, unsafe reps) from webcam sessions only (M7.1)."""
 
     counter = 0
 
@@ -568,9 +568,8 @@ class AttentionFlagTests(ServerTestCase):
 
     def test_pain_spike(self):
         pid, vr = self.new_patient()
-        self.pain(self.upload(pid, vr, 1, source="simulated"), 2, 2 + server.PAIN_SPIKE + 1)
+        self.pain(self.upload(pid, vr, 1), 2, 2 + server.PAIN_SPIKE + 1)
         f = self.flags(pid)["pain"]
-        self.assertEqual(f["sources"], {"simulated": 1})
         self.assertIn("Pain went from 2", f["detail"])
 
     def test_pain_rising_across_sessions(self):
@@ -584,9 +583,8 @@ class AttentionFlagTests(ServerTestCase):
         for d in (6, 5, 4):
             self.upload(pid, vr, d, accuracy=90)
         for d in (3, 2, 1):
-            self.upload(pid, vr, d, accuracy=90 - server.ACCURACY_DROP - 5, source="keyboard")
-        f = self.flags(pid)["accuracy"]
-        self.assertEqual(f["sources"], {"webcam": 3, "keyboard": 3})
+            self.upload(pid, vr, d, accuracy=90 - server.ACCURACY_DROP - 5)
+        self.assertIn("accuracy", self.flags(pid))
 
     def test_small_accuracy_dip_is_not_flagged(self):
         pid, vr = self.new_patient()
@@ -627,6 +625,96 @@ class AttentionFlagTests(ServerTestCase):
         self.upload(pid, vr, 1, unsafe=2)
         self.call("POST", f"/api/patients/{pid}/archive", {"archived": True}, self.auth)
         self.assertEqual(self.flags(pid), {})
+
+
+class CountedSourceTests(ServerTestCase):
+    """M7.1 (TASK-003): only webcam sessions drive clinical and game rules; the others stay on record, labelled."""
+
+    new_patient, upload, pain, flags = (AttentionFlagTests.new_patient, AttentionFlagTests.upload,
+                                        AttentionFlagTests.pain, AttentionFlagTests.flags)
+
+    def dash(self, pid):
+        return self.call("GET", f"/api/patients/{pid}/dashboard", headers=self.auth)[1]
+
+    def test_practice_session_does_not_complete_the_day(self):
+        pid, vr = self.new_patient()
+        self.upload(pid, vr, 1, source="simulated")
+        cal = {d["date"]: d["status"] for d in self.dash(pid)["calendar"]}
+        self.assertNotEqual(cal[(date.today() - timedelta(days=1)).isoformat()], "complete")
+        self.upload(pid, vr, 1)
+        cal = {d["date"]: d["status"] for d in self.dash(pid)["calendar"]}
+        self.assertEqual(cal[(date.today() - timedelta(days=1)).isoformat()], "complete")
+
+    def test_practice_session_does_not_change_flags(self):
+        pid, vr = self.new_patient()
+        for src in ("simulated", "keyboard"):
+            sid = self.upload(pid, vr, 1, unsafe=3, source=src)
+            self.pain(sid, 0, 9)
+        self.assertEqual(self.flags(pid), {})
+        for d in (6, 5, 4):
+            self.upload(pid, vr, d, accuracy=90)
+        for d in (3, 2, 1):
+            self.upload(pid, vr, d, accuracy=40, source="simulated")
+        self.assertNotIn("accuracy", self.flags(pid))
+
+    def test_flags_carry_no_sources_breakdown(self):
+        pid, vr = self.new_patient()
+        self.upload(pid, vr, 1, unsafe=2)
+        self.assertEqual(self.flags(pid)["unsafe"]["sources"], {"webcam": 1})
+
+    def test_readiness_ignores_practice_sessions(self):
+        pid, vr = self.new_patient()
+        con = server.db()
+        phase = con.execute("SELECT phase_id FROM protocol_phase WHERE vr_allowed=1 AND min_sessions=1 LIMIT 1").fetchone()
+        if not phase:
+            phase = con.execute("SELECT phase_id FROM protocol_phase WHERE vr_allowed=1 LIMIT 1").fetchone()
+        con.close()
+        self.assertEqual(self.call("POST", f"/api/patients/{pid}/phase", {"phase_id": phase[0]}, self.auth)[0], 200)
+        self.upload(pid, vr, 0, source="simulated")
+        r = self.dash(pid)["readiness"]
+        self.assertTrue(r["criteria"][0]["detail"].startswith("0 of"), r["criteria"][0])
+
+    def test_practice_upload_gives_no_xp_badges_or_progression(self):
+        for i, src in enumerate(("simulated", "keyboard", None)):
+            pid, vr = self.new_patient()
+            _, prog = self.call("GET", "/api/vr/program", headers=vr)
+            results = [{"exercise_id": e["id"], "target_reps": e["reps"] * e["sets"], "valid_reps": e["reps"] * e["sets"],
+                        "attempts": e["reps"] * e["sets"], "avg_accuracy": 95, "mean_angle_error": 2, "unsafe_reps": 0}
+                       for e in prog["exercises"]]
+            body = self.session_body(pid, results, points=500, badges_earned=["combo10"], session_uuid=f"practice-{i}")
+            if src:
+                body["input_source"] = src
+            else:
+                del body["input_source"]
+            status, out = self.call("POST", "/api/vr/sessions", body, vr)
+            self.assertEqual(status, 201, out)
+            self.assertIs(out["counted"], False)
+            self.assertEqual((out["xpGained"], out["new_badges"]), (0, []))
+            _, prog2 = self.call("GET", "/api/vr/program", headers=vr)
+            self.assertEqual(prog2["patient"]["xp"], 0)
+            self.assertEqual(prog2["patient"]["badges"], [])
+            self.assertEqual([e["stage"] for e in prog2["exercises"]], [e["stage"] for e in prog["exercises"]])
+            self.assertEqual(prog2["progress"]["totalSessions"], 0)
+            self.assertEqual(prog2["progress"]["recent"], [])
+            # idempotent re-upload
+            status, again = self.call("POST", "/api/vr/sessions", body, vr)
+            self.assertTrue(again.get("duplicate"))
+            self.assertEqual(self.call("GET", "/api/vr/program", headers=vr)[1]["patient"]["xp"], 0)
+
+    def test_webcam_upload_is_counted(self):
+        pid, vr = self.new_patient()
+        _, out = self.call("POST", "/api/vr/sessions", self.session_body(pid, points=40), vr)
+        self.assertIs(out["counted"], True)
+        self.assertEqual(out["xpGained"], 40)
+
+    def test_session_history_carries_source_and_exports_keep_it(self):
+        pid, vr = self.new_patient()
+        self.upload(pid, vr, 2, source="keyboard")
+        self.upload(pid, vr, 1)
+        sessions = self.dash(pid)["sessions"]
+        self.assertEqual({s["input_source"] for s in sessions}, {"keyboard", "webcam"})
+        _, rows = self.call("GET", f"/api/patients/{pid}/export?format=json&kind=sessions", headers=self.auth)
+        self.assertTrue(all("input_source" in r for r in rows))
 
 
 class ProgressTests(ServerTestCase):

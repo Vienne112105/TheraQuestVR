@@ -18,6 +18,12 @@ namespace TheraQuest
             public bool LevelUp => toLevel > fromLevel;
         }
 
+        /// <summary>Only webcam sessions count on the server (M7.1); XP, badges and progress ignore the rest.</summary>
+        public static bool IsCounted(string inputSource) => inputSource == "webcam";
+
+        /// <summary>One short line for the summary of a session that does not count (empty for a webcam session).</summary>
+        public static string PracticeLine(string inputSource) => IsCounted(inputSource) ? "" : "Practice: not counted";
+
         public static XpSpan Xp(int oldXp, int newXp)
         {
             GamificationManager.Level(Mathf.Max(0, oldXp), out int l0, out int i0, out int n0);
