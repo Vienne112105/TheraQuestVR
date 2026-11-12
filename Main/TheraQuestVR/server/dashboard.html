@@ -823,6 +823,10 @@ header {
             <i aria-hidden="true" data-lucide="file-spreadsheet" style="width:14px;height:14px"></i>
             Download Telemetry (CSV)
           </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="exportCurrentTelemetry('reps')">
+            <i aria-hidden="true" data-lucide="list-ordered" style="width:14px;height:14px"></i>
+            Download Reps (CSV)
+          </button>
         </div>
       </div>
       <div id="chartArchived" class="alert-info" style="display:none"></div>
@@ -1962,9 +1966,10 @@ async function openPatientChart(pid) {
   if (await loadPatientData()) showChart();
 }
 
-function exportCurrentTelemetry() {
+function exportCurrentTelemetry(kind) {
   if(!activePid) return;
-  window.location.href = `/api/patients/${activePid}/export?format=csv&token=${authToken || ''}`;
+  const kindParam = kind ? `&kind=${kind}` : '';
+  window.location.href = `/api/patients/${activePid}/export?format=csv${kindParam}&token=${authToken || ''}`;
 }
 
 // ------------------------------------------

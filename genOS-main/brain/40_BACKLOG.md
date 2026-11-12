@@ -13,7 +13,6 @@ Durable ad-hoc queue for non-milestone work (bugs, ideas). AI-owned. See `AGENTS
 ## Todo
 
 <!-- Queued work not yet started -->
-- [TASK-001] Dashboard button for the per-rep export (`/api/patients/{id}/export?kind=reps`); today it is only reachable by URL (ref: DEC-011)
 - [TASK-002] Human: delete the legacy `Main/TheraQuestVR/server/theraquest.db` once the dashboard shows the migrated data (ref: DEC-010)
 
 <!-- Post-M4 review (2026-10-25). Priority: high = fix before new features; research = before reporting results; low = housekeeping -->
@@ -29,6 +28,8 @@ Durable ad-hoc queue for non-milestone work (bugs, ideas). AI-owned. See `AGENTS
 - [TASK-013] (research) The MGB and BWH protocol documents are copyrighted ("all rights reserved"); the built-in protocols are short paraphrases with citations. Before publishing the thesis or distributing the app, confirm this use is acceptable or ask the institutions for permission.
 
 ## Done
+
+- [TASK-001] "Download Reps (CSV)" button on the patient chart, next to the telemetry download (`export?kind=reps`) (2026-11-12, ref: DEC-011).
 
 - [TASK-011] `Main/TheraQuestVR/run_tests.py` runs the server, tracker, evaluation and Unity EditMode suites and prints one table; exit 1 on any failure; Unity is skipped while the Editor has the project open (2026-11-12).
 
