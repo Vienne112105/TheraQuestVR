@@ -7,6 +7,7 @@ Coordinates the patient workout lifecycle: patient profile selection, prescripti
 `stable` (M5.4 session flow done, human check passed 2026-10-28; M5.8 tutorial and first-person flow done, its human check moved to HW.5)
 
 ## Responsibilities
+- The session summary adds one line, "Practice: not counted", for a non-webcam session, and shows no offline XP or badges for it (M7.1, `ProgressViews.PracticeLine`).
 - Manage the rehabilitation session state machine: Idle -> Prescription Fetch -> Tutorial -> Exercise Intro & Camera Placement -> Countdown -> Active Sets -> Rest Countdowns -> Exercise Completion -> Session Upload.
 - Fetch patient prescription from the clinical backend over HTTP, identified by the configured synthetic patient code (no clinician credentials; see [[30_DECISIONS]] DEC-009).
 - Cache completed session metrics locally if the network/server is offline, with automated retry when reconnected; every upload carries a `session_uuid` so retries are never counted twice.

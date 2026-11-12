@@ -60,6 +60,11 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M6.3 | M6 | done | Camera Setup Assistant |
 | M6.4 | M6 | done | Out-of-Plane Live Limb & Ankle Exercises |
 | M6.5 | M6 | done | Webcam Field Test & Tuning |
+| M7 | — | active | Pre-Study Data Readiness |
+| M7.1 | M7 | done | Only Webcam Sessions Count |
+| M7.2 | M7 | done | Patient Name and Code |
+| M7.3 | M7 | TBF | Encrypted Backup and Restore |
+| M7.4 | M7 | TBF | Unity Company Name |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -71,7 +76,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 
 ## Suggested sequence
 
-`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience, first-person view and tracking safeguards; their human checks moved to HW) ➔ `M6` (done: camera tracking mechanics, webcam only, no headset)
+`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience, first-person view and tracking safeguards; their human checks moved to HW) ➔ `M6` (done: camera tracking mechanics, webcam only, no headset) ➔ `M7` (active: pre-study data readiness, backlog TASK-003..TASK-006)
 
 Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided (it takes the next free `M` number when scheduled).
 
@@ -448,6 +453,53 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Verification (2026-11-12):** tracker tests 96 pass, server tests 68 pass, Unity EditMode tests 86 pass. Replays of the recording: knee side flips 62 -> 0, far-leg curls read 89-96° instead of about 10°. Several live runs with the human at the laptop webcam, each problem fixed and run again; the human confirmed the final run ("All working") and closed M6.5. Hidden joint, stepping out and the webcam unplug were part of the guided recording and the live checklist; they were not rechecked one by one after the last tuning.
 - **Dependencies:** M6.1, M6.2, M6.3 (M6.4 for the ankle exercises)
 - **Systems:** MotionTracking, ExerciseEvaluation
+
+## M7 — Pre-Study Data Readiness
+
+- **Status:** active
+- **Objective:** Make the clinical data trustworthy and safe before real study data is collected (approved by the human 2026-11-12; from backlog TASK-003..TASK-006): only real webcam sessions drive clinical rules, patient identity follows one clear decision (DEC-027), the database has an encrypted backup that can be restored, and the Unity data folder name is final.
+- **Success criteria:**
+  - Keyboard, simulated and unknown-source sessions stay on record and are labelled, but never change adherence, streaks, phase readiness, attention flags, rep progression, XP or badges.
+  - The patient's name appears only in the therapist dashboard; exports, VR routes, logs and recordings carry the code only (DEC-027).
+  - An encrypted backup can be made while the server runs and restored to a new file that passes an integrity check.
+  - Unity `companyName` is `TheraQuest`.
+- **Children:** `M7.1` Only Webcam Sessions Count; `M7.2` Patient Name and Code; `M7.3` Encrypted Backup and Restore; `M7.4` Unity Company Name.
+- **Plan:** `docs/superpowers/plans/2026-11-12-m7-pre-study-data-readiness.md` (repository root). Suggested order M7.4 → M7.1 → M7.2 → M7.3; M7.1 and M7.2 both edit `server.py` and `dashboard.html`, so not in parallel.
+- **Done when:** all children are done.
+- **Dependencies:** M4, M5
+- **Systems:** ClinicalBackend, TherapistDashboard, SessionOrchestration, Gamification, VRClinicExperience
+
+### M7.1 — Only Webcam Sessions Count
+- **Status:** done (2026-11-12). Counted sources are `COUNTED_SOURCES` in `server.py`; the dashboard KPIs and per-exercise table also use only counted sessions. Live database check: it holds 5 simulated sessions (all P-001), not 6; they no longer affect adherence, readiness or flags. Past XP and badges are unchanged (not retroactive).
+- **Objective:** Keep non-webcam sessions out of every clinical and game rule (TASK-003; the human chose "exclude from all rules" on 2026-11-12).
+- **Deliverables:** one list of counted input sources (`webcam` only) used by `day_statuses` (adherence, streak), `readiness`, `attention_flags`, the session upload (XP, badges, Progression Controller) and `vr_progress` totals; the upload response says when a session was not counted; an input-source tag per row in the dashboard Session History; one short line in the Unity session summary for a non-webcam session ("Practice: not counted"); tests.
+- **Completion criteria:** server and Unity EditMode tests pass, with new tests for each rule above, unknown-source uploads and idempotent re-upload; the live database's simulated sessions no longer change adherence, readiness or flags. XP and badges already earned from past simulated sessions are left as they are (not retroactive).
+- **Dependencies:** none
+- **Systems:** ClinicalBackend, TherapistDashboard, SessionOrchestration, Gamification
+
+### M7.2 — Patient Name and Code
+- **Status:** done (2026-11-12). The telemetry export lost its `patient_name` column; `get_program(for_vr=True)` drops the name for the VR program and upload responses; name must be text of at most 200 characters on add and edit.
+- **Objective:** Keep the patient's real name with their code, used only inside the therapist dashboard (TASK-004, DEC-027).
+- **Deliverables:** `name` removed from VR client payloads (`vr_progress`, prescription fetch) and the unused Unity `DataModels` field; exports and evaluation reports checked to hold the code only; server-side name validation (type, length); dashboard label "Patient full name (dashboard only)"; `schema.sql` comment updated; tests.
+- **Completion criteria:** server and Unity EditMode tests pass, with tests that exports and VR routes never contain a name.
+- **Dependencies:** M7.1 (same files)
+- **Systems:** ClinicalBackend, TherapistDashboard, SessionOrchestration
+
+### M7.3 — Encrypted Backup and Restore
+- **Status:** TBF (code and 11 automated tests done 2026-11-12; the real backup and restore of the live database needs the human's password, see `pending_human_tests`)
+- **Objective:** A password-encrypted backup of the clinical database to a drive the clinic controls, and a safe restore (TASK-005; the human chose an encrypted file on 2026-11-12).
+- **Deliverables:** `server/backup.py` with `backup <folder>` (consistent snapshot through the SQLite backup API while the server runs, key from the password by Scrypt, authenticated encryption, a versioned header) and `restore <file> <out.db>` (decrypts to a new file only, runs an integrity check, never overwrites the live database); `cryptography` pinned in `server/requirements.txt` (used only by the backup tool); `Backup_Database.bat`; a README section (where to keep backups, that a lost password can't be recovered, how to restore); tests.
+- **Completion criteria:** backup tests pass (round trip, wrong password, tampered file, header version, existing output refused, backup during an open write); one real backup and restore of the live database on this PC.
+- **Dependencies:** none
+- **Systems:** ClinicalBackend
+
+### M7.4 — Unity Company Name
+- **Status:** TBF (company name set, test and README note done 2026-11-12; the data-folder copy is left to the human because the old folder holds one unsent offline session, see `pending_human_tests`)
+- **Objective:** Set the final Unity company name before any clinic install, since the player's data folder is named after it (TASK-006).
+- **Deliverables:** `companyName: TheraQuest`; this PC's player data (config.json, PIN, cached program, offline queue, checked empty first) copied by hand from `LocalLow\DefaultCompany\TheraQuestVR` to `LocalLow\TheraQuest\TheraQuestVR`; a README note; a check that the company name is not `DefaultCompany`.
+- **Completion criteria:** Unity EditMode tests pass; the game starts with its saved settings and program on this PC.
+- **Dependencies:** none
+- **Systems:** VRClinicExperience
 
 ## HW — Hardware Integration & Field Validation (unscheduled)
 

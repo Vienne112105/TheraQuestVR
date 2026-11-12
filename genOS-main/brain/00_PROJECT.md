@@ -33,7 +33,7 @@ TheraQuest VR is a gamified virtual reality physical therapy and telerehabilitat
 1. **Passive and Non-Planar Movements:** Acute passive-only mobilization, isometric quad sets, and non-planar axial joint rotations are designated as off-camera protocol exercises (untracked in VR).
 2. **Standalone Quest APK:** Runtime relies on tethered PC VR (Quest Link) or laptop desktop fallback to enable concurrent execution of the Python MediaPipe tracker and SQLite backend on the host machine.
 3. **Diagnostic Replacement:** System is strictly an assistive rehabilitation support tool and does not diagnose injuries or replace clinical supervision by a licensed physical therapist.
-4. **Local Data Privacy:** Strictly clinic-local data storage with patient pseudonymization (e.g. `P-001`) under the Philippine Data Privacy Act of 2012 (RA 10173).
+4. **Local Data Privacy:** Strictly clinic-local data storage under the Philippine Data Privacy Act of 2012 (RA 10173). Each patient has a code (e.g. `P-001`) and a real name; the name stays inside the therapist dashboard, and everything that leaves it (exports, reports, the VR client, logs, recordings) uses the code only. Backups are encrypted, and study participants consent to their name being stored (DEC-027, approved by the human 2026-11-12).
 
 ## Target Environment & Stack
 

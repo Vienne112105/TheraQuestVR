@@ -7,6 +7,7 @@ Maintains patient motivation and adherence through real-time feedback loops, sco
 `stable` (M5.5 and M5.6 done; human checks passed 2026-10-28)
 
 ## Responsibilities
+- Only webcam sessions earn XP, badges and rep progression; the server ignores points and badges from other sources (M7.1).
 - Calculate real-time repetition points based on accuracy and consecutive combo multipliers: `Points = 10 * accuracy * combo` (range x1.0 to x2.0).
 - Award bonus points (+50 XP) upon full session completion.
 - Evaluate session performance star ratings (3 stars for ≥90% accuracy, 2 stars for ≥75%, 1 star otherwise, 0 for early termination).

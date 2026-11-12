@@ -7,6 +7,7 @@ Delivers a web browser interface for physical therapists to monitor patient adhe
 `stable` (M5.1, M5.2, M5.3 and M5.7 done; human checks passed 2026-10-28)
 
 ## Responsibilities
+- Session History tags each session with its input source; non-webcam sessions read "(not counted)" (M7.1). The patient name field is labelled "dashboard only" (M7.2).
 - Serve as a formal clinical Rehabilitation Monitoring & Prescription System (RMS) designed specifically for Physical Therapists.
 - Enforce Clinician Authentication with a dedicated in-app login view (`#viewLogin`), first-run login creation (`#setupForm`), password change (`#passwordModal`, forced after a demo-password sign-in), bearer token persistence in localStorage, and clean sign-out.
 - Provide a Patient Caseload Directory for managing enrolled patients, diagnosis filtering, and quick chart access; archived patients are hidden unless "Show archived patients" is ticked.

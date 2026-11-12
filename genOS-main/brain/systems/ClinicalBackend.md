@@ -36,12 +36,13 @@ Provides a lightweight, local-first Python REST API and SQLite persistence layer
 - A session upload with a `session_uuid` already stored is answered with the stored session (idempotent retry), never saved twice.
 - Re-seeding built-in protocols (`protocol.builtin = 1`) must never delete therapist-authored protocols, and keeps built-in protocols whose content is unchanged (patients on them keep their phase); only changed or withdrawn ones are replaced.
 - Built-in protocols are read-only through the API; only therapist-authored protocols can have phases edited or added (DEC-014).
-- Attention flags (M5.3) are computed by the server only (`attention_flags`), suggest and never act, look back `ATTENTION_DAYS`, report the input sources they counted, and are never shown for archived patients. Thresholds are placeholders until a PT confirms them (TASK-007).
+- Attention flags (M5.3) are computed by the server only (`attention_flags`), suggest and never act, look back `ATTENTION_DAYS`, look only at counted sessions (see below), and are never shown for archived patients. Thresholds are placeholders until a PT confirms them (TASK-007).
 - Patients are archived (`archived_at`), never deleted. An archived patient gets no new VR program, but sessions already recorded still upload (DEC-014).
 - A patient code never changes after registration (the VR app is configured with it).
 - Every prescription write path applies the same bounds (`RX_FIELDS`).
 - The server sends no CORS headers; static files are served only from inside `static/`; the server listens on 127.0.0.1 unless started with `--host`.
-- Patient identities must be stored as pseudonymous codes (e.g., `P-001`) to comply with healthcare privacy regulations.
+- The patient record holds a real name and a code (DEC-027). The name is stored and shown only in the therapist dashboard; exports, VR routes (`get_program(for_vr=True)`), logs and recordings carry the code only.
+- Only sessions whose `input_source` is in `COUNTED_SOURCES` (`webcam`) drive adherence, streak, readiness, flags, dashboard KPIs, XP, badges, progression and the VR progress page. Keyboard, simulated and unknown-source sessions are stored and labelled, and the upload response says `counted: false` (M7.1).
 - A phase progression cannot be applied automatically without explicit therapist confirmation logged in `phase_history`.
 - Protocol deletions and patient detachments must preserve exercise histories and use parameterized SQL queries.
 - A patient code can only read or write its own record; a VR session whose `patient_id` differs from the code's patient is refused (403), and `patient_id` 0 means "recorded offline, attribute by code".
@@ -51,6 +52,7 @@ Provides a lightweight, local-first Python REST API and SQLite persistence layer
 - A session without an input source is stored as `unknown`, never counted as webcam data.
 
 ## Notes
+- `server/backup.py` makes and restores AES-GCM encrypted, scrypt-keyed database backups (`.tqbak`); restore writes a new file only, and a lost password cannot be recovered (M7.3).
 - Running `python server.py --reset` completely resets the SQLite database and re-seeds patient `P-001` and protocol records; the first clinician login is created at first run (no default password since M4.2).
 - Database operates in WAL mode (`PRAGMA journal_mode = WAL;`) with normal synchronous I/O, memory temp store, and 32MB cache.
 

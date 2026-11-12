@@ -43,6 +43,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-024 | accepted | 2026-11-05 | Tracking Recordings Hold Landmarks Only and Stay Local |
 | DEC-025 | accepted | 2026-11-07 | Landmarks Are Trusted Again After 2 Confident Frames |
 | DEC-026 | accepted | 2026-11-12 | Which Limb Is Measured, Resting Baseline and Rep Timing |
+| DEC-027 | accepted | 2026-11-12 | Patient Records Hold Name and Code; Only the Code Leaves the Dashboard |
 
 ---
 
@@ -81,6 +82,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Reason:** Complies with data privacy regulations (Philippine Data Privacy Act RA 10173 and ethical research guidelines) by keeping patient performance records on the clinic machine without transmitting protected health information (PHI) to third-party cloud services.
 - **Impact:** Patients are assigned synthetic codes (e.g., `P-001`), database persistence remains in local SQLite (`theraquest.db`), and the therapist dashboard operates locally on port 8000.
 - **Supersedes:** none
+- **Amended by:** [[30_DECISIONS#DEC-027: Patient Records Hold Name and Code; Only the Code Leaves the Dashboard|DEC-027]] (2026-11-12): records also hold the patient's real name, kept inside the dashboard; local-first storage is unchanged.
 
 ### DEC-004: Dual-Tier Coach Persona Architecture with Procedural Styles & Silhouette Isolation
 - **Status:** accepted
@@ -249,3 +251,10 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Reason:** M6.5's live runs with the human: side-on the reading jumped between the near and the hidden far limb, the far leg's hamstring curl read about 10°, the tracker swapped left and right whenever the legs overlapped, slow reps were called too fast, and standing hip abduction never read 0 at rest. The human asked for a standing (resting) baseline for hip abduction and then for every exercise, and for only the moving limb to be tracked side-on.
 - **Impact:** Tracker (`tracking.py`, `angles.py`): side-on the near limb is measured (world-landmark depth), unless the far one reads more than 35° above it; facing the camera the larger reading; otherwise the current side is kept unless the other is clearly better seen. Unity (`MotionInput`): with no operated side, side-on, an exercise moving one limb measures whichever limb reads the larger angle, whatever the tracker labels it; each webcam exercise waits for the patient to hold still for 1 s, takes that angle as resting (at most 60% of the target and 25°) and scores movement above it, refreshed whenever they rest again; a fall of over 25° within one frame is held up to 0.3 s. `ExerciseEvaluator`: a rep shorter than 0.35 s is dropped as noise, under 0.6 s is too fast. Scored angles still come only from verified landmarks (DEC-022); the baseline only subtracts the patient's own resting reading.
 - **Supersedes:** none (the 0.85 s too-fast cutoff and the best-side-per-frame choice were starting values)
+
+### DEC-027: Patient Records Hold Name and Code; Only the Code Leaves the Dashboard
+- **Status:** accepted
+- **Date:** 2026-11-12
+- **Reason:** At the M7 kickoff (TASK-004) the human chose to keep each patient's real name together with their code, instead of code-only pseudonymization. The human approved the plan with the name meaning the patient's real name.
+- **Impact:** The clinical database now holds personal information under RA 10173. The name is stored and shown only in the therapist dashboard. Everything that leaves the dashboard uses the code only: research exports (CSV/JSON), evaluation reports, VR client routes, logs and tracker recordings (M7.2). Database backups are encrypted (M7.3). Study participants must give informed consent for their name to be stored (a human and ethics task, not code). Local-first storage (DEC-003, DEC-010) and the private repository (DEC-020) are unchanged.
+- **Supersedes:** the code-only pseudonymization part of DEC-003 (DEC-003 stays accepted for local-first storage)
