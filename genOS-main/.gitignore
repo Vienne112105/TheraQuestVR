@@ -1,3 +1,16 @@
 .agents/
 .cursor/
 .obsidian/
+
+# Graphify code graph (rebuilt locally with `graphify extract . --code-only`)
+graphify-out/
+
+# Superpowers git worktrees
+.worktrees/
+
+# Binaries
+*.exe
+
+# Python bytecode
+__pycache__/
+*.py[cod]
