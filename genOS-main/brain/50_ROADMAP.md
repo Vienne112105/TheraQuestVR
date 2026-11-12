@@ -64,7 +64,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M7.1 | M7 | done | Only Webcam Sessions Count |
 | M7.2 | M7 | done | Patient Name and Code |
 | M7.3 | M7 | TBF | Encrypted Backup and Restore |
-| M7.4 | M7 | TBF | Unity Company Name |
+| M7.4 | M7 | done | Unity Company Name |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -494,7 +494,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** ClinicalBackend
 
 ### M7.4 — Unity Company Name
-- **Status:** TBF (company name set, test and README note done 2026-11-12; the data-folder copy is left to the human because the old folder holds one unsent offline session, see `pending_human_tests`)
+- **Status:** done (2026-11-12): company name set, test and README note added; the game ran in Play mode on the new data folder and loaded the P-001 program. No old data was copied; the old offline queue file was gone by then.
 - **Objective:** Set the final Unity company name before any clinic install, since the player's data folder is named after it (TASK-006).
 - **Deliverables:** `companyName: TheraQuest`; this PC's player data (config.json, PIN, cached program, offline queue, checked empty first) copied by hand from `LocalLow\DefaultCompany\TheraQuestVR` to `LocalLow\TheraQuest\TheraQuestVR`; a README note; a check that the company name is not `DefaultCompany`.
 - **Completion criteria:** Unity EditMode tests pass; the game starts with its saved settings and program on this PC.
