@@ -677,6 +677,10 @@ header {
         <div id="clinicianName" style="font-size:13px;font-weight:700;color:var(--text)"></div>
         <div id="clinicianRole" style="font-size:11px;color:var(--text-muted)"></div>
       </div>
+      <button class="btn btn-secondary btn-sm" onclick="openBackupModal()" title="Download an encrypted backup of all patient data">
+        <i aria-hidden="true" data-lucide="database-backup" style="width:14px;height:14px"></i>
+        Backup
+      </button>
       <button class="btn btn-secondary btn-sm" onclick="openPasswordModal(false)" title="Change your password">
         <i aria-hidden="true" data-lucide="key-round" style="width:14px;height:14px"></i>
         Password
@@ -1165,6 +1169,29 @@ header {
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
         <button type="button" class="btn btn-secondary btn-sm" id="pwCancelBtn" onclick="closePasswordModal()">Cancel</button>
         <button type="submit" class="btn btn-primary btn-sm" id="pwSaveBtn">Save Password</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- IN-APP MODAL: ENCRYPTED BACKUP (TASK-018) -->
+<div id="backupModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="backupModalTitle">
+  <div class="modal-content" style="max-width: 420px">
+    <div class="card-title" id="backupModalTitle">Encrypted Backup</div>
+    <div class="card-desc" style="margin-bottom:14px">Saves all patient data to one file. Choose a backup password of at least 12 characters. If you lose it, the backup cannot be opened by anyone. Keep the file somewhere other than this PC.</div>
+    <div id="backupErr" class="alert-error" role="alert" style="display:none"></div>
+    <form id="backupForm" onsubmit="handleBackupSubmit(event)" style="display:flex;flex-direction:column;gap:12px">
+      <div>
+        <label for="bkPw" style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Backup password</label>
+        <input type="password" id="bkPw" required minlength="12" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px">
+      </div>
+      <div>
+        <label for="bkPw2" style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Repeat backup password</label>
+        <input type="password" id="bkPw2" required minlength="12" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px">
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="closeDialog('backupModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm" id="bkSaveBtn">Download Backup</button>
       </div>
     </form>
   </div>
@@ -1772,6 +1799,51 @@ async function handlePasswordSubmit(ev) {
     $("passwordErr").textContent = e.message;
   } finally {
     $("pwSaveBtn").disabled = false;
+  }
+}
+
+function openBackupModal() {
+  $("backupForm").reset();
+  $("backupErr").style.display = "none";
+  openDialog("backupModal", "bkPw");
+}
+async function handleBackupSubmit(ev) {
+  ev.preventDefault();
+  const err = $("backupErr");
+  err.style.display = "none";
+  if ($("bkPw").value !== $("bkPw2").value) {
+    err.style.display = "block";
+    err.textContent = "The two passwords don't match.";
+    return;
+  }
+  $("bkSaveBtn").disabled = true;
+  try {
+    const r = await fetch("/api/backup", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${authToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ password: $("bkPw").value })
+    });
+    if (r.status === 401) { handleUnauthorized(); return; }
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.error || r.statusText);
+    }
+    const name = ((r.headers.get("Content-Disposition") || "").match(/filename="([^"]+)"/) || [])[1] || "theraquest.tqbak";
+    const url = URL.createObjectURL(await r.blob());
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    closeDialog("backupModal");
+    showToast("Backup downloaded. Keep the password safe.");
+  } catch (e) {
+    err.style.display = "block";
+    err.textContent = e.message;
+  } finally {
+    $("bkSaveBtn").disabled = false;
   }
 }
 

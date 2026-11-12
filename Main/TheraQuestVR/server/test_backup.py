@@ -12,6 +12,7 @@ import unittest
 from datetime import datetime
 
 import backup
+from testsupport import ServerTestCase
 
 PW = "correct horse battery"
 FAST = 12      # scrypt cost for tests only
@@ -144,6 +145,45 @@ class BackupTests(unittest.TestCase):
         self.con.commit()                                    # still in the WAL file, not checkpointed
         restored = backup.restore(self.make(), os.path.join(self.tmp, "r.db"), PW)
         self.assertEqual(len(rows(restored)), 3)
+
+
+class BackupRouteTests(ServerTestCase):
+    """TASK-018: the dashboard's Back up button posts a password and gets the encrypted file back."""
+
+    def test_requires_therapist_token(self):
+        status, _ = self.call("POST", "/api/backup", {"password": PW})
+        self.assertEqual(status, 401)
+
+    def test_short_password_refused(self):
+        status, body = self.call("POST", "/api/backup", {"password": "short"}, self.auth)
+        self.assertEqual(status, 400)
+        self.assertIn("12 characters", body["error"])
+
+    def test_missing_password_refused(self):
+        status, _ = self.call("POST", "/api/backup", {}, self.auth)
+        self.assertEqual(status, 400)
+
+    def test_returns_restorable_file(self):
+        status, blob = self.call("POST", "/api/backup", {"password": PW}, self.auth)
+        self.assertEqual(status, 200)
+        self.assertIsInstance(blob, bytes)
+        self.assertTrue(blob.startswith(backup.MAGIC))
+        tmp = tempfile.mkdtemp(prefix="tq_route_")
+        try:
+            path = os.path.join(tmp, "x.tqbak")
+            with open(path, "wb") as f:
+                f.write(blob)
+            restored = backup.restore(path, os.path.join(tmp, "r.db"), PW)
+            con = sqlite3.connect(restored)
+            try:
+                n = con.execute("SELECT COUNT(*) FROM physical_therapist").fetchone()[0]
+            finally:
+                con.close()
+            self.assertGreaterEqual(n, 1)
+            with self.assertRaises(backup.BackupError):
+                backup.restore(path, os.path.join(tmp, "r2.db"), "wrong password!!")
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
 
 
 if __name__ == "__main__":

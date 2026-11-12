@@ -19,15 +19,18 @@ Durable ad-hoc queue for non-milestone work (bugs, ideas). AI-owned. See `AGENTS
 - [TASK-007] (research) The exercise `LIBRARY` targets, tolerances, safety limits, holds and sets are placeholders; review them with a licensed physical therapist and record the final values. This includes the per-phase angles and reps of all nine built-in protocols (the source documents mostly give no angles; M5.7 added seven) and the M5.3 attention-flag thresholds (`ATTENTION_DAYS`, `PAIN_SPIKE`, `PAIN_RISE`, `ACCURACY_DROP`, `MISSED_DAYS`, `UNSAFE_REPS` in `server.py`).
 - [TASK-008] (research) Collect the real evaluation inputs for the Section 3.9 metrics: goniometer readings, therapist rep labels, SUS and PT survey (templates in `Main/TheraQuestVR/evaluation/templates/`). Likely its own milestone when scheduled. (ref: DEC-011)
 - [TASK-009] (low) `AGENTS.md` does not list the TBF status or unscheduled milestone IDs (`HW`); only [[50_ROADMAP]] explains them. `60_AGENTS.md` still lists milestone agents for M1 and M4.
-- [TASK-010] (low) Check whether Unity `6000.6.5f1` is an LTS release ([[00_PROJECT]] says Unity 6 LTS); move to an LTS version if not.
-- [TASK-015] (low) The tracker falls back to the DSHOW camera backend (black or slow frames) when MSMF is still busy from a previous run; retry MSMF for a few seconds before falling back. Seen in M6.5.
 - [TASK-016] (low) Side-on, overlapping legs still confuse the lite pose model at moments; try `--model full` live if curls or marches miscount. Seen in M6.5.
-- [TASK-018] (low) Dashboard button for the encrypted backup (today only `Backup_Database.bat` / `server/backup.py`). Skipped in M7.3 as YAGNI.
 - [TASK-019] Human: create a private GitHub repository and add it as a remote for the code (the repository must stay private, DEC-020). Not a backup of the database.
 - [TASK-017] (research) Informed consent: study participants must agree to their real name being stored in the clinical database (DEC-027); prepare the consent wording with the ethics review before real study data.
 - [TASK-013] (research) The MGB and BWH protocol documents are copyrighted ("all rights reserved"); the built-in protocols are short paraphrases with citations. Before publishing the thesis or distributing the app, confirm this use is acceptable or ask the institutions for permission.
 
 ## Done
+
+- [TASK-010] Checked 2026-11-12: Unity 6.6 (`6000.6.x`) is NOT an LTS release. Unity calls it a supported release with LTS-level support until 6.7 arrives, and 6.7 is the next LTS. Decision: stay on `6000.6.5f1` (a project cannot be opened in an older editor), and move to 6.7 LTS when it ships. `00_PROJECT.md` still says "Unity 6 LTS"; wording is the human's to change.
+
+- [TASK-015] The tracker retries a camera backend that failed to open (5 tries, 1 s apart) while the backend that did open is slow, before falling back to it (`open_camera` in `tracker.py`; 3 tests) (2026-11-12). Not tried on a real busy camera.
+
+- [TASK-018] Dashboard "Backup" button: password dialog, then the encrypted `.tqbak` downloads (`POST /api/backup`, reuses `backup.py`); restore stays command-line (2026-11-12). Human check passed: exe rebuilt, Backup clicked, file restored.
 
 - [TASK-020] The therapist app builds as a Windows program, `server/dist/TheraQuest Therapist/TheraQuest Therapist.exe` (`server/build_app.py`, PyInstaller one-folder, no console, own icon); `Start_Therapist_App.bat` prefers it; `start_server.bat` no longer opens a browser; downloads allowed in the native window, which blocked the CSV exports until now (2026-11-12, ref: DEC-013). Human check left: one CSV download from inside the app.
 

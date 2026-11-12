@@ -35,6 +35,7 @@ Therapist API (header Authorization: Bearer <token> from /api/auth/login; 401 wi
   GET  /api/patients/{id}/dashboard          adherence + performance analytics
   GET  /api/patients/{id}/export             export telemetry as CSV or JSON (?format=csv|json)
   GET  /api/export                           export all patient telemetry (?format=csv|json)
+  POST /api/backup {password}                encrypted database backup (.tqbak) as a download
   Both export routes take ?kind=reps for one row per rep attempt instead of one per exercise.
   Export routes also accept ?token=<token> so the dashboard's download links work.
 """
@@ -2181,6 +2182,26 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _backup(self, password):
+        """TASK-018: encrypted snapshot of the database, sent back as a download (the password is never stored)."""
+        import shutil
+        import tempfile
+        import backup                      # needs the 'cryptography' package; only this route does
+        if not isinstance(password, str):
+            raise BadRequest("A backup password is required")
+        tmp = tempfile.mkdtemp(prefix="tq_bak_")
+        try:
+            try:
+                path = backup.backup(tmp, password, db_path=DB_PATH)
+            except backup.BackupError as e:
+                raise BadRequest(str(e))
+            with open(path, "rb") as f:
+                data = f.read()
+            name = os.path.basename(path)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+        return self._send_file(data, "application/octet-stream", name)
+
     def _body(self):
         try:
             n = int(self.headers.get("Content-Length") or 0)
@@ -2324,6 +2345,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"therapist": therapist})
         if method == "POST" and parts == ["api", "auth", "password"]:
             return self._send(200, change_password(con, therapist["therapist_id"], self._body()))
+        if method == "POST" and parts == ["api", "backup"]:
+            return self._backup(self._body().get("password"))
         if method == "GET" and (parts == ["api", "export"] or
                                 (len(parts) == 4 and parts[1] == "patients" and parts[3] == "export")):
             pid = self._id(parts[2]) if len(parts) == 4 else None

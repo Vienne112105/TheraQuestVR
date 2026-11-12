@@ -382,6 +382,40 @@ class TrackerHelperTests(unittest.TestCase):
             self.assertIs(self.tracker.open_camera(cv2, 0, rate=lambda c: speeds[id(c)]), caps[0])
         caps[1].release.assert_called_once()
 
+    def _pictures(self, caps):
+        for c in caps:
+            c.read.return_value = (True, np.full((720, 1280, 3), 90, np.uint8))
+
+    def test_busy_backend_is_retried_when_the_other_is_slow(self):
+        # TASK-015: Media Foundation (1400) is still busy from a previous run; DirectShow (700) is slow.
+        cv2, caps = self._fake_cv2([True, False, True])     # 700 opens, 1400 fails, 1400 opens on retry
+        self._pictures(caps)
+        speeds = {id(caps[0]): 12.0, id(caps[2]): 30.0}
+        pauses = []
+        with mock.patch.object(self.tracker, "camera_backends", lambda _cv2: (700, 1400)):
+            cap = self.tracker.open_camera(cv2, 0, rate=lambda c: speeds[id(c)], pause=pauses.append)
+        self.assertIs(cap, caps[2])
+        self.assertEqual(pauses, [1])
+        caps[0].release.assert_called_once()
+
+    def test_busy_backend_gives_up_after_the_retries(self):
+        n = self.tracker.BUSY_BACKEND_RETRIES
+        cv2, caps = self._fake_cv2([True] + [False] * (n + 1))     # the first try, then n retries
+        self._pictures(caps)
+        pauses = []
+        with mock.patch.object(self.tracker, "camera_backends", lambda _cv2: (700, 1400)):
+            cap = self.tracker.open_camera(cv2, 0, rate=lambda c: 12.0, pause=pauses.append)
+        self.assertIs(cap, caps[0])
+        self.assertEqual(len(pauses), n)
+
+    def test_no_retry_when_the_opened_backend_is_fast(self):
+        cv2, caps = self._fake_cv2([True])
+        self._pictures(caps)
+        pauses = []
+        with mock.patch.object(self.tracker, "camera_backends", lambda _cv2: (700, 1400)):
+            self.assertIs(self.tracker.open_camera(cv2, 0, rate=lambda c: 30.0, pause=pauses.append), caps[0])
+        self.assertEqual(pauses, [])
+
     def test_reopen_camera_quit_while_waiting(self):
         cv2, _ = self._fake_cv2([False])
         self.assertIsNone(self.tracker.reopen_camera(cv2, mock.Mock(), 0, sleep=lambda _c, _s: True))

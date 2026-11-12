@@ -114,19 +114,28 @@ def measure_fps(cap, frames=15, skip=5, clock=time.perf_counter):
     return got / elapsed if elapsed > 0 else float("inf")
 
 
-def open_camera(cv2, cam_index, rate=measure_fps):
+BUSY_BACKEND_RETRIES = 5      # a backend that failed to open is tried again this many times, 1 s apart
+
+
+def open_camera(cv2, cam_index, rate=measure_fps, pause=time.sleep):
     """Open the camera through the backend that gives the most frames per second. The same webcam can send
-    13 fps of raw video through DirectShow and 30 fps of compressed video through Media Foundation."""
+    13 fps of raw video through DirectShow and 30 fps of compressed video through Media Foundation.
+    A backend that fails to open is often still busy from a previous run (TASK-015), so while the one that
+    did open is slow it is retried for a few seconds before settling for the slow one."""
     backends = camera_backends(cv2)
     best, best_fps, cap = None, -1.0, None
-    for backend in backends:
+    failed = []
+
+    def consider(backend):
+        nonlocal best, best_fps, cap
         cap = open_with_backend(cv2, cam_index, backend)
         if not cap.isOpened():
             if backend != backends[-1] or best is not None:
                 cap.release()
-            continue
+            return False
         if len(backends) == 1:
-            return cap
+            best, best_fps = cap, float("inf")
+            return True
         fps = rate(cap)
         if fps > best_fps:
             if best is not None:
@@ -134,8 +143,19 @@ def open_camera(cv2, cam_index, rate=measure_fps):
             best, best_fps = cap, fps
         else:
             cap.release()
-        if best_fps >= GOOD_CAMERA_FPS:
+        return True
+
+    for backend in backends:
+        if not consider(backend):
+            failed.append(backend)
+        elif best_fps >= GOOD_CAMERA_FPS:
             break
+    if best is not None and best_fps < GOOD_CAMERA_FPS:
+        for _ in range(BUSY_BACKEND_RETRIES):
+            if not failed or best_fps >= GOOD_CAMERA_FPS:
+                break
+            pause(1)
+            failed = [b for b in failed if not consider(b)]
     return best if best is not None else cap
 
 

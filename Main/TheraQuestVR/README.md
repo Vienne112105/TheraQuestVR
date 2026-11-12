@@ -231,7 +231,8 @@ Thresholds live in `server.py` `LIBRARY` (posture checks per exercise), `Exercis
 
 The database holds patient names, so every backup is encrypted. Needs `pip install -r server/requirements.txt` once.
 
-- **Back up:** double-click `Backup_Database.bat`, type the folder (a USB drive is best; keep it somewhere other than this PC), then choose a password of at least 12 characters and type it twice. It is safe to do while the server is running. The file is named `theraquest-YYYYMMDD-HHMMSS.tqbak`.
+- **Back up (dashboard):** click **Backup** in the top bar, choose a password of at least 12 characters twice, and save the `.tqbak` file the window downloads.
+- **Back up (command line):** double-click `Backup_Database.bat`, type the folder (a USB drive is best; keep it somewhere other than this PC), then choose a password of at least 12 characters and type it twice. It is safe to do while the server is running. The file is named `theraquest-YYYYMMDD-HHMMSS.tqbak`.
 - **A lost password means the backup cannot be recovered.** Nobody can reset it. Keep the password somewhere other than the backup drive.
 - **Restore:** `python server/backup.py restore <file.tqbak> <new-name.db>` asks for the password and writes a NEW database file after checking it; it never overwrites an existing file or the live database. To use it: close the TheraQuest app, move the live `theraquest.db` (and any `theraquest.db-wal` / `-shm` next to it, in `%LOCALAPPDATA%\TheraQuest\`) aside, copy the restored file in as `theraquest.db`, then start the app again.
 - Back up before updating the software and after each study visit. Do not put the `.tqbak` files in this project folder or in git.

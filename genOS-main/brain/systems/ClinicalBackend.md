@@ -53,6 +53,7 @@ Provides a lightweight, local-first Python REST API and SQLite persistence layer
 
 ## Notes
 - `server/backup.py` makes and restores AES-GCM encrypted, scrypt-keyed database backups (`.tqbak`); restore writes a new file only, and a lost password cannot be recovered (M7.3).
+- `POST /api/backup {password}` (therapist token) returns a `.tqbak` as a download; the dashboard Backup button uses it (TASK-018). Restore stays command-line.
 - Running `python server.py --reset` completely resets the SQLite database and re-seeds patient `P-001` and protocol records; the first clinician login is created at first run (no default password since M4.2).
 - Database operates in WAL mode (`PRAGMA journal_mode = WAL;`) with normal synchronous I/O, memory temp store, and 32MB cache.
 
