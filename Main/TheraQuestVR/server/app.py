@@ -13,6 +13,23 @@ from urllib.request import urlopen
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
+# Built as "TheraQuest Therapist.exe" (build_app.py): no console, so output goes to a log file
+# and messages the therapist must see are shown in a dialog.
+FROZEN = getattr(sys, "frozen", False)
+if sys.stdout is None or sys.stderr is None:
+    _log_dir = os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"), "TheraQuest")
+    os.makedirs(_log_dir, exist_ok=True)
+    sys.stdout = sys.stderr = open(os.path.join(_log_dir, "therapist_app.log"), "a", encoding="utf-8", buffering=1)
+
+
+def notify(message):
+    """Print, and in the built app also show a dialog (it has no console)."""
+    print(message)
+    if FROZEN:
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(None, message, "TheraQuest Therapist", 0x40)
+
+
 from server import init_db, migrate_legacy_db, Handler, ThreadingHTTPServer
 
 def is_port_in_use(port: int) -> bool:
@@ -59,8 +76,8 @@ def main():
     elif is_theraquest(url):
         print(f"TheraQuest clinical backend is already running on port {port}.")
     else:
-        print(f"Port {port} is used by another program, so TheraQuest can't start.")
-        print("Close that program (or restart the computer) and run this again.")
+        notify(f"Port {port} is used by another program, so TheraQuest can't start.\n"
+               "Close that program (or restart the computer) and run this again.")
         sys.exit(1)
 
     # Wait for server readiness
@@ -75,6 +92,7 @@ def main():
     # Launch native desktop application window
     try:
         import webview
+        webview.settings["ALLOW_DOWNLOADS"] = True   # the CSV export buttons (off by default in pywebview)
         print("Launching native Windows desktop application window (WebView2)...")
         webview.create_window(
             title="TheraQuest VR — Therapist Command Center",
@@ -86,7 +104,9 @@ def main():
             confirm_close=False
         )
         webview.start()
-        if started_here:
+        # The built app has no console to ask in: closing its window stops the server.
+        # Unity queues sessions while the server is down and sends them on its next connection.
+        if started_here and not FROZEN:
             answer = input("Therapist window closed. Keep the server running for VR sessions? [Y/n] ").strip().lower()
             if answer in ("", "y", "yes"):
                 keep_serving("Server still running for VR. Press Ctrl+C or close this window to stop it.")
@@ -99,7 +119,10 @@ def main():
         else:
             import webbrowser
             webbrowser.open(url)
-        if started_here:
+        if started_here and FROZEN:
+            notify("The dashboard opened in an Edge window.\n"
+                   "Keep this message open while you use the dashboard or VR; click OK to stop the TheraQuest server.")
+        elif started_here:
             keep_serving("Server running. Keep this window open while you use the dashboard or VR; Ctrl+C stops it.")
 
 

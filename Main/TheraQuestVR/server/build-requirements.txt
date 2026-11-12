@@ -1,0 +1,4 @@
+# Only for building "TheraQuest Therapist.exe" (build_app.py); the server itself needs none of these.
+-r requirements.txt
+pyinstaller==6.22.3
+pillow==12.3.0

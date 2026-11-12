@@ -29,6 +29,8 @@ Durable ad-hoc queue for non-milestone work (bugs, ideas). AI-owned. See `AGENTS
 
 ## Done
 
+- [TASK-020] The therapist app builds as a Windows program, `server/dist/TheraQuest Therapist/TheraQuest Therapist.exe` (`server/build_app.py`, PyInstaller one-folder, no console, own icon); `Start_Therapist_App.bat` prefers it; `start_server.bat` no longer opens a browser; downloads allowed in the native window, which blocked the CSV exports until now (2026-11-12, ref: DEC-013). Human check left: one CSV download from inside the app.
+
 - [TASK-001] "Download Reps (CSV)" button on the patient chart, next to the telemetry download (`export?kind=reps`) (2026-11-12, ref: DEC-011).
 
 - [TASK-011] `Main/TheraQuestVR/run_tests.py` runs the server, tracker, evaluation and Unity EditMode suites and prints one table; exit 1 on any failure; Unity is skipped while the Editor has the project open (2026-11-12).

@@ -29,16 +29,18 @@ No Android build is needed.
 
 ## 2. Launch the Therapist Desktop Application
 
-Double-click **`Start_Therapist_App.bat`**, or run:
+**Build the program once** (needs Python 3.12):
 
 ```
 cd server
-python app.py
+python -m pip install -r build-requirements.txt
+python build_app.py
 ```
 
-This launches the **Therapist Command Center as a native desktop application window** (powered by Windows WebView2, without any browser URL bars, navigation buttons, or tabs).
-For the native window, install the optional package once: `pip install -r server/requirements.txt`. Without it, the launcher opens Edge in app mode.
-You can also view the dashboard via browser at **http://localhost:8000**.
+This makes **`server\dist\TheraQuest Therapist\TheraQuest Therapist.exe`**, a Windows program with its own icon and window and no console. Double-click it, or pin it to the Start menu or taskbar. The whole `TheraQuest Therapist` folder belongs together: move or copy the folder, not just the `.exe`. The program contains its own Python and the clinical backend, and patient data stays in `%LOCALAPPDATA%\TheraQuest`. Closing the window stops the backend. Sessions Unity sends while it is closed wait in Unity's offline queue and go through the next time the program runs. Messages it can't show on screen go to `%LOCALAPPDATA%\TheraQuest\therapist_app.log`. Rebuild after changing the server or dashboard.
+
+**`Start_Therapist_App.bat`** opens the built program if it exists, otherwise it runs `python app.py` (same window, with a console; install `server/requirements.txt` once for the native window, or it opens Edge in app mode).
+`start_server.bat` starts only the backend, for development; the dashboard page is then at http://localhost:8000.
 
 **Sign in.** The dashboard needs a therapist login. There is no default password: the first time you open the dashboard on this computer, it asks you to create the clinician login (at least 8 characters). Use **Password** in the top bar to change it later. A database from an older version that still has the demo password asks for a new one at the next sign-in. After 5 wrong passwords, sign-in for that username pauses for 5 minutes.
 
@@ -172,7 +174,7 @@ Without the headset connected, the same Play button falls back to desktop mode.
 
 ## 6. A full test run (checklist)
 
-1. `start_server.bat` → dashboard opens.
+1. `Start_Therapist_App.bat` (or `TheraQuest Therapist.exe`) → dashboard window opens.
 2. `start_tracker.bat` → preview window shows your skeleton.
 3. Unity → Play. The HUD's left panel should say **"Tracker connected · ~30 fps"**.
 4. Stand where the camera sees you, press Start, and do the reps.
