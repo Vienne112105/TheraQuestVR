@@ -60,10 +60,10 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M6.3 | M6 | done | Camera Setup Assistant |
 | M6.4 | M6 | done | Out-of-Plane Live Limb & Ankle Exercises |
 | M6.5 | M6 | done | Webcam Field Test & Tuning |
-| M7 | — | active | Pre-Study Data Readiness |
+| M7 | — | done | Pre-Study Data Readiness |
 | M7.1 | M7 | done | Only Webcam Sessions Count |
 | M7.2 | M7 | done | Patient Name and Code |
-| M7.3 | M7 | TBF | Encrypted Backup and Restore |
+| M7.3 | M7 | done | Encrypted Backup and Restore |
 | M7.4 | M7 | done | Unity Company Name |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
@@ -76,7 +76,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 
 ## Suggested sequence
 
-`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience, first-person view and tracking safeguards; their human checks moved to HW) ➔ `M6` (done: camera tracking mechanics, webcam only, no headset) ➔ `M7` (active: pre-study data readiness, backlog TASK-003..TASK-006)
+`M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience, first-person view and tracking safeguards; their human checks moved to HW) ➔ `M6` (done: camera tracking mechanics, webcam only, no headset) ➔ `M7` (done: pre-study data readiness, backlog TASK-003..TASK-006)
 
 Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided (it takes the next free `M` number when scheduled).
 
@@ -456,7 +456,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 
 ## M7 — Pre-Study Data Readiness
 
-- **Status:** active
+- **Status:** done (2026-11-12)
 - **Objective:** Make the clinical data trustworthy and safe before real study data is collected (approved by the human 2026-11-12; from backlog TASK-003..TASK-006): only real webcam sessions drive clinical rules, patient identity follows one clear decision (DEC-027), the database has an encrypted backup that can be restored, and the Unity data folder name is final.
 - **Success criteria:**
   - Keyboard, simulated and unknown-source sessions stay on record and are labelled, but never change adherence, streaks, phase readiness, attention flags, rep progression, XP or badges.
@@ -486,7 +486,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** ClinicalBackend, TherapistDashboard, SessionOrchestration
 
 ### M7.3 — Encrypted Backup and Restore
-- **Status:** TBF (code and 11 automated tests done 2026-11-12; the real backup and restore of the live database needs the human's password, see `pending_human_tests`)
+- **Status:** done (2026-11-12): code and 11 automated tests, plus a real backup and restore checked by the human.
 - **Objective:** A password-encrypted backup of the clinical database to a drive the clinic controls, and a safe restore (TASK-005; the human chose an encrypted file on 2026-11-12).
 - **Deliverables:** `server/backup.py` with `backup <folder>` (consistent snapshot through the SQLite backup API while the server runs, key from the password by Scrypt, authenticated encryption, a versioned header) and `restore <file> <out.db>` (decrypts to a new file only, runs an integrity check, never overwrites the live database); `cryptography` pinned in `server/requirements.txt` (used only by the backup tool); `Backup_Database.bat`; a README section (where to keep backups, that a lost password can't be recovered, how to restore); tests.
 - **Completion criteria:** backup tests pass (round trip, wrong password, tampered file, header version, existing output refused, backup during an open write); one real backup and restore of the live database on this PC.
