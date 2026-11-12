@@ -134,7 +134,7 @@ namespace TheraQuest
         /// <summary>No program: no exercises, so no session can start.</summary>
         ProgramResponse NoProgram() => new ProgramResponse
         {
-            patient = new PatientInfo { id = 0, code = Code, name = "", level = 1, xpForNext = 100 },
+            patient = new PatientInfo { id = 0, code = Code, level = 1, xpForNext = 100 },
             program = new ProgramInfo { id = 0, name = "No program loaded", days = new int[0], maxReps = 0 },
             exercises = new ExerciseDef[0]
         };

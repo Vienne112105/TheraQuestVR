@@ -1559,9 +1559,19 @@ def remove_patient_protocol(con, patient_id, note="Protocol removed by clinician
 
 
 
+PATIENT_NAME_MAX = 200
+
+
+def _patient_name(body, default=""):
+    """The patient's name, shown only in the therapist dashboard (DEC-027): text, at most 200 characters."""
+    if body.get("name") is not None and not isinstance(body["name"], str):
+        raise BadRequest("name must be text")
+    return _text(body, "name", default, max_len=PATIENT_NAME_MAX)
+
+
 def add_patient(con, body, therapist_id):
     code = (body.get("code") or "").strip().upper()
-    name = (body.get("name") or "").strip()
+    name = _patient_name(body)
     condition = (body.get("condition") or "").strip()
     if not code:
         raise BadRequest("Patient code is required (e.g. P-002)")
@@ -1586,7 +1596,7 @@ def update_patient(con, patient_id, body):
         raise NotFound("Unknown patient")
     if "code" in body and str(body["code"]).strip().upper() != p["code"]:
         raise BadRequest("The patient code can't be changed; the VR app is set up with it")
-    name = _text(body, "name", p["name"] or "", max_len=200) or f"Patient {p['code']}"
+    name = _patient_name(body, p["name"] or "") or f"Patient {p['code']}"
     condition = _text(body, "condition", p["condition"] or "", max_len=200) or "Orthopedic Physical Therapy"
     con.execute("UPDATE patient SET name=?, condition=? WHERE patient_id=?", (name, condition, patient_id))
     con.commit()
@@ -1641,7 +1651,8 @@ def vr_progress(con, p):
 
 
 # ------------------------------------------------------------- API logic
-def get_program(con, patient_id, patient=None, program=None):
+def get_program(con, patient_id, patient=None, program=None, for_vr=False):
+    """for_vr: the VR client gets the patient code only, never the name (DEC-027)."""
     p = patient or con.execute("SELECT * FROM patient WHERE patient_id=?", (patient_id,)).fetchone()
     if not p:
         return None
@@ -1649,7 +1660,7 @@ def get_program(con, patient_id, patient=None, program=None):
     exs = con.execute("SELECT * FROM exercise WHERE program_id=? AND active=1 ORDER BY sort_order", (prog["program_id"],)).fetchall()
     badges = [r["badge_code"] for r in con.execute("SELECT badge_code FROM patient_badge WHERE patient_id=?", (patient_id,))]
     lvl = level_from_xp(p["xp"])
-    return {
+    out = {
         "patient": {"id": p["patient_id"], "code": p["code"], "name": p["name"], "condition": p["condition"], "xp": p["xp"],
                     "level": lvl["level"], "xpIntoLevel": lvl["xp_into_level"], "xpForNext": lvl["xp_for_next"],
                     "badges": badges, "streak": streak(con, patient_id, prog, created_at=p["created_at"])},
@@ -1665,6 +1676,9 @@ def get_program(con, patient_id, patient=None, program=None):
             **exercise_rules(e["code"], e["measure"], e["view"]),
         } for e in exs],
     }
+    if for_vr:
+        del out["patient"]["name"]
+    return out
 
 
 def exercise_rules(code, measure, view):
@@ -1783,7 +1797,7 @@ def save_session(con, body):
             if prev["patient_id"] != pid:
                 raise Conflict("session_uuid already used by another patient")
             return {"session_id": prev["session_id"], "status": prev["status"], "notes": [], "new_badges": [],
-                    "patient": get_program(con, pid)["patient"], "duplicate": True,
+                    "patient": get_program(con, pid, for_vr=True)["patient"], "duplicate": True,
                     "counted": prev["input_source"] in COUNTED_SOURCES}
 
     prog = con.execute("SELECT * FROM rehabilitation_program WHERE program_id=?", (p["program_id"],)).fetchone()
@@ -1910,7 +1924,7 @@ def save_session(con, body):
     return {"session_id": sid, "status": status, "notes": notes, "new_badges": new_badges,
             # Structured rewards for the summary screen (M5.5); `notes` keeps the same facts as text
             "counted": counted, "xpGained": gained, "levelBefore": old_level, "levelAfter": new_level,
-            "patient": get_program(con, pid)["patient"]}
+            "patient": get_program(con, pid, for_vr=True)["patient"]}
 
 
 def update_program(con, patient_id, body):
@@ -2092,7 +2106,6 @@ def export_telemetry(con, patient_id=None, fmt="csv"):
     query = """
         SELECT 
             p.code AS patient_code,
-            p.name AS patient_name,
             p.condition AS patient_condition,
             s.session_id,
             s.session_uuid,
@@ -2131,7 +2144,7 @@ def export_telemetry(con, patient_id=None, fmt="csv"):
     query += " ORDER BY s.session_id ASC, r.record_id ASC"
 
     fields = [
-        "patient_code", "patient_name", "patient_condition", "session_id", "session_uuid", "started_at", "ended_at",
+        "patient_code", "patient_condition", "session_id", "session_uuid", "started_at", "ended_at",
         "input_source", "session_status", "session_points", "session_stars", "pain_before", "pain_after",
         "soreness_over_2h", "swelling_cm", "exercise_code", "exercise_name", "joint", "target_angle",
         "tolerance", "hold_seconds", "target_reps", "valid_reps", "attempts", "avg_accuracy",
@@ -2289,7 +2302,7 @@ class Handler(BaseHTTPRequestHandler):
             if method == "GET" and parts == ["api", "vr", "program"]:
                 if p["archived_at"]:
                     return self._send(403, {"error": "This patient is archived. Ask the therapist to reactivate them."})
-                return self._send(200, {**get_program(con, p["patient_id"], patient=p), "progress": vr_progress(con, p)})
+                return self._send(200, {**get_program(con, p["patient_id"], patient=p, for_vr=True), "progress": vr_progress(con, p)})
             if method == "POST" and parts == ["api", "vr", "sessions"]:
                 body = self._body()
                 try:

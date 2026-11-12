@@ -241,7 +241,7 @@ class BackendTests(ServerTestCase):
 
     # ------------------------------------------------ export
     def test_csv_export_neutralises_formulas(self):
-        status, _ = self.call("POST", "/api/patients", {"code": "P-952", "name": "=HYPERLINK(\"http://x\")"}, self.auth)
+        status, _ = self.call("POST", "/api/patients", {"code": "P-952", "condition": "=HYPERLINK(\"http://x\")"}, self.auth)
         self.assertEqual(status, 201)
         pid = self.patient_ids()["P-952"]
         prog = self.vr_program("P-952")
@@ -715,6 +715,66 @@ class CountedSourceTests(ServerTestCase):
         self.assertEqual({s["input_source"] for s in sessions}, {"keyboard", "webcam"})
         _, rows = self.call("GET", f"/api/patients/{pid}/export?format=json&kind=sessions", headers=self.auth)
         self.assertTrue(all("input_source" in r for r in rows))
+
+
+class PatientNameTests(ServerTestCase):
+    """M7.2 (TASK-004, DEC-027): the name stays in the dashboard; everything else uses the code only."""
+
+    NAME = "Zelda Quimpo-Reyes"
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        status, body = cls.call("POST", "/api/patients", {"code": "P-801", "name": cls.NAME}, cls.auth)
+        assert status == 201, body
+        cls.pid, cls.vr = body["id"], {"X-Patient-Code": "P-801"}
+        _, prog = cls.call("GET", "/api/vr/program", headers=cls.vr)
+        results = [{"exercise_id": e["id"], "target_reps": 1, "valid_reps": 1, "attempts": 1, "avg_accuracy": 90,
+                    "mean_angle_error": 3, "unsafe_reps": 0} for e in prog["exercises"]]
+        rep = {"exercise_id": prog["exercises"][0]["id"], "attempt": 1, "set": 1}
+        cls.upload = cls.call("POST", "/api/vr/sessions",
+                              cls.session_body(cls.pid, results, rep_events=[rep]), cls.vr)
+
+    def raw(self, path):
+        import urllib.request
+        req = urllib.request.Request(self.base + path, headers=self.auth)
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return r.read().decode()
+
+    def test_exports_carry_code_only(self):
+        for kind in ("", "&kind=reps"):
+            for fmt in ("csv", "json"):
+                with self.subTest(kind=kind, fmt=fmt):
+                    text = self.raw(f"/api/patients/{self.pid}/export?format={fmt}{kind}")
+                    self.assertIn("P-801", text)
+                    self.assertNotIn("Zelda", text)
+                    self.assertNotIn("patient_name", text)
+        text = self.raw("/api/export?format=csv")
+        self.assertNotIn("Zelda", text)
+
+    def test_vr_routes_do_not_return_the_name(self):
+        _, prog = self.call("GET", "/api/vr/program", headers=self.vr)
+        self.assertNotIn("name", prog["patient"])
+        self.assertEqual(prog["patient"]["code"], "P-801")
+        self.assertNotIn("Zelda", str(prog))
+        status, up = self.upload
+        self.assertEqual(status, 201, up)
+        self.assertNotIn("name", up["patient"])
+        _, dup = self.call("POST", "/api/vr/sessions", self.session_body(self.pid, session_uuid="n-dup-1"), self.vr)
+        _, dup = self.call("POST", "/api/vr/sessions", self.session_body(self.pid, session_uuid="n-dup-1"), self.vr)
+        self.assertNotIn("name", dup["patient"])
+
+    def test_dashboard_still_shows_the_name(self):
+        _, dash = self.call("GET", f"/api/patients/{self.pid}/dashboard", headers=self.auth)
+        self.assertEqual(dash["patient"]["name"], self.NAME)
+
+    def test_name_length_and_type_validated(self):
+        for bad in ("x" * 201, 123, ["a"]):
+            with self.subTest(bad=str(bad)[:10]):
+                self.assertEqual(self.call("POST", "/api/patients", {"code": "P-802", "name": bad}, self.auth)[0], 400)
+                self.assertEqual(self.call("PUT", f"/api/patients/{self.pid}", {"name": bad}, self.auth)[0], 400)
+        _, dash = self.call("GET", f"/api/patients/{self.pid}/dashboard", headers=self.auth)
+        self.assertEqual(dash["patient"]["name"], self.NAME)
 
 
 class ProgressTests(ServerTestCase):

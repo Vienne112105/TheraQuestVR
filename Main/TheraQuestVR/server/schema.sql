@@ -66,8 +66,8 @@ CREATE TABLE IF NOT EXISTS patient (
   patient_id     INTEGER PRIMARY KEY AUTOINCREMENT,
   therapist_id   INTEGER NOT NULL REFERENCES physical_therapist(therapist_id),
   program_id     INTEGER REFERENCES rehabilitation_program(program_id),
-  code           TEXT UNIQUE NOT NULL,             -- e.g. P-001 (use codes, not real names, in testing)
-  name           TEXT,
+  code           TEXT UNIQUE NOT NULL,             -- e.g. P-001; the only patient id that leaves the dashboard
+  name           TEXT,                             -- real name: stored and shown ONLY in the therapist dashboard (DEC-027), never exported or sent to VR
   condition      TEXT,
   xp             INTEGER NOT NULL DEFAULT 0,
   phase_id       INTEGER REFERENCES protocol_phase(phase_id),   -- NULL = custom program, no protocol

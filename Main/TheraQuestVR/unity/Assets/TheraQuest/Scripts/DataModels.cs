@@ -128,8 +128,7 @@ namespace TheraQuest
     public class PatientInfo
     {
         public int id;
-        public string code;
-        public string name;
+        public string code;      // the name is never sent to the VR client (DEC-027)
         public int xp;
         public int level;
         public int xpIntoLevel;
