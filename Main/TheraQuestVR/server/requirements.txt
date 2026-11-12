@@ -1,3 +1,5 @@
 # The server itself uses only the Python standard library.
 # Optional: native therapist window for app.py (without it, Start_Therapist_App.bat opens Edge in app mode).
 pywebview==6.2.1
+# Only server/backup.py (encrypted database backup, M7.3) needs this one.
+cryptography==50.0.2
