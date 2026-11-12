@@ -101,7 +101,7 @@ Use good lighting, keep 2–3 m away, and don't stand in front of a window.
 **Which patient this computer is for.** The app takes the patient code and server address from the first of these that is set:
 
 1. The command line: `TheraQuestVR.exe -patient P-002 -server http://127.0.0.1:8000` (both optional).
-2. `config.json` in the app's data folder (`%USERPROFILE%\AppData\LocalLow\DefaultCompany\TheraQuestVR\` for a built player). Keys: `patientCode`, `serverUrl`, `pinHash`. The Therapist page writes it.
+2. `config.json` in the app's data folder (`%USERPROFILE%\AppData\LocalLow\TheraQuest\TheraQuestVR\` for a built player; before 2026-11-12 the folder was `...\DefaultCompany\TheraQuestVR\`, so copy `config.json`, the PIN, the cached program and an unsent `pending_sessions.jsonl` over by hand once on a machine that used the old name). Keys: `patientCode`, `serverUrl`, `pinHash`. The Therapist page writes it.
 3. The Inspector values on **Api Client**.
 
 The app never runs a session on a made-up program. It uses the program the server sent, or the last one it received for that patient (saved in the same data folder). With neither, the menu explains why and **Start** stays disabled.
