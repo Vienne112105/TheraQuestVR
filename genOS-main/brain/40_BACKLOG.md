@@ -21,7 +21,6 @@ Durable ad-hoc queue for non-milestone work (bugs, ideas). AI-owned. See `AGENTS
 - [TASK-008] (research) Collect the real evaluation inputs for the Section 3.9 metrics: goniometer readings, therapist rep labels, SUS and PT survey (templates in `Main/TheraQuestVR/evaluation/templates/`). Likely its own milestone when scheduled. (ref: DEC-011)
 - [TASK-009] (low) `AGENTS.md` does not list the TBF status or unscheduled milestone IDs (`HW`); only [[50_ROADMAP]] explains them. `60_AGENTS.md` still lists milestone agents for M1 and M4.
 - [TASK-010] (low) Check whether Unity `6000.6.5f1` is an LTS release ([[00_PROJECT]] says Unity 6 LTS); move to an LTS version if not.
-- [TASK-011] (low) One script that runs all test suites (server, tracker, evaluation, Unity EditMode in batch mode) and reports the results.
 - [TASK-015] (low) The tracker falls back to the DSHOW camera backend (black or slow frames) when MSMF is still busy from a previous run; retry MSMF for a few seconds before falling back. Seen in M6.5.
 - [TASK-016] (low) Side-on, overlapping legs still confuse the lite pose model at moments; try `--model full` live if curls or marches miscount. Seen in M6.5.
 - [TASK-018] (low) Dashboard button for the encrypted backup (today only `Backup_Database.bat` / `server/backup.py`). Skipped in M7.3 as YAGNI.
@@ -30,6 +29,8 @@ Durable ad-hoc queue for non-milestone work (bugs, ideas). AI-owned. See `AGENTS
 - [TASK-013] (research) The MGB and BWH protocol documents are copyrighted ("all rights reserved"); the built-in protocols are short paraphrases with citations. Before publishing the thesis or distributing the app, confirm this use is acceptable or ask the institutions for permission.
 
 ## Done
+
+- [TASK-011] `Main/TheraQuestVR/run_tests.py` runs the server, tracker, evaluation and Unity EditMode suites and prints one table; exit 1 on any failure; Unity is skipped while the Editor has the project open (2026-11-12).
 
 - [TASK-003] Only webcam sessions count for adherence, readiness, flags, XP, badges and progression; other sessions stay on record, labelled (2026-11-12, M7.1).
 - [TASK-004] Patient name stays in the dashboard only; exports and VR routes use the code (2026-11-12, M7.2, DEC-027).

@@ -55,6 +55,8 @@ Double-click **`start_tracker.bat`**. On the first run it checks for Python 3.11
 
 To check the angle math: `cd tracker` then `.venv\Scripts\python -m unittest test_angles`.
 
+To run every test suite (server, tracker, evaluation, Unity EditMode) and get one summary: `python run_tests.py` in this folder. Unity is skipped while its Editor has the project open; `--no-unity` and `--only server,tracker` narrow the run. Exit code 1 means a suite failed.
+
 Manual use:
 
 ```
