@@ -336,7 +336,8 @@ namespace TheraQuest
             else guide.Hide();
             hud.SetCoachWindow(inSession && ex != null && coach != null ? coach.WindowTexture : null,
                                ex != null ? FirstPersonMath.Word(FigureVisualizer.PoseOf(ex)) : "",
-                               coach != null ? coach.ArrowMiddle : Vector2.zero, ex != null ? ex.cue : "");
+                               coach != null ? coach.ArrowMiddle : Vector2.zero, ex != null ? ex.cue : "",
+                               coach != null ? coach.ArrowView : null, coach != null ? (Rect?)coach.BodyView : null);
             hud.SetMirror(guide.MirrorTexture);
             hud.SetExercise(ex, cur, motion.Angle, game != null ? game.Points : 0, game != null ? game.Multiplier : 1f);
         }

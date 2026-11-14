@@ -90,6 +90,9 @@ namespace TheraQuest
         public Texture WindowTexture => windowOn ? windowTex : null;
         /// <summary>Where on the window the arrow's middle falls (0-1, 0,0 = bottom left), for its floating word.</summary>
         public Vector2 ArrowMiddle { get; private set; } = new Vector2(0.5f, 0.5f);
+        /// <summary>The body's box and the arrow's points in the window picture (0-1, y up), for placing the word label.</summary>
+        public Rect BodyView { get; private set; } = new Rect(0.3f, 0.1f, 0.4f, 0.8f);
+        public Vector2[] ArrowView { get; private set; }
 
         [Tooltip("Yoga mat the coach exercises on (built at runtime). It turns and grows to fit each posture. " +
                  "The scene's old \"Exercise mat\", if any, is hidden.")]
@@ -232,6 +235,11 @@ namespace TheraQuest
         {
             selected = i;
             for (int j = 0; j < built.Count; j++) built[j].root.SetActive(j == i);
+            // The window is open (the menu was used during a session): the new coach must be drawn by the window's camera,
+            // the old one must not (before, the window showed an empty mat after a switch)
+            if (windowOn)
+                for (int j = 0; j < built.Count; j++) SetLayer(built[j].root.transform, j == i ? WindowLayer : 0);
+            arrowDirty = true;
             currentCode = null;   // re-run Configure on the next Show
             built[i].coach.Snap();
             popTime = 0f;
@@ -523,16 +531,46 @@ namespace TheraQuest
             }
             b.coach.Pose(motion, posture, current.targetAngle, side, 0f, 0f);
 
-            var area = b.coach.Footprint();
-            area.Encapsulate(area.max + Vector3.up * 0.2f);   // the head bone stops short of the hair
+            // Frame everything the window must show: the whole body (hair included, measured from the mesh), the arrow and the
+            // yoga mat, with a margin, so nothing is cut off whatever the model's proportions (a head-bone-plus-a-fixed-0.2 m
+            // box clipped the taller heads of other models)
+            var body = b.coach.Footprint();
+            var area = body;
             for (int i = 0; i < ArrowPoints; i++) area.Encapsulate(arrow.GetPosition(i));
-            float halfSize = Mathf.Max(area.extents.y, Mathf.Max(area.extents.x, area.extents.z));
-            float distance = halfSize * 1.2f / Mathf.Tan(WindowFov * 0.5f * Mathf.Deg2Rad) + Mathf.Max(area.extents.x, area.extents.z);
+            if (yogaMat != null)
+                foreach (var r in yogaMat.GetComponentsInChildren<Renderer>()) area.Encapsulate(r.bounds);
+            area.Expand(0.12f);
+            // Half the area as the camera sees it: across (the transform's right), up, and its depth toward the camera
+            Vector3 ext = area.extents, right = transform.right, fwd = transform.forward;
+            float halfW = Mathf.Abs(right.x) * ext.x + Mathf.Abs(right.z) * ext.z;
+            float depth = Mathf.Abs(fwd.x) * ext.x + Mathf.Abs(fwd.z) * ext.z;
+            float half = Mathf.Max(halfW, ext.y) * 1.04f;
+            float distance = half / Mathf.Tan(WindowFov * 0.5f * Mathf.Deg2Rad) + depth;
             var cam = windowCam.transform;
-            cam.position = area.center + transform.forward * distance;   // the coach faces along its own forward
-            cam.rotation = Quaternion.LookRotation(-transform.forward, Vector3.up);
+            cam.position = area.center + fwd * distance;   // the coach faces along its own forward
+            cam.rotation = Quaternion.LookRotation(-fwd, Vector3.up);
             windowCam.nearClipPlane = 0.1f;
             windowCam.farClipPlane = distance * 2f + 2f;
+
+            // Where the body and the arrow fall in the picture (0-1), so the word label can sit clear of both
+            var corners = new Vector2(1e9f, 1e9f); var far = new Vector2(-1e9f, -1e9f);
+            body = b.coach.Footprint(false);   // the trunk, head and legs: the moving limb is covered by the arrow's own path
+            body.Expand(new Vector3(0.14f, 0.04f, 0.14f));   // arm and hip thickness
+            for (int i = 0; i < 8; i++)
+            {
+                var c = body.center + Vector3.Scale(body.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                var v = windowCam.WorldToViewportPoint(c);
+                corners = Vector2.Min(corners, v); far = Vector2.Max(far, v);
+            }
+            BodyView = Rect.MinMaxRect(corners.x, corners.y, far.x, far.y);
+            // The moving limb itself (at the target pose) counts too, then the arrow, so the label avoids both; the last
+            // point is the arrow's tip
+            const int limbSamples = 6;
+            var (limbFrom, limbTo) = b.coach.Segment(motion, side);
+            if (ArrowView == null || ArrowView.Length != limbSamples + ArrowPoints) ArrowView = new Vector2[limbSamples + ArrowPoints];
+            for (int i = 0; i < limbSamples; i++)
+                ArrowView[i] = windowCam.WorldToViewportPoint(Vector3.Lerp(limbFrom, limbTo, i / (limbSamples - 1f)));
+            for (int i = 0; i < ArrowPoints; i++) ArrowView[limbSamples + i] = windowCam.WorldToViewportPoint(arrow.GetPosition(i));
             ArrowMiddle = windowCam.WorldToViewportPoint(arrow.GetPosition(ArrowPoints / 2));
         }
 
@@ -545,6 +583,7 @@ namespace TheraQuest
             if (matDirty && popTime > 0.45f)
             {
                 matDirty = false;
+                arrowDirty = true;   // the mat is part of the window's frame: fit it once the mat has settled
                 var area = b.coach.Footprint();
                 matPos = new Vector3(area.center.x, 0.002f, area.center.z);
                 bool alongX = area.size.x >= area.size.z;
@@ -560,6 +599,7 @@ namespace TheraQuest
                     yogaMat.SetPositionAndRotation(at, turn);
                     matSizeBuilt = size;
                     if (windowOn) SetLayer(yogaMat, WindowLayer);
+                    arrowDirty = true;   // the mat is part of the frame: fit the window to its final size
                 }
             }
             if (yogaMat == null) return;
@@ -603,6 +643,7 @@ namespace TheraQuest
             public bool showProps = true;
             Vector3 offset;
             Transform slot, pivot, chair, hips, spine, head;
+            float headTop = 0.2f;   // from the head bone up to the top of the hair, measured from the mesh (models differ)
             GameObject body;
             readonly Transform[] upperArm = new Transform[2], lowerArm = new Transform[2], hand = new Transform[2];
             readonly Vector3[] palmLocal = new Vector3[2];   // palm normal in each hand's own space (zero: unknown)
@@ -889,6 +930,8 @@ namespace TheraQuest
                 // Calibrate the standing pose (soft knees, flat feet), not the bind pose: the shoe soles must touch the
                 // top of the mat, so the ankle height the standing pose keeps is set from the posed mesh
                 f.Pose(Motion.ShoulderAbd, Posture.Standing, 0f, 1, 0f, 0f);
+                float crown = HighestPoint(go.transform, f.pivot);
+                if (!float.IsNaN(crown)) f.headTop = Mathf.Max(0.05f, crown - f.pivot.InverseTransformPoint(f.head.position).y);
                 float standingSole = LowestPoint(go.transform, f.pivot);
                 if (!float.IsNaN(standingSole)) f.ankleRest += MatTop - standingSole;
                 // Same for lying on the back and on the side: the lowest point (hair, hips, shoulder) rests on the mat
@@ -953,6 +996,23 @@ namespace TheraQuest
                 return float.IsPositiveInfinity(low) ? float.NaN : low;
             }
 
+            /// <summary>Highest point of the model's meshes as currently posed, in the given space (NaN without meshes).</summary>
+            static float HighestPoint(Transform model, Transform space)
+            {
+                float high = float.NegativeInfinity;
+                var baked = new Mesh();
+                foreach (var r in model.GetComponentsInChildren<Renderer>(true))
+                {
+                    Vector3[] verts;
+                    if (r is SkinnedMeshRenderer smr) { smr.BakeMesh(baked, true); verts = baked.vertices; }
+                    else if (r.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh != null) verts = mf.sharedMesh.vertices;
+                    else continue;
+                    foreach (var v in verts) high = Mathf.Max(high, space.InverseTransformPoint(r.transform.TransformPoint(v)).y);
+                }
+                Object.Destroy(baked);
+                return float.IsNegativeInfinity(high) ? float.NaN : high;
+            }
+
             /// <summary>Face blend shapes, 0-100 each; does nothing on a model without them.</summary>
             public void SetFace(float blink, float smile, float teeth, float surprise)
             {
@@ -1007,11 +1067,13 @@ namespace TheraQuest
             }
 
             /// <summary>World box around the figure's body (head, hands, feet) and the chair it is using.</summary>
-            public Bounds Footprint()
+            public Bounds Footprint(bool withHands = true)
             {
                 var area = new Bounds(hips.position, Vector3.zero);
                 foreach (var t in new[] { head, hand[0], hand[1], lowerLeg[0], lowerLeg[1], foot[0], foot[1] })
-                    if (t != null) area.Encapsulate(t.position);
+                    if (t != null && (withHands || (t != hand[0] && t != hand[1]))) area.Encapsulate(t.position);
+                // The head bone stops short of the hair: reach the crown along the body's up (standing, sitting or lying)
+                area.Encapsulate(head.position + pivot.TransformDirection(Vector3.up) * headTop);
                 // Lying down the whole body, big head and hair included, must fit on the mat (the bones stop short of it)
                 if (pivot.localRotation != Quaternion.identity)
                     foreach (var r in pivot.GetComponentsInChildren<SkinnedMeshRenderer>()) area.Encapsulate(r.bounds);

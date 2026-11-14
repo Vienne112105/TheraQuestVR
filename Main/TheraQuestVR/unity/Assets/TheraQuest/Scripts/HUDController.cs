@@ -453,7 +453,7 @@ namespace TheraQuest
         /// The coach window (M5.8), or none when there is no picture or the full quest list needs the room.
         /// The word floats by the arrow's middle (arrow: 0-1 on the picture, 0,0 = bottom left).
         /// </summary>
-        public void SetCoachWindow(Texture picture, string word, Vector2 arrow, string caption)
+        public void SetCoachWindow(Texture picture, string word, Vector2 arrow, string caption, Vector2[] path = null, Rect? body = null)
         {
             bool on = picture != null && !QuestOpen;
             if (coachCanvas.gameObject.activeSelf != on) coachCanvas.gameObject.SetActive(on);
@@ -461,13 +461,56 @@ namespace TheraQuest
             coachPicture.texture = picture;
             coachCaption.text = caption;
             coachWord.text = word;
-            // Outside the arrow's curve, away from the coach in the middle, so it never hides the arrow
-            Vector2 away = arrow - new Vector2(0.5f, 0.5f);
-            arrow += (away.sqrMagnitude > 1e-4f ? away.normalized : Vector2.up) * 0.14f;
+            // The chip is as wide as its word (a fixed 250 px chip was too big to sit near the arrow)
+            float width = Mathf.Clamp(coachWord.GetPreferredValues(word ?? "").x + 44f, 120f, 280f);
+            if (!Mathf.Approximately(coachWordChip.sizeDelta.x, width))
+            {
+                coachWordChip.sizeDelta = new Vector2(width, coachWordChip.sizeDelta.y);
+                coachWord.rectTransform.sizeDelta = new Vector2(width, coachWord.rectTransform.sizeDelta.y);
+            }
             Vector2 chip = coachWordChip.sizeDelta;
+            Vector2 centre = PlaceWordChip(chip / CoachPicture, arrow, path, body ?? new Rect(0.3f, 0.1f, 0.4f, 0.8f));
             coachWordChip.anchoredPosition = new Vector2(
-                Mathf.Clamp(arrow.x * CoachPicture - chip.x / 2f, 6f, CoachPicture - chip.x - 6f),
-                -Mathf.Clamp((1f - arrow.y) * CoachPicture - chip.y / 2f, 6f, CoachPicture - chip.y - 6f));
+                Mathf.Clamp(centre.x * CoachPicture - chip.x / 2f, 6f, CoachPicture - chip.x - 6f),
+                -Mathf.Clamp((1f - centre.y) * CoachPicture - chip.y / 2f, 6f, CoachPicture - chip.y - 6f));
+        }
+
+        /// <summary>
+        /// Where the word chip goes in the window picture (centre, 0-1, y up): one of the spots around the edge that touches
+        /// neither the arrow's path nor the coach's body, the one nearest the arrow's tip. If every spot is crowded, the one
+        /// with the least overlap. (It used to sit on a fixed offset from the arrow's middle, which landed on the arrow or
+        /// the coach's hand, or got pushed against the edge.)
+        /// </summary>
+        public static Vector2 PlaceWordChip(Vector2 size, Vector2 arrowMiddle, Vector2[] path, Rect body)
+        {
+            var points = path != null && path.Length > 0 ? path : new[] { arrowMiddle };
+            Vector2 tip = points[points.Length - 1];
+            const float margin = 0.03f, pad = 0.04f;
+            float hx = size.x / 2f + margin, hy = size.y / 2f + margin;
+            var spots = new List<Vector2>();
+            const int steps = 6;   // a grid of spots across the picture, edge to edge
+            for (int iy = 0; iy <= steps; iy++)
+                for (int ix = 0; ix <= steps; ix++)
+                    spots.Add(new Vector2(Mathf.Lerp(hx, 1f - hx, ix / (float)steps), Mathf.Lerp(hy, 1f - hy, iy / (float)steps)));
+            Vector2 best = spots[0]; float bestScore = float.MaxValue;
+            foreach (var c in spots)
+            {
+                var rect = new Rect(c.x - size.x / 2f - pad, c.y - size.y / 2f - pad, size.x + 2f * pad, size.y + 2f * pad);
+                int hits = 0;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    if (rect.Contains(points[i])) hits++;
+                    if (i > 0 && rect.Contains((points[i] + points[i - 1]) / 2f)) hits++;
+                }
+                float bodyOverlap = 0f;
+                float ox = Mathf.Min(rect.xMax, body.xMax) - Mathf.Max(rect.xMin, body.xMin);
+                float oy = Mathf.Min(rect.yMax, body.yMax) - Mathf.Max(rect.yMin, body.yMin);
+                if (ox > 0f && oy > 0f) bodyOverlap = ox * oy;
+                // Overlap is far worse than distance; among clear spots take the nearest to the arrow's tip
+                float score = hits * 10f + bodyOverlap * 200f + Vector2.Distance(c, tip);
+                if (score < bestScore) { bestScore = score; best = c; }
+            }
+            return best;
         }
 
         /// <summary>The side mirror (M5.8), or none.</summary>
