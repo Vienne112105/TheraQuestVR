@@ -66,8 +66,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M7.3 | M7 | done | Encrypted Backup and Restore |
 | M7.4 | M7 | done | Unity Company Name |
 | M8 | — | active | Visual & UX Polish |
-| M8.1 | M8 | active | URP Migration |
-| M8.2 | M8 | planned | Clinic Room Look |
+| M8.1 | M8 | done | URP Migration |
+| M8.2 | M8 | active | Clinic Room Look |
 | M8.3 | M8 | planned | Feedback Motion |
 | M8.4 | M8 | planned | Hologram & Coach Window |
 | M8.5 | M8 | planned | Menus & Summary Polish |
@@ -526,7 +526,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience, AvatarCoach, Gamification, TherapistDashboard
 
 ### M8.1 — URP Migration
-- **Status:** active
+- **Status:** done
 - **Objective:** Render the game with URP, looking at least as good as now (DEC-028).
 - **Deliverables:** one URP pipeline asset and Forward renderer (MSAA 4x, HDR, soft shadows) assigned in Graphics and every Quality level; imported model materials converted; `Hologram.shader` ported to URP HLSL; `HumanoidCoach` uses the Little Guys URP material (no `Standard` swap); runtime materials made through one URP helper; OpenXR setup re-run under URP; EditMode tests.
 - **Completion criteria:** EditMode tests that the URP asset is assigned everywhere, no material under `Assets/TheraQuest` or made at runtime uses a Built-in shader, and the hologram shader is supported; full `run_tests.py` green; Play mode (menu, get-ready, all four postures, summary, Progress page) has no pink or missing materials against before screenshots; frame time on this PC not worse than the Built-in baseline.
@@ -534,7 +534,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience, AvatarCoach
 
 ### M8.2 — Clinic Room Look
-- **Status:** planned
+- **Status:** active
 - **Objective:** A calm, bright clinic whose lighting draws the eye to the exercise spot and coach window.
 - **Deliverables:** soft directional sunlight with soft shadows, warm lamps, ambient light and a reflection probe rendered after the runtime room build; floor, wall and ceiling textures chosen by the human (current colours as fallback); one Volume with neutral tonemapping, gentle grading, light bloom and SSAO; exercise spot and mat readable on the new floor.
 - **Completion criteria:** human approves before and after screenshots from the standing, seated and lying viewpoints; frame time within 10% of M8.1; room builds with every texture missing; full suite green.
