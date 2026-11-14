@@ -650,16 +650,64 @@ header {
   border-left: 1px solid var(--border);
 }
 
+
+/* ---- Responsive layout (window narrower or shorter than full screen) ---- */
+.toolbar { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-5); align-items: center; justify-content: space-between; margin-bottom: var(--sp-4); }
+.toolbar-search { position: relative; flex: 1 1 260px; max-width: 380px; }
+.toolbar-opts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); font-size: 13px; color: var(--text-muted); }
+.toolbar-check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.summary-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.patient-header { flex-wrap: wrap; gap: var(--sp-3) var(--sp-5); }
+.patient-header > div:last-child { margin-left: auto; }
+.header-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; justify-content: flex-end; }
+.subtabs { overflow-x: auto; scrollbar-width: thin; }
+.subtab-btn { white-space: nowrap; }
+.card-header { flex-wrap: wrap; gap: var(--sp-3); }
+.card-header > div:first-child { flex: 1 1 260px; min-width: 0; }
+@media (max-width: 900px) { .brand-name { display: none; } .top-nav { flex: 1; justify-content: flex-end; } #clinicianName, #clinicianRole { display: none; } }
+@media (max-width: 640px) { #clinicianName { max-width: 90px; overflow: hidden; text-overflow: ellipsis; } }
+
+/* Short windows: do not pin the header, it would eat the screen */
+@media (max-height: 760px) { header { position: static; } }
+
+/* Compact header: icon-only account buttons */
+@media (max-width: 1100px) {
+  header { padding: 8px var(--sp-4); }
+  .clinician-block .lbl { display: none; }
+  .clinician-block .btn { padding: 6px 9px; }
+  .brand-title { display: none; }
+  #clinicianRole { display: none; }
+}
+@media (max-width: 900px) {
+  .caseload-table .col-protocol { display: none; }
+  .container { padding: 0 var(--sp-4); margin: var(--sp-4) auto; }
+  .card { padding: var(--sp-4); }
+  .patient-header > div:last-child { margin-left: 0; width: 100%; }
+  .header-actions { justify-content: flex-start; }
+  .rx-item { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+  .rx-item > :first-child { grid-column: 1 / -1; }
+}
+/* Phones and very narrow windows: caseload rows become cards */
+@media (max-width: 640px) {
+  .caseload-wrap { max-height: none; border: 0; overflow: visible; }
+  .caseload-table, .caseload-table tbody, .caseload-table tr, .caseload-table td { display: block; width: 100%; box-sizing: border-box; }
+  .caseload-table thead { display: none; }
+  .caseload-table tr { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--sp-3); margin-bottom: var(--sp-3); background: var(--surface); }
+  .caseload-table td { border: 0; padding: var(--sp-1) 0; text-align: left !important; }
+  .caseload-table td.col-num::before { content: "Sessions: "; }
+  .caseload-table td:last-child .btn { width: 100%; margin-top: var(--sp-2); }
+  .toolbar-search { max-width: none; }
+}
+
 /* Narrow screens (tablets in portrait, phones) */
 @media (max-width: 760px) {
   header { padding: 10px 16px; position: static; }   /* too tall to keep pinned on a phone */
   .brand-title { display: none; }
-  .top-nav { flex-wrap: wrap; gap: 8px; width: 100%; }
+  .top-nav { flex-wrap: wrap; gap: 8px; }
   .clinician-block { border-left: none; padding-left: 0; flex-wrap: wrap; }
   .container { margin: 16px auto; padding: 0 16px; }
   .card { padding: 16px; }
   .card-header { flex-wrap: wrap; gap: 12px; }
-  .summary-grid { grid-template-columns: 1fr; }
   .patient-row { flex-wrap: wrap; gap: 12px; padding: 14px 12px; }
   .patient-header { flex-direction: column; gap: 12px; }
   .subtabs { overflow-x: auto; }
@@ -680,7 +728,7 @@ header {
   <div class="brand-wrap">
     <div class="brand-badge">
       <i aria-hidden="true" data-lucide="shield-plus" style="width:16px;height:16px"></i>
-      TheraQuest
+      <span class="brand-name">TheraQuest</span>
     </div>
     <div class="brand-title">Therapist Monitoring &amp; Prescription Portal</div>
   </div>
@@ -697,9 +745,9 @@ header {
         Patient Chart
       </button>
     </nav>
-    <button class="btn btn-secondary btn-sm" onclick="openProtocolManagerModal()" title="View and manage clinical protocols">
+    <button class="btn btn-secondary btn-sm" onclick="openProtocolManagerModal()" title="View and manage clinical protocols" aria-label="Protocol Library">
       <i aria-hidden="true" data-lucide="book-marked" style="width:14px;height:14px"></i>
-      Protocol Library
+      <span class="lbl">Protocol Library</span>
     </button>
 
     <!-- Clinician Identity & Sign Out -->
@@ -708,17 +756,17 @@ header {
         <div id="clinicianName" style="font-size:13px;font-weight:700;color:var(--text)"></div>
         <div id="clinicianRole" style="font-size:11px;color:var(--text-muted)"></div>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="openBackupModal()" title="Download an encrypted backup of all patient data">
+      <button class="btn btn-secondary btn-sm" onclick="openBackupModal()" title="Download an encrypted backup of all patient data" aria-label="Backup">
         <i aria-hidden="true" data-lucide="database-backup" style="width:14px;height:14px"></i>
-        Backup
+        <span class="lbl">Backup</span>
       </button>
-      <button class="btn btn-secondary btn-sm" onclick="openPasswordModal(false)" title="Change your password">
+      <button class="btn btn-secondary btn-sm" onclick="openPasswordModal(false)" title="Change your password" aria-label="Change password">
         <i aria-hidden="true" data-lucide="key-round" style="width:14px;height:14px"></i>
-        Password
+        <span class="lbl">Password</span>
       </button>
-      <button class="btn btn-secondary btn-sm" onclick="logout()" title="Sign out of portal">
+      <button class="btn btn-secondary btn-sm" onclick="logout()" title="Sign out of portal" aria-label="Sign out">
         <i aria-hidden="true" data-lucide="log-out" style="width:14px;height:14px"></i>
-        Sign Out
+        <span class="lbl">Sign Out</span>
       </button>
     </div>
   </div>
@@ -815,19 +863,21 @@ header {
           </button>
         </div>
 
-        <div style="margin-bottom:16px;position:relative;max-width:380px">
-          <i aria-hidden="true" data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-light)"></i>
-          <label for="patientFilter" class="sr-only">Search patients</label>
-          <input type="search" id="patientFilter" placeholder="Search by name, code, or diagnosis..." style="width:100%;padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <i aria-hidden="true" data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-light)"></i>
+            <label for="patientFilter" class="sr-only">Search patients</label>
+            <input type="search" id="patientFilter" placeholder="Search by name, code, or diagnosis..." style="width:100%;padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
+          </div>
+          <div class="toolbar-opts">
+            <label class="toolbar-check"><input type="checkbox" id="showArchived" onchange="loadCaseload()"> Show archived</label>
+            <label for="caseloadSort" class="toolbar-sortlbl">Sort by</label>
+            <select id="caseloadSort" onchange="renderCaseloadList()" class="form-select" style="width:auto;padding:5px 8px">
+              <option value="attention">Needs attention first</option>
+              <option value="code">Patient code</option>
+            </select>
+          </div>
         </div>
-        <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted);margin-bottom:12px;cursor:pointer">
-          <input type="checkbox" id="showArchived" onchange="loadCaseload()"> Show archived patients
-        </label>
-        <label for="caseloadSort" style="font-size:13px;color:var(--text-muted);margin:0 0 12px 16px">Sort by</label>
-        <select id="caseloadSort" onchange="renderCaseloadList()" class="form-select" style="width:auto;display:inline-block;margin-bottom:12px;padding:5px 8px">
-          <option value="attention">Needs attention first</option>
-          <option value="code">Patient code</option>
-        </select>
 
         <div id="caseloadList" aria-live="polite"></div>
       </div>
@@ -849,7 +899,7 @@ header {
           <div class="patient-subtitle" id="chartCondition">Diagnosis · Protocol Phase</div>
           <div class="chart-meta" id="chartMeta" aria-label="Patient summary"></div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="header-actions">
           <button type="button" class="btn btn-secondary btn-sm" onclick="openPatientEditModal()">
             <i aria-hidden="true" data-lucide="user-cog" style="width:14px;height:14px"></i>
             Edit Details
@@ -2042,14 +2092,14 @@ function renderCaseloadList() {
 
   $("caseloadList").innerHTML = filtered.length ? `<div class="caseload-wrap"><table class="clean-table caseload-table">
     <thead><tr>
-      <th scope="col">Code</th><th scope="col">Patient</th><th scope="col">Protocol</th>
+      <th scope="col">Code</th><th scope="col">Patient</th><th scope="col" class="col-protocol">Protocol</th>
       <th scope="col">Status</th><th scope="col" class="col-num">Sessions</th><th scope="col"><span class="sr-only">Action</span></th>
     </tr></thead><tbody>` + filtered.map(p => `
     <tr>
       <td><span class="patient-code">${esc(p.code)}</span></td>
       <td><div class="patient-name">${esc(p.name || "Patient")}${p.archived_at ? ' <span class="tag-status archived">Archived</span>' : ''}</div>
           <div class="patient-condition">${esc(p.condition || "Rehabilitation")}</div></td>
-      <td>${esc(p.protocol_name || "Custom")}</td>
+      <td class="col-protocol">${esc(p.protocol_name || "Custom")}</td>
       <td>${(p.attention && p.attention.length) ? `<span class="flag-chips">${attentionChips(p.attention)}</span>` : '<span class="flag-ok">No flags</span>'}</td>
       <td class="col-num">${p.total_sessions || 0}</td>
       <td style="text-align:right"><button class="btn btn-secondary btn-sm" onclick="openPatientChart(${+p.id})" aria-label="Open chart for ${esc(p.code)}">
@@ -2107,7 +2157,6 @@ function renderChartHeader() {
   const ph = activeData.phase || {}, k = activeData.kpis || {}, flags = activeData.attention || [];
   const last = (activeData.sessions || [])[0];
   $("chartMeta").innerHTML =
-    `<span class="meta-item"><span class="patient-code">${esc(p.code)}</span></span>` +
     `<span class="meta-item"><i aria-hidden="true" data-lucide="shield-check" style="width:14px;height:14px"></i>` +
       `${ph.id ? `<b>${esc(ph.protocol)}</b> · ${esc(ph.name)}` : "Custom prescription"}</span>` +
     `<span class="meta-item"><i aria-hidden="true" data-lucide="calendar-check" style="width:14px;height:14px"></i>Adherence <b>${esc(k.adherence ? k.adherence.rate : 0)}%</b></span>` +
