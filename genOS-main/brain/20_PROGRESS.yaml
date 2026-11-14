@@ -35,8 +35,7 @@ working_on: []
 # below before other work, and keep reminding each new session until the human reports it done; then remove it.
 # A milestone with pending tests stays TBF in 50_ROADMAP.md until this list has none left for it.
 # The headset run and the real-footage signed-angle check are not here: they belong to roadmap milestone HW.
-pending_human_tests:
-  - "TASK-020 / TASK-001 (backlog, no milestone): in TheraQuest Therapist.exe open a patient and click Download Reps (CSV) and Download Telemetry (CSV); each should save a CSV file. Confirms downloads work in the native window."
+pending_human_tests: []
 # Known bugs or risks
 known_issues:
   - "The five old rep sounds (Assets/TheraQuest: Perfect, great, Awesome, miss, victory .mp3): the human said on 2026-11-12 they came from another user's repository that the human cloned, so their original source and licence are still unknown. Fine while the repository stays private (DEC-020), but before any commercial release replace them with CC0 sounds (Kenney) unless that repository's licence covers them. No need to ask again at session start. Raised 2026-10-28."
