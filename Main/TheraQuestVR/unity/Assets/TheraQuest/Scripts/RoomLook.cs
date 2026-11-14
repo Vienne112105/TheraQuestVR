@@ -29,9 +29,12 @@ namespace TheraQuest
 
             // Ambient: sky, horizon, ground gradient
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = new Color(0.70f, 0.80f, 0.90f);
-            RenderSettings.ambientEquatorColor = new Color(0.78f, 0.78f, 0.74f);
-            RenderSettings.ambientGroundColor = new Color(0.45f, 0.42f, 0.38f);
+            // Warm bounce: light that has hit the wood floor and cream ceiling comes back warm, so shadows are
+            // warm-dark rather than grey, and the sky-blue only comes from above.
+            RenderSettings.ambientSkyColor = new Color(0.62f, 0.68f, 0.74f);
+            RenderSettings.ambientEquatorColor = new Color(0.66f, 0.58f, 0.48f);
+            RenderSettings.ambientGroundColor = new Color(0.58f, 0.40f, 0.26f);
+            RenderSettings.ambientIntensity = 0.85f;
 
             // Reflection probe: rendered once, after the room exists (one frame later, so every prop is in place)
             var probeGo = new GameObject(ProbeName);
@@ -61,15 +64,30 @@ namespace TheraQuest
             }
         }
 
+        const float SunPitch = 48f, SunYaw = 70f;
+
+        /// <summary>Direction the sun's light travels (used to aim the light shafts).</summary>
+        public static Vector3 SunDirection() => Quaternion.Euler(SunPitch, SunYaw, 0f) * Vector3.forward;
+
+        /// <summary>Sets the tiling of every map the room materials use, so they stay in step.</summary>
+        public static void SetTiling(Material m, Vector2 scale)
+        {
+            m.mainTextureScale = scale;
+            foreach (var n in new[] { "_BumpMap", "_ParallaxMap" })
+                if (m.HasProperty(n) && m.GetTexture(n) != null) m.SetTextureScale(n, scale);
+        }
+
         /// <summary>Warm soft-shadow sun entering from the window wall (left, -x) and travelling toward +x and down.</summary>
         public static Light ConfigureSun(Light l)
         {
             l.type = LightType.Directional;
             l.color = new Color(1f, 0.96f, 0.88f);
-            l.intensity = 1.1f;
+            l.intensity = 1.6f;
             l.shadows = LightShadows.Soft;
-            l.shadowStrength = 0.75f;
-            l.transform.rotation = Quaternion.Euler(48f, 70f, 0f);
+            l.shadowStrength = 0.95f;   // high-contrast shadows anchor the props to the floor
+            l.shadowBias = 0.03f;
+            l.shadowNormalBias = 0.3f;
+            l.transform.rotation = Quaternion.Euler(SunPitch, SunYaw, 0f);
             return l;
         }
 
@@ -96,14 +114,33 @@ namespace TheraQuest
         /// Puts the texture at Resources/<paramref name="resourcePath"/> on the material (base map) and resets its tint
         /// to white so the picture shows true. Returns false and leaves the material untouched when the file is missing.
         /// </summary>
-        public static bool ApplyTexture(Material m, string resourcePath, Vector2? tiling = null)
+        public static bool ApplyTexture(Material m, string resourcePath, Vector2? tiling = null, float bump = 1f, float parallax = 0.03f)
         {
             if (m == null) return false;
             var tex = Resources.Load<Texture2D>(resourcePath);
             if (tex == null) return false;
+            var scale = tiling ?? Vector2.one;
             m.mainTexture = tex;
-            m.mainTextureScale = tiling ?? Vector2.one;
+            m.mainTextureScale = scale;
             m.color = Color.white;
+
+            // Optional relief: <path>_normal (light on bumps) and <path>_height (parallax: surfaces shift with the view)
+            var normal = Resources.Load<Texture2D>(resourcePath + "_normal");
+            if (normal != null && m.HasProperty("_BumpMap"))
+            {
+                m.SetTexture("_BumpMap", normal);
+                m.SetTextureScale("_BumpMap", scale);
+                m.SetFloat("_BumpScale", bump);
+                m.EnableKeyword("_NORMALMAP");
+            }
+            var height = Resources.Load<Texture2D>(resourcePath + "_height");
+            if (height != null && m.HasProperty("_ParallaxMap"))
+            {
+                m.SetTexture("_ParallaxMap", height);
+                m.SetTextureScale("_ParallaxMap", scale);
+                m.SetFloat("_Parallax", parallax);
+                m.EnableKeyword("_PARALLAXMAP");
+            }
             return true;
         }
 

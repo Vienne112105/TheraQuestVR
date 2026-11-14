@@ -57,6 +57,40 @@ namespace TheraQuest.Tests
         }
 
         [Test]
+        public void LightShaft_ReachesTheFloorInsideTheRoom_FromTheWindow()
+        {
+            var m = LightShafts.Prism(1.6f, RoomLook.SunDirection());
+            float minY = float.MaxValue, maxY = float.MinValue, maxX = float.MinValue;
+            foreach (var v in m.vertices) { minY = Mathf.Min(minY, v.y); maxY = Mathf.Max(maxY, v.y); maxX = Mathf.Max(maxX, v.x); }
+            Assert.AreEqual(0f, minY, 0.001f, "Beam ends on the floor");
+            Assert.AreEqual(2.4f, maxY, 0.001f, "Beam starts at the window top");
+            Assert.Less(maxX, 4.9f, "Beam stays inside the room (the right wall is at x = 5)");
+            Assert.Greater(maxX, -4.9f, "Beam travels away from the window wall");
+        }
+
+        [Test]
+        public void LightShafts_AreBuiltOncePerWindow_AndOnlyOnce()
+        {
+            var root = new GameObject("test shafts").transform;
+            try
+            {
+                var sun = RoomLook.SunDirection();
+                LightShafts.Build(root, new[] { -1.2f, 1.6f, 4.2f }, sun);
+                LightShafts.Build(root, new[] { -1.2f, 1.6f, 4.2f }, sun);
+                Assert.AreEqual(3, root.Find(LightShafts.Name).childCount);
+            }
+            finally { Object.DestroyImmediate(root.gameObject); }
+        }
+
+        [Test]
+        public void ShaftShader_IsSupported_AndAdditive()
+        {
+            var s = Shader.Find("TheraQuest/LightShaft");
+            Assert.IsNotNull(s);
+            Assert.IsTrue(s.isSupported);
+        }
+
+        [Test]
         public void Setup_CreatesExactlyOneProbeAndOneVolume_EvenWhenCalledTwice()
         {
             var root = new GameObject("test root").transform;
