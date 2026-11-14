@@ -26,11 +26,11 @@ def reset_password(db_path, username, new_password):
     try:
         rows = con.execute("SELECT therapist_id, username FROM physical_therapist WHERE username IS NOT NULL "
                            "AND password_hash IS NOT NULL").fetchall()
+        names = ", ".join(r[1] for r in rows) or "none"
         if username:
             rows = [r for r in rows if r[1].lower() == username.lower()]
         if len(rows) != 1:
-            names = ", ".join(r[1] for r in rows) or "none"
-            raise ValueError(f"Expected exactly one matching login, found {len(rows)} (logins: {names})")
+            raise ValueError(f"Expected exactly one matching login, found {len(rows)} (logins in this database: {names})")
         tid, name = rows[0]
         h, s = server.hash_password(new_password)
         con.execute("UPDATE physical_therapist SET password_hash=?, salt=? WHERE therapist_id=?", (h, s, tid))
