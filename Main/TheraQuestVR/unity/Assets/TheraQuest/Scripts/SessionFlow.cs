@@ -65,13 +65,28 @@ namespace TheraQuest
             "Do your reps, rest, then the next exercise",
         };
 
+        /// <summary>Each step stays on screen this long, then the next one comes by itself (the Start button moves on sooner).</summary>
+        public const float StepSeconds = 3.5f;
+
+        float timer;
+
         public int Step { get; private set; } = -1;
         public bool Active => Step >= 0 && Step < Steps.Length;
         public string Text => Active ? Steps[Step] : "";
+        /// <summary>Seconds left on the current step.</summary>
+        public float SecondsLeft => Active ? Mathf.Max(0f, timer) : 0f;
 
-        public void Begin() => Step = 0;
-        public void Next() { if (Active) Step++; }
+        public void Begin() { Step = 0; timer = StepSeconds; }
+        public void Next() { if (Active) { Step++; timer = StepSeconds; } }
         public void Skip() => Step = Steps.Length;
+
+        /// <summary>Counts the current step down; true when its time is up (the caller then calls <see cref="Next"/>). Time frozen while paused is simply dt = 0.</summary>
+        public bool Tick(float dt)
+        {
+            if (!Active) return false;
+            timer -= dt;
+            return timer <= 0f;
+        }
     }
 
     /// <summary>

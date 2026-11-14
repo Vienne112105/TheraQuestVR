@@ -52,8 +52,6 @@ namespace TheraQuest
         float celebrateTimer;        // "exercise complete" moment before the next exercise (M5.4)
         const float CelebrateSeconds = 3.5f;
         readonly Tutorial tutorial = new Tutorial();      // before the first exercise of every session (M5.8)
-        float tutorialTimer;         // simulated mode moves on by itself
-        const float TutorialAutoSeconds = 3f;
         bool wasOnTarget;            // for the reach chime on limbs the patient can't see
         static ControlHints Keys => ControlHints.Current;
 
@@ -290,7 +288,7 @@ namespace TheraQuest
             InputHelper.Tick();
             float dt = Time.deltaTime;   // 0 while paused, which freezes the exercise
             // No walking during an exercise: stick drift or a bumped stick would move the patient (M4.3)
-            if (mover != null) mover.locked = menu.IsOpen || phase == Phase.Running;
+            if (mover != null) { mover.locked = menu.IsOpen; mover.walkLocked = phase == Phase.Running; }   // during exercises: stay on the spot, but turn and look freely
 
             var ex = Current;
             motion.Sample(ex, dt);
@@ -356,7 +354,7 @@ namespace TheraQuest
         void RunTutorial(ExerciseDef ex, float dt)
         {
             if (InputHelper.BackPressed) tutorial.Skip();
-            else if (InputHelper.StartPressed || (Simulated && (tutorialTimer -= dt) <= 0f))
+            else if (InputHelper.StartPressed || tutorial.Tick(dt))   // each step moves on by itself after 3.5 s; Start moves on sooner
             {
                 feedback.PlayClick();
                 tutorial.Next();
@@ -371,9 +369,8 @@ namespace TheraQuest
         void ShowTutorialStep()
         {
             if (!tutorial.Active) return;
-            tutorialTimer = TutorialAutoSeconds;
             hud.SetFeedback($"{tutorial.Text}\n<size=34>{tutorial.Step + 1} of {Tutorial.Steps.Length} · {Keys.Start} next · {Keys.Back} skip</size>", Tone.Neutral);
-            Subtitles.Say(tutorial.Text, TutorialAutoSeconds, "Coach");
+            Subtitles.Say(tutorial.Text, Tutorial.StepSeconds, "Coach");
         }
 
         void RunExercise(ExerciseDef ex, float dt)

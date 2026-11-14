@@ -3,9 +3,9 @@ using UnityEngine;
 namespace TheraQuest
 {
     /// <summary>
-    /// Auto-focus on the moving limb (first-person view, M5.8). On the laptop the patient can't look around during an
-    /// exercise, so the view eases from where it is to the limb's movement, with a wider lens to fit more of it. The
-    /// camera only turns: it stays at the eyes. In the headset the view is never moved on its own (motion sickness);
+    /// Auto-focus on the moving limb (first-person view, M5.8). On the laptop the view eases from where it is to the limb's movement, with a wider lens to fit more of it. The
+    /// camera only turns: it stays at the eyes. The pan is only a starting point: any turn or look by the patient stops it, and
+    /// the patient can look around freely for the rest of the exercise. In the headset the view is never moved on its own (motion sickness);
     /// the patient looks at the limb themself. Put it on the camera Rig (SessionManager adds it at runtime).
     /// </summary>
     public class ViewFocus : MonoBehaviour
@@ -55,6 +55,8 @@ namespace TheraQuest
         {
             if (head != null && head.HeadsetActive) { Release(); return; }
             if (t < 0f) return;
+            // The patient takes the view back: the moment they turn or look, the automatic pan stops where it is
+            if (InputHelper.Look.sqrMagnitude > 0f || Mathf.Abs(InputHelper.Turn) > 0.05f) { Release(); return; }
             t = Mathf.Min(1f, t + Time.deltaTime / Mathf.Max(0.01f, easeSeconds));   // freezes while paused
             float k = t * t * (3f - 2f * t);   // smoothstep
             transform.rotation = Quaternion.Euler(0f, Mathf.LerpAngle(fromYaw, toYaw, k), 0f);

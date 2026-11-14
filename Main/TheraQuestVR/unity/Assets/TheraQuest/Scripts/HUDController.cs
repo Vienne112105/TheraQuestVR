@@ -96,6 +96,9 @@ namespace TheraQuest
         UIKit.CardRef questCard;
         readonly List<GameObject> questFullOnly = new List<GameObject>();
         TextMeshProUGUI questHint;
+        Image nextBg;                       // "NEXT" row under the current exercise while the quest card is minimised
+        TextMeshProUGUI nextTag, nextName;
+        const float NextRowH = 56f;
         bool? questOpenByUser;
         bool questRunning;
         float questH = 900f;
@@ -333,6 +336,15 @@ namespace TheraQuest
             qr.anchorMin = qr.anchorMax = new Vector2(0, 1);
             qr.pivot = new Vector2(0, 1);
             qr.anchoredPosition = new Vector2(20, -110);
+
+            // What comes after the current exercise, shown when the card is minimised (the open card lists them all)
+            nextBg = Box(questRoot, Vector2.zero, new Vector2(584, NextRowH), UIKit.Row, "Next row");
+            nextTag = UIKit.Pill(nextBg.transform, new Vector2(12, -10), new Vector2(104, 36), UIKit.Orange, "NEXT", 20, UIKit.White);
+            nextName = Label(nextBg.transform, new Vector2(132, -4), new Vector2(440, NextRowH - 8), 26, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
+            nextName.enableAutoSizing = true;   // long names shrink to fit
+            nextName.fontSizeMin = 16;
+            nextName.overflowMode = TextOverflowModes.Ellipsis;
+            nextBg.gameObject.SetActive(false);
 
             // Badges sit right below the last exercise (SetQuest moves them)
             badgesBlock = Group(card, "Badges");
@@ -692,12 +704,25 @@ namespace TheraQuest
             }
             questCount.text = $"{done} / {exs.Count}";
             foreach (var go in questFullOnly) go.SetActive(open);
+            // The exercise after this one (or a note that this is the last)
+            int next = focus + 1;
+            bool hasNext = next < exs.Count;
+            nextBg.gameObject.SetActive(!open && exs.Count > 0);
+            if (!open && exs.Count > 0)
+            {
+                nextBg.rectTransform.anchoredPosition = new Vector2(0, -(rowH + gap));
+                var tint = hasNext ? UIKit.Orange : UIKit.Green;
+                nextBg.color = new Color(tint.r, tint.g, tint.b, 0.14f);
+                UIKit.PillColor(nextTag, tint);
+                nextTag.text = hasNext ? "NEXT" : "LAST";
+                nextName.text = hasNext ? exs[next].name : "Last one, then your summary";
+            }
             var k = ControlHints.Current;
             questHint.text = open ? $"{k.Quest} = hide   ·   {k.Back} = menu   ·   {k.Recenter} = back to your spot" : $"{k.Quest} = show all exercises";
             // Open: badges right below the last exercise and the card just tall enough (no empty space)
             float rowsEnd = 110f + exs.Count * (rowH + gap) - gap;
             badgesBlock.anchoredPosition = new Vector2(0, -(rowsEnd + 26f));
-            float hintY = open ? rowsEnd + 26f + 46f + 64f + 22f : 110f + rowH + 14f;
+            float hintY = open ? rowsEnd + 26f + 46f + 64f + 22f : 110f + rowH + 8f + NextRowH + 14f;
             questHint.rectTransform.anchoredPosition = new Vector2(28, -hintY);
             questOpenH = rowsEnd + 26f + 46f + 64f + 22f + 30f + 34f;
         }
@@ -717,7 +742,7 @@ namespace TheraQuest
                 questOpenByUser = !QuestOpen;
                 SetQuest(lastExs, lastEvs, lastActive, questRunning);
             }
-            float target = QuestOpen ? questOpenH : 110f + 72f + 70f;
+            float target = QuestOpen ? questOpenH : 110f + 72f + 8f + NextRowH + 70f;
             questH = Mathf.Lerp(questH, target, 1f - Mathf.Exp(-12f * Time.unscaledDeltaTime));
             if (Mathf.Abs(questH - target) < 0.5f) questH = target;
             rightCanvas.GetComponent<RectTransform>().sizeDelta = new Vector2(640f, questH);
