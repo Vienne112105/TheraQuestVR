@@ -16,14 +16,23 @@ namespace TheraQuest.Tests
         public void PathFor_UnknownModel_IsNull() => Assert.IsNull(CoachReskin.PathFor("Robot"));
 
         [Test]
-        public void BothRepaintsExistAndMatchThePackSize()
+        public void WomanRepaintExistsAndMatchesThePackSize()
         {
-            foreach (var p in new[] { "CoachTextures/coach_woman", "CoachTextures/coach_man" })
+            foreach (var p in new[] { "CoachTextures/coach_woman" })   // the male coach keeps the pack's own look (human request 2026-11-14)
             {
                 var t = Resources.Load<Texture2D>(p);
                 Assert.IsNotNull(t, p);
                 Assert.AreEqual(1024, t.width, p);
             }
+        }
+
+        [Test]
+        public void MaleCoach_HasNoRepaint_AndKeepsThePacksLook()
+        {
+            Assert.IsNull(Resources.Load<Texture2D>("CoachTextures/coach_man"));
+            var go = new GameObject("x");
+            try { Assert.IsFalse(CoachReskin.Apply(go, "Free Man Tall")); }
+            finally { Object.DestroyImmediate(go); }
         }
 
         [Test]

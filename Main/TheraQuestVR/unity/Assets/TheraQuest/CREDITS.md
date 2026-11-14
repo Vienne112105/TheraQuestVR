@@ -74,7 +74,7 @@ The coach since 2026-10-27 (human request). The pack's own URP material is used 
 
 | Files | Source | Licence |
 |-------|--------|---------|
-| `Resources/CoachTextures/coach_woman.png`, `coach_man.png` | Repaint of the pack's `T_FreeWoman.png` and `T_FreeMan.png` (white top and teal shorts or trousers; the face, eyes and hair are exactly the pack's, because they share picture cells with the clothes), made with a script on 2026-11-14 (M8.2, human choice "C"; first version wrongly closed both coaches' eyes, fixed the same day). A derivative of the Little Guys textures, loaded by `CoachReskin` onto a copy of the material; a missing file keeps the pack's original look. | Same as the pack (Asset Store EULA) |
+| `Resources/CoachTextures/coach_woman.png` | Repaint of the pack's `T_FreeWoman.png` (the male coach keeps the pack's own texture, human request 2026-11-14) (white top and teal shorts; the face, eyes and hair are exactly the pack's, because they share picture cells with the clothes), made with a script on 2026-11-14 (M8.2, human choice "C"; first version wrongly closed both coaches' eyes, fixed the same day). A derivative of the Little Guys textures, loaded by `CoachReskin` onto a copy of the material; a missing file keeps the pack's original look. | Same as the pack (Asset Store EULA) |
 `Resources/CoachAvatars/Free Woman Tall.asset` and `Free Man Tall.asset` are Humanoid avatars made in this project
 from the pack's models straightened to a T-pose (`TheraQuest > Build Coach T-Pose Avatars`), so the idle clips play upright.
 

@@ -24,7 +24,6 @@ namespace TheraQuest.Tests
         static readonly (int, int)[] Protected = { (1, 0), (2, 0), (0, 1), (2, 1), (0, 2), (1, 2), (2, 2) };
 
         [TestCase("Woman/Free Woman/Textures/T_FreeWoman.png", "Assets/TheraQuest/Resources/CoachTextures/coach_woman.png")]
-        [TestCase("Man/Free Man/Textures/T_FreeMan.png", "Assets/TheraQuest/Resources/CoachTextures/coach_man.png")]
         public void FaceHairAndEyeCells_AreUntouched(string packFile, string repaint)
         {
             var o = Load(Pack + packFile); var n = Load(repaint);
