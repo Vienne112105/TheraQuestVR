@@ -96,13 +96,13 @@ namespace TheraQuest
         /// Puts the texture at Resources/<paramref name="resourcePath"/> on the material (base map) and resets its tint
         /// to white so the picture shows true. Returns false and leaves the material untouched when the file is missing.
         /// </summary>
-        public static bool ApplyTexture(Material m, string resourcePath, float tiling = 1f)
+        public static bool ApplyTexture(Material m, string resourcePath, Vector2? tiling = null)
         {
             if (m == null) return false;
             var tex = Resources.Load<Texture2D>(resourcePath);
             if (tex == null) return false;
             m.mainTexture = tex;
-            m.mainTextureScale = new Vector2(tiling, tiling);
+            m.mainTextureScale = tiling ?? Vector2.one;
             m.color = Color.white;
             return true;
         }

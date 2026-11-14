@@ -40,7 +40,7 @@ namespace TheraQuest
                 (new Vector3(-4.94f, 0, 1.25f), new Vector3(0.02f, 1, 8.6f)), (new Vector3(4.94f, 0, 1.25f), new Vector3(0.02f, 1, 8.6f)) })
             {
                 Decor("Stripe", pos + Vector3.up * 1.0f, Vector3.Scale(size, new Vector3(1, 0.08f, 1)), Trim);
-                Decor("Skirting", pos + Vector3.up * 0.06f, Vector3.Scale(size, new Vector3(1, 0.12f, 1)), Dark);
+                Decor("Skirting", pos + Vector3.up * 0.08f, Vector3.Scale(size, new Vector3(1, 0.16f, 1)), Color.white);
             }
 
             // Windows on the left wall
@@ -117,8 +117,16 @@ namespace TheraQuest
             Lamp(new Vector3(0f, 3.1f, -1.6f));
 
             // M8.2 look: optional floor and wall textures (a missing file keeps the colour), sun, probe and volume
-            RoomLook.ApplyTexture(FindMaterial("Floor"), "Room/Textures/floor", 4f);
-            RoomLook.ApplyTexture(wallMat, "Room/Textures/wall", 2f);
+            // (copies, so play mode never edits the scene's material assets)
+            var floorR = GameObject.Find("Floor")?.GetComponent<Renderer>();
+            if (floorR != null) RoomLook.ApplyTexture(floorR.material, "Room/Textures/floor", new Vector2(3f, 3f));
+            var wallCopy = new Material(wallMat);
+            if (RoomLook.ApplyTexture(wallCopy, "Room/Textures/wall", new Vector2(4f, 1.4f)))
+                foreach (var w in new[] { "Back wall", "Left wall", "Right wall", "Front wall" })
+                {
+                    var wr = GameObject.Find(w)?.GetComponent<Renderer>();
+                    if (wr != null) wr.sharedMaterial = wallCopy;
+                }
             RoomLook.Setup(root);
         }
 
