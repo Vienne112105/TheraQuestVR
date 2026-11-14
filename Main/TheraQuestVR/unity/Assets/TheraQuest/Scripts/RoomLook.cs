@@ -109,7 +109,7 @@ namespace TheraQuest
 
         static Light FindDirectional(Transform root)
         {
-            foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+            foreach (var l in Object.FindObjectsByType<Light>())
                 if (l.type == LightType.Directional && !l.transform.IsChildOf(root)) return l;
             return null;
         }

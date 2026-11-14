@@ -62,6 +62,7 @@ namespace TheraQuest
                     box.size = b.size;
                 }
             }
+            PropDetail.Apply(holder);   // M8.2: grain and lower shine instead of flat plastic colour
             holder.localPosition = floorPos;
             return holder;
         }
