@@ -65,6 +65,14 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M7.2 | M7 | done | Patient Name and Code |
 | M7.3 | M7 | done | Encrypted Backup and Restore |
 | M7.4 | M7 | done | Unity Company Name |
+| M8 | — | active | Visual & UX Polish |
+| M8.1 | M8 | active | URP Migration |
+| M8.2 | M8 | planned | Clinic Room Look |
+| M8.3 | M8 | planned | Feedback Motion |
+| M8.4 | M8 | planned | Hologram & Coach Window |
+| M8.5 | M8 | planned | Menus & Summary Polish |
+| M8.6 | M8 | planned | Dashboard Visual Refresh |
+| M8.7 | M8 | planned | Dashboard Hidden Data |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -500,6 +508,78 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Completion criteria:** Unity EditMode tests pass; the game starts with its saved settings and program on this PC.
 - **Dependencies:** none
 - **Systems:** VRClinicExperience
+
+## M8 — Visual & UX Polish
+
+- **Status:** active (started 2026-11-14)
+- **Objective:** Make the game look and feel finished and the therapist app clearer at a glance, before the study and the hardware run (approved by the human 2026-11-14). The game moves to URP (DEC-028); the room, feedback, hologram and menus get a visual pass; the dashboard gets a visual refresh and shows data the server already sends.
+- **Success criteria:**
+  - The game renders with URP with no Built-in shaders, no pink materials and no frame-time loss against the Built-in baseline.
+  - Room, hologram, coach window, feedback effects and menus are approved by the human from before and after screenshots or Play mode.
+  - VR comfort rules hold: no motion blur, vignette, chromatic aberration, film grain, depth of field or camera shake; UI transitions 0.25 s or shorter that never move the view; red only for safety (DEC-016).
+  - The dashboard shows a patient header, the 14-day adherence calendar, phase history and per-exercise stats (counted sessions only), keeps every M5.1 accessibility rule and fits 980 × 640.
+  - Every new asset is chosen by the human, credited in `CREDITS.md` with its licence, and has a fallback when missing (DEC-015).
+- **Children:** `M8.1` URP Migration; `M8.2` Clinic Room Look; `M8.3` Feedback Motion; `M8.4` Hologram & Coach Window; `M8.5` Menus & Summary Polish; `M8.6` Dashboard Visual Refresh; `M8.7` Dashboard Hidden Data.
+- **Plan:** `docs/superpowers/plans/2026-11-14-m8-visual-and-ux-polish.md` (repository root; holds the per-child steps and tests). Game track M8.1 → M8.2 → M8.4 → M8.3 → M8.5; dashboard track M8.6 → M8.7. The two tracks share no files and may run in parallel sessions; within a track run one child at a time (M8.3 and M8.5 both edit `UIKit.cs`; M8.6 and M8.7 both edit `dashboard.html`).
+- **Done when:** all children are done.
+- **Dependencies:** M5, M7. No hardware needed; HW.2 later confirms URP in the headset.
+- **Systems:** VRClinicExperience, AvatarCoach, Gamification, TherapistDashboard
+
+### M8.1 — URP Migration
+- **Status:** active
+- **Objective:** Render the game with URP, looking at least as good as now (DEC-028).
+- **Deliverables:** one URP pipeline asset and Forward renderer (MSAA 4x, HDR, soft shadows) assigned in Graphics and every Quality level; imported model materials converted; `Hologram.shader` ported to URP HLSL; `HumanoidCoach` uses the Little Guys URP material (no `Standard` swap); runtime materials made through one URP helper; OpenXR setup re-run under URP; EditMode tests.
+- **Completion criteria:** EditMode tests that the URP asset is assigned everywhere, no material under `Assets/TheraQuest` or made at runtime uses a Built-in shader, and the hologram shader is supported; full `run_tests.py` green; Play mode (menu, get-ready, all four postures, summary, Progress page) has no pink or missing materials against before screenshots; frame time on this PC not worse than the Built-in baseline.
+- **Dependencies:** none
+- **Systems:** VRClinicExperience, AvatarCoach
+
+### M8.2 — Clinic Room Look
+- **Status:** planned
+- **Objective:** A calm, bright clinic whose lighting draws the eye to the exercise spot and coach window.
+- **Deliverables:** soft directional sunlight with soft shadows, warm lamps, ambient light and a reflection probe rendered after the runtime room build; floor, wall and ceiling textures chosen by the human (current colours as fallback); one Volume with neutral tonemapping, gentle grading, light bloom and SSAO; exercise spot and mat readable on the new floor.
+- **Completion criteria:** human approves before and after screenshots from the standing, seated and lying viewpoints; frame time within 10% of M8.1; room builds with every texture missing; full suite green.
+- **Dependencies:** M8.1
+- **Systems:** VRClinicExperience
+
+### M8.3 — Feedback Motion
+- **Status:** planned
+- **Objective:** Make important moments feel responsive without hurting comfort.
+- **Deliverables:** one `UIKit` panel fade/scale helper (0.15 to 0.25 s, unscaled time) used by menus, HUD cards, pop-ups, summary and Progress page; small effects for a good rep, hold progress and hold complete, combo pulse, level-up and badge reveal (assets chosen by the human, static fallback); STOP and posture faults keep their instant red warning with no celebration.
+- **Completion criteria:** EditMode tests (transition limits and skip-to-end, no reward effect on STOP or unsafe reps, effects only for counted events) pass; full suite green; human checks each moment in Play mode.
+- **Dependencies:** M8.1; not in parallel with M8.5 (`UIKit.cs`)
+- **Systems:** VRClinicExperience, Gamification
+
+### M8.4 — Hologram & Coach Window
+- **Status:** planned
+- **Objective:** The target limb, live limb and coach window are the clearest things in view.
+- **Deliverables:** reworked URP hologram (fresnel rim, soft fill, alpha clip where possible, palette colours for target and live limb, steady glow inside tolerance); framed coach window with a soft backdrop and restyled arrows and word guides; same frame for the side mirror; documented shader parameters checked in the Frame Debugger.
+- **Completion criteria:** EditMode tests (glow only when the evaluator reports in-tolerance; frames inside the comfortable field-of-view limits) pass; full suite green; human approves before and after screenshots for all four postures.
+- **Dependencies:** M8.1
+- **Systems:** VRClinicExperience, AvatarCoach
+
+### M8.5 — Menus & Summary Polish
+- **Status:** planned
+- **Objective:** Consistent, tidy menus that stay short.
+- **Deliverables:** named type-size and spacing scale in `UIKit` used by the main menu, Settings, Progress tabs and summary; one card and button style with distinct hover, focus and pressed states for mouse, keyboard and controller; clearer summary and Progress hierarchy with no added content; menu and HUD distances re-checked against the `VRClinicExperience` invariants.
+- **Completion criteria:** EditMode tests (button state colours distinct; menu pages fit at the smallest text preset) pass; full suite green; human Play-mode check of every menu page and the summary.
+- **Dependencies:** M8.3 (`UIKit.cs`)
+- **Systems:** VRClinicExperience, Gamification
+
+### M8.6 — Dashboard Visual Refresh
+- **Status:** planned
+- **Objective:** The therapist sees what matters for a patient at a glance.
+- **Deliverables:** type and spacing scale in the `:root` tokens; one button, card and table style; patient chart header (code, name, protocol and phase, adherence, last session, flags); caseload table polish (flag chips, hover and focus, sticky header); Chart.js styled from tokens; before and after screenshots on a throwaway database.
+- **Completion criteria:** server tests pass; browser check at 980 × 640 and full size (no horizontal scroll, no console errors, keyboard use and dialogs as in M5.1); therapist exe rebuilt; human walkthrough in the desktop app.
+- **Dependencies:** none
+- **Systems:** TherapistDashboard
+
+### M8.7 — Dashboard Hidden Data
+- **Status:** planned
+- **Objective:** Show the data the server already sends but the page hides.
+- **Deliverables:** 14-day adherence calendar on the Activity tab (status by text or icon, not colour alone); phase history timeline; per-exercise stats table from counted sessions only (M7.1); empty, loading and error states; server tests only if the payload must change.
+- **Completion criteria:** server tests pass; browser check on a throwaway database with a patient with no sessions, one with missed days and one with a phase change; exe rebuilt; human walkthrough in the desktop app.
+- **Dependencies:** M8.6 (`dashboard.html`)
+- **Systems:** TherapistDashboard
 
 ## HW — Hardware Integration & Field Validation (unscheduled)
 

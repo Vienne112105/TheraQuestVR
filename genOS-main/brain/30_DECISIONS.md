@@ -44,6 +44,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-025 | accepted | 2026-11-07 | Landmarks Are Trusted Again After 2 Confident Frames |
 | DEC-026 | accepted | 2026-11-12 | Which Limb Is Measured, Resting Baseline and Rep Timing |
 | DEC-027 | accepted | 2026-11-12 | Patient Records Hold Name and Code; Only the Code Leaves the Dashboard |
+| DEC-028 | accepted | 2026-11-14 | The Game Renders with URP |
 
 ---
 
@@ -258,3 +259,10 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Reason:** At the M7 kickoff (TASK-004) the human chose to keep each patient's real name together with their code, instead of code-only pseudonymization. The human approved the plan with the name meaning the patient's real name.
 - **Impact:** The clinical database now holds personal information under RA 10173. The name is stored and shown only in the therapist dashboard. Everything that leaves the dashboard uses the code only: research exports (CSV/JSON), evaluation reports, VR client routes, logs and tracker recordings (M7.2). Database backups are encrypted (M7.3). Study participants must give informed consent for their name to be stored (a human and ethics task, not code). Local-first storage (DEC-003, DEC-010) and the private repository (DEC-020) are unchanged.
 - **Supersedes:** the code-only pseudonymization part of DEC-003 (DEC-003 stays accepted for local-first storage)
+
+### DEC-028: The Game Renders with URP
+- **Status:** accepted
+- **Date:** 2026-11-14
+- **Reason:** At the M8 kickoff the human chose to switch the game from the Built-in render pipeline to the Universal Render Pipeline before the visual polish. `00_PROJECT.md` already names URP, the URP package was installed but unused, the Little Guys coach material is URP (DEC-018), and URP gives the lighting, shadows and post effects M8.2 and M8.4 need.
+- **Impact:** M8.1 assigns one URP asset in Graphics and every Quality level, converts all materials, ports `Hologram.shader` to URP HLSL and removes the `Standard` material swap in `HumanoidCoach`. From then on no Built-in shader may be used in the game (EditMode test). The removed DEC-017 toon shader is not revived. VR comfort rules stay: no motion blur, vignette, chromatic aberration, film grain, depth of field or camera shake. The headset path under URP is untested until HW.2.
+- **Supersedes:** none (the Built-in workaround noted under DEC-018 ends with M8.1)
