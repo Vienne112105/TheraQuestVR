@@ -70,8 +70,11 @@ The icons were trimmed, scaled to fit a 128 px cell and recoloured white so the 
 |-------|--------|---------|
 | `Free Woman Tall.prefab`, `Free Man Tall.prefab` (and the rest of the pack, kept as imported) | "Little Guys - Free Sample" by Luceed Studio, Unity Asset Store, imported by the human through Package Manager > My Assets on 2026-10-27 | Standard Unity Asset Store EULA (no licence file in the pack) |
 
-The coach since 2026-10-27 (human request). The pack's own material uses a URP shader; this project renders with the
-Built-in pipeline, so the game draws the coach with a plain Standard material using the pack's texture.
+The coach since 2026-10-27 (human request). The pack's own URP material is used as imported (M8.1, DEC-028).
+
+| Files | Source | Licence |
+|-------|--------|---------|
+| `Resources/CoachTextures/coach_woman.png`, `coach_man.png` | Repaint of the pack's `T_FreeWoman.png` and `T_FreeMan.png` (white top, teal shorts or trousers, auburn hair, soft fabric and hair detail), made with a script on 2026-11-14 (M8.2, human choice "C"). A derivative of the Little Guys textures, loaded by `CoachReskin` onto a copy of the material; a missing file keeps the pack's original look. | Same as the pack (Asset Store EULA) |
 `Resources/CoachAvatars/Free Woman Tall.asset` and `Free Man Tall.asset` are Humanoid avatars made in this project
 from the pack's models straightened to a T-pose (`TheraQuest > Build Coach T-Pose Avatars`), so the idle clips play upright.
 

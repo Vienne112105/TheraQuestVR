@@ -268,6 +268,7 @@ namespace TheraQuest
                 try { coachAnim.Rebind(); } catch {}
             }
 
+            CoachReskin.Apply(coachGo, model.name);   // M8.2 repaint; falls back to the pack's own colours
             coachGo.name = "Coach (" + model.name + ")";
             b.coach = Figure.Create(b.root.transform, "Coach", coachGo, Vector3.zero, propMat, null, idleClip, coachHeight, floorOffset, talkClip);
             if (b.coach == null)
