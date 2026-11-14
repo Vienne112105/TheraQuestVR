@@ -115,6 +115,11 @@ namespace TheraQuest
             Lamp(new Vector3(-2f, 3.1f, 1.2f));
             Lamp(new Vector3(2.2f, 3.1f, 3.6f));
             Lamp(new Vector3(0f, 3.1f, -1.6f));
+
+            // M8.2 look: optional floor and wall textures (a missing file keeps the colour), sun, probe and volume
+            RoomLook.ApplyTexture(FindMaterial("Floor"), "Room/Textures/floor", 4f);
+            RoomLook.ApplyTexture(wallMat, "Room/Textures/wall", 2f);
+            RoomLook.Setup(root);
         }
 
         Material FindMaterial(string objectName)

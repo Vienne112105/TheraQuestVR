@@ -5,7 +5,9 @@
         "TheraQuest.Runtime",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.RenderPipelines.Core.Runtime"
     ],
     "includePlatforms": [
         "Editor"
