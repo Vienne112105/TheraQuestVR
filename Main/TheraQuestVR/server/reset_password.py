@@ -1,7 +1,9 @@
 """
 Set a new password for a clinician login without touching any patient data.
 
-Run on the PC that holds the database, with the Therapist app closed:
+Run on the PC that holds the database, with the Therapist app closed. On Windows use Reset_Password.ps1
+instead of this file directly: the Microsoft Store Python redirects writes under %LOCALAPPDATA% to a private
+copy, so a direct run changes the wrong database. (Plain python.org installs are fine.)
     python reset_password.py                 (only one clinician: uses that login)
     python reset_password.py therapist       (name the login)
 
