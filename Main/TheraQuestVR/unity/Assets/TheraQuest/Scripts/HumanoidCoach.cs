@@ -182,7 +182,7 @@ namespace TheraQuest
             windowCam.clearFlags = CameraClearFlags.SolidColor;
             windowCam.backgroundColor = new Color(0.89f, 0.93f, 0.95f);
             windowCam.fieldOfView = WindowFov;
-            windowCam.stereoTargetEye = StereoTargetEyeMask.None;
+            if (UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null) windowCam.stereoTargetEye = StereoTargetEyeMask.None;   // URP ignores it (and warns)
             windowCam.enabled = false;
 
             arrow = new GameObject("Coach window arrow").AddComponent<LineRenderer>();
@@ -270,7 +270,6 @@ namespace TheraQuest
 
             coachGo.name = "Coach (" + model.name + ")";
             b.coach = Figure.Create(b.root.transform, "Coach", coachGo, Vector3.zero, propMat, null, idleClip, coachHeight, floorOffset, talkClip);
-            if (b.coach != null) UsePlainMaterials(coachGo);
             if (b.coach == null)
             {
                 Debug.LogWarning($"[TheraQuest] Could not resolve skeleton for {model.name}. Skipping it.");
@@ -548,48 +547,6 @@ namespace TheraQuest
             yogaMat.position = Vector3.Lerp(yogaMat.position, matPos, k);
             yogaMat.rotation = Quaternion.Slerp(yogaMat.rotation, matRot, k);
         }
-
-        // Plain stand-ins for coach materials this render pipeline can't draw (human request 2026-10-27: no cartoon
-        // stylisation, which replaced DEC-017's toon shader)
-        static readonly Dictionary<Material, Material> plainMats = new Dictionary<Material, Material>();
-
-        /// <summary>
-        /// Keeps the coach's own materials where they work. A material made for another render pipeline (the Little
-        /// Guys pack ships URP materials; this project renders with the Built-in pipeline) would draw pink, so it is
-        /// swapped for a plain Standard material with the same texture and colour: no outline, no cel shading.
-        /// </summary>
-        void UsePlainMaterials(GameObject model)
-        {
-            var standard = Shader.Find("Standard");
-            if (standard == null) return;
-            foreach (var r in model.GetComponentsInChildren<Renderer>(true))
-            {
-                var mats = r.sharedMaterials;
-                bool changed = false;
-                for (int i = 0; i < mats.Length; i++)
-                {
-                    var src = mats[i];
-                    if (src == null || src.shader == null || src.shader.isSupported && !IsForOtherPipeline(src.shader)) continue;
-                    if (!plainMats.TryGetValue(src, out var plain) || plain == null)
-                    {
-                        plain = new Material(standard) { name = src.name + " (plain)" };
-                        plain.color = src.HasProperty("_BaseColor") ? src.GetColor("_BaseColor") : src.HasProperty("_Color") ? src.color : Color.white;
-                        var tex = src.HasProperty("_BaseMap") ? src.GetTexture("_BaseMap") : src.HasProperty("_MainTex") ? src.GetTexture("_MainTex") : null;
-                        if (tex != null) plain.mainTexture = tex;
-                        plain.SetFloat("_Glossiness", 0.15f);   // soft cloth and skin, not shiny plastic
-                        plainMats[src] = plain;
-                    }
-                    mats[i] = plain;
-                    changed = true;
-                }
-                if (changed) r.sharedMaterials = mats;
-            }
-        }
-
-        /// <summary>A URP or HDRP shader while the Built-in pipeline is active (Unity still reports it as supported).</summary>
-        static bool IsForOtherPipeline(Shader s) =>
-            UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null &&
-            (s.name.StartsWith("Universal Render Pipeline") || s.name.StartsWith("HDRP") || s.name.Contains("URP"));
 
         // Face (human request 2026-10-28): blinks every few seconds and a soft smile (the Smile shape also narrows the
         // eyes); the mouth stays still

@@ -360,7 +360,7 @@ namespace TheraQuest
             mirrorCam.orthographicSize = 0.95f;
             mirrorCam.nearClipPlane = 0.05f;
             mirrorCam.farClipPlane = 6f;
-            mirrorCam.stereoTargetEye = StereoTargetEyeMask.None;
+            if (UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null) mirrorCam.stereoTargetEye = StereoTargetEyeMask.None;   // URP ignores it (and warns)
             mirrorCam.enabled = false;
         }
 
