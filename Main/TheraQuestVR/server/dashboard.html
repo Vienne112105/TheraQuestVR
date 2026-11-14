@@ -36,6 +36,21 @@
   --blue-soft: #EFF6FF;
   --blue-border: #BFDBFE;
   --focus: #0D9488;
+  /* Type scale */
+  --fs-xs: 11.5px;
+  --fs-sm: 12.5px;
+  --fs-md: 13.5px;
+  --fs-lg: 16px;
+  --fs-xl: 22px;
+  /* Spacing scale (4 px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
 body {
@@ -129,10 +144,10 @@ header {
 /* Standard Clinical Action Buttons */
 .btn {
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: var(--fs-md);
   font-weight: 600;
-  padding: 7px 16px;
-  border-radius: 6px;
+  padding: 7px var(--sp-4);
+  border-radius: var(--radius);
   border: 1px solid transparent;
   cursor: pointer;
   display: inline-flex;
@@ -199,10 +214,10 @@ header {
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-5);
+  box-shadow: var(--shadow-card);
 }
 .card-header {
   display: flex;
@@ -371,6 +386,21 @@ header {
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text);
 }
+.clean-table tbody tr:hover { background: var(--bg); }
+
+/* Caseload table: sticky header (sits under the sticky page header), row hover and keyboard focus */
+.caseload-wrap { max-height: calc(100vh - 300px); min-height: 200px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.caseload-table th { position: sticky; top: 0; z-index: 2; background: var(--surface); box-shadow: 0 1px 0 var(--border); }
+.caseload-table td { vertical-align: middle; }
+.caseload-table tbody tr:focus-within { background: var(--teal-soft); outline: 2px solid var(--focus); outline-offset: -2px; }
+.caseload-table .col-num { text-align: right; white-space: nowrap; color: var(--text-muted); }
+.flag-chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.flag-ok { color: var(--text-muted); font-size: var(--fs-sm); }
+
+/* Patient chart header strip: code, protocol and phase, adherence, last session, flags */
+.chart-meta { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); align-items: center; margin-top: var(--sp-3); font-size: var(--fs-sm); color: var(--text-muted); }
+.chart-meta .meta-item { display: inline-flex; align-items: center; gap: 6px; }
+.chart-meta .meta-item b { color: var(--text); font-weight: 700; }
 
 /* Status Badges */
 .tag-status {
@@ -556,6 +586,7 @@ header {
   font-size: 13.5px;
 }
 .state-msg .btn { margin-top: 12px; }
+#chartEmpty { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--bg); }
 .table-footer {
   display: flex;
   align-items: center;
@@ -816,6 +847,7 @@ header {
           </button>
           <h1 class="patient-title-h1" id="chartName">Patient Name</h1>
           <div class="patient-subtitle" id="chartCondition">Diagnosis · Protocol Phase</div>
+          <div class="chart-meta" id="chartMeta" aria-label="Patient summary"></div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button type="button" class="btn btn-secondary btn-sm" onclick="openPatientEditModal()">
@@ -2008,25 +2040,24 @@ function renderCaseloadList() {
     filtered.sort((a, b) => (b.attention || []).length - (a.attention || []).length || top(a) - top(b) || a.code.localeCompare(b.code));
   }
 
-  $("caseloadList").innerHTML = filtered.length ? filtered.map(p => `
-    <div class="patient-row">
-      <div class="patient-info">
-        <div class="patient-code">${esc(p.code)}</div>
-        <div>
-          <div class="patient-name">${esc(p.name || "Patient")}${p.archived_at ? ' <span class="tag-status archived">Archived</span>' : ''}</div>
-          <div class="patient-condition">${esc(p.condition || "Rehabilitation")} · ${esc(p.protocol_name || "Custom")}</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:16px">
-        ${attentionChips(p.attention)}
-        <span style="font-size:13px;color:var(--text-muted);white-space:nowrap">${p.total_sessions || 0} sessions</span>
-        <button class="btn btn-secondary btn-sm" onclick="openPatientChart(${+p.id})" aria-label="Open chart for ${esc(p.code)}">
+  $("caseloadList").innerHTML = filtered.length ? `<div class="caseload-wrap"><table class="clean-table caseload-table">
+    <thead><tr>
+      <th scope="col">Code</th><th scope="col">Patient</th><th scope="col">Protocol</th>
+      <th scope="col">Status</th><th scope="col" class="col-num">Sessions</th><th scope="col"><span class="sr-only">Action</span></th>
+    </tr></thead><tbody>` + filtered.map(p => `
+    <tr>
+      <td><span class="patient-code">${esc(p.code)}</span></td>
+      <td><div class="patient-name">${esc(p.name || "Patient")}${p.archived_at ? ' <span class="tag-status archived">Archived</span>' : ''}</div>
+          <div class="patient-condition">${esc(p.condition || "Rehabilitation")}</div></td>
+      <td>${esc(p.protocol_name || "Custom")}</td>
+      <td>${(p.attention && p.attention.length) ? `<span class="flag-chips">${attentionChips(p.attention)}</span>` : '<span class="flag-ok">No flags</span>'}</td>
+      <td class="col-num">${p.total_sessions || 0}</td>
+      <td style="text-align:right"><button class="btn btn-secondary btn-sm" onclick="openPatientChart(${+p.id})" aria-label="Open chart for ${esc(p.code)}">
           Open Chart
           <i aria-hidden="true" data-lucide="chevron-right" style="width:14px;height:14px"></i>
-        </button>
-      </div>
-    </div>
-  `).join("") : `<div class="state-msg">${patients.length ? "No patients match your search." : "No patients registered yet. Use <b>Register Patient</b> to add the first one."}</div>`;
+        </button></td>
+    </tr>`).join("") + `</tbody></table></div>`
+    : `<div class="state-msg">${patients.length ? "No patients match your search." : "No patients registered yet. Use <b>Register Patient</b> to add the first one."}</div>`;
   refreshIcons();
 }
 
@@ -2073,6 +2104,15 @@ function renderChartHeader() {
   const p = activeData.patient;
   $("chartName").textContent = p.name ? `${p.name} (${p.code})` : `Patient ${p.code}`;
   $("chartCondition").textContent = `${p.condition || "Orthopedic Physical Therapy"} · ${activeData.program.name}`;
+  const ph = activeData.phase || {}, k = activeData.kpis || {}, flags = activeData.attention || [];
+  const last = (activeData.sessions || [])[0];
+  $("chartMeta").innerHTML =
+    `<span class="meta-item"><span class="patient-code">${esc(p.code)}</span></span>` +
+    `<span class="meta-item"><i aria-hidden="true" data-lucide="shield-check" style="width:14px;height:14px"></i>` +
+      `${ph.id ? `<b>${esc(ph.protocol)}</b> · ${esc(ph.name)}` : "Custom prescription"}</span>` +
+    `<span class="meta-item"><i aria-hidden="true" data-lucide="calendar-check" style="width:14px;height:14px"></i>Adherence <b>${esc(k.adherence ? k.adherence.rate : 0)}%</b></span>` +
+    `<span class="meta-item"><i aria-hidden="true" data-lucide="history" style="width:14px;height:14px"></i>Last session <b>${last ? esc(formatDateTime(last.started_at)) : "none yet"}</b></span>` +
+    `<span class="meta-item">${flags.length ? attentionChips(flags) : '<span class="tag-status complete"><i aria-hidden="true" data-lucide="check" style="width:12px;height:12px"></i>No flags</span>'}</span>`;
   const archived = activeData.archivedAt;
   $("chartArchived").style.display = archived ? "flex" : "none";
   $("chartArchived").innerHTML = archived ? `<i aria-hidden="true" data-lucide="archive" style="width:15px;height:15px;flex-shrink:0"></i>
@@ -2249,19 +2289,25 @@ function renderProgressChart() {
           position: 'top',
           labels: {
             boxWidth: 12,
+            color: muted,
             font: { family: font, size: 12 }
           }
         },
         tooltip: {
           backgroundColor: cssVar("--text"),
+          titleColor: cssVar("--surface"),
+          bodyColor: cssVar("--surface"),
+          cornerRadius: 6,
           padding: 10,
-          titleFont: { size: 13, weight: 'bold' }
+          titleFont: { family: font, size: 13, weight: 'bold' },
+          bodyFont: { family: font, size: 12 }
         }
       },
       scales: {
         x: {
           grid: { display: false },
-          ticks: { font: { size: 11, family: font } }
+          border: { color: cssVar("--border") },
+          ticks: { color: muted, font: { size: 11, family: font } }
         },
         y: {
           type: 'linear',
@@ -2269,9 +2315,11 @@ function renderProgressChart() {
           position: 'left',
           min: 0,
           max: 100,
+          border: { display: false },
           ticks: {
             callback: v => v + '%',
-            font: { size: 11 }
+            color: muted,
+            font: { size: 11, family: font }
           },
           grid: { color: cssVar("--border-subtle") }
         },
@@ -2280,8 +2328,9 @@ function renderProgressChart() {
           display: true,
           position: 'right',
           min: 0,
+          border: { display: false },
           grid: { drawOnChartArea: false },
-          ticks: { font: { size: 11 } }
+          ticks: { color: muted, precision: 0, font: { size: 11, family: font } }
         }
       }
     }
