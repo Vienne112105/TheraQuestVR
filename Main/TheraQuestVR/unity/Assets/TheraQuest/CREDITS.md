@@ -101,3 +101,9 @@ Imported as a Humanoid clip (loop on, root baked in place) and saved on its own;
 Assets that were in the project before M5.6 and whose source the human still has to confirm:
 the five rep sounds above. (The older coach models in `Coaches/FBX-Female` and `Coaches/FBX-male` were removed on
 2026-10-27; the coaches are the Little Guys.)
+
+## Extra coach model (`Assets/TheraQuest/Resources/Coaches/Man002_FBX`)
+
+| Files | Source | Licence |
+|-------|--------|---------|
+| `Male_002.fbx`, `CharacterTexture_BaseColor.png`, `CharacterTexture_Roughness.png` | Added by the human on 2026-11-14 as a third coach. The download folder held only a `DownloadMore.html` link to a model site's author page, so the original source is not recorded here. | **Unknown: the human to confirm the source and licence before any release.** |

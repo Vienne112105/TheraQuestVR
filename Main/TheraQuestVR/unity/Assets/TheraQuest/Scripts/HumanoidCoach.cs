@@ -160,6 +160,10 @@ namespace TheraQuest
                     if (option != null && option.model != null && option.model != femaleModel && option.model != maleModel)
                         allOptions.Add(option);
             }
+            // Any humanoid model dropped into Resources/Coaches becomes one more coach (M8.2, human request 2026-11-14)
+            foreach (var extra in ExtraCoachModels())
+                if (!allOptions.Exists(o => o.model == extra))
+                    allOptions.Add(new Option { name = ExtraCoachName(extra), model = extra });
             foreach (var option in allOptions)
                 Build(option);
 
@@ -170,6 +174,21 @@ namespace TheraQuest
                 Select(Mathf.Clamp(PlayerPrefs.GetInt(PrefKey, 0), 0, built.Count - 1));
             }
         }
+
+        public const string ExtraCoachFolder = "Coaches";
+
+        /// <summary>The model files under Resources/Coaches, in name order (the models themselves, not their child objects).</summary>
+        public static List<GameObject> ExtraCoachModels()
+        {
+            var list = new List<GameObject>();
+            foreach (var go in Resources.LoadAll<GameObject>(ExtraCoachFolder))
+                if (go != null && go.transform.parent == null) list.Add(go);
+            list.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+            return list;
+        }
+
+        /// <summary>Menu name for an extra coach: its file name with spaces ("Male_002" gives "Male 002").</summary>
+        public static string ExtraCoachName(GameObject model) => model.name.Replace('_', ' ');
 
         /// <summary>The window's camera and the arrow. They stay off until a session starts.</summary>
         void BuildWindow()
