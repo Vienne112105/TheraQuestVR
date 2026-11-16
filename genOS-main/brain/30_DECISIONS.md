@@ -45,6 +45,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-026 | accepted | 2026-11-12 | Which Limb Is Measured, Resting Baseline and Rep Timing |
 | DEC-027 | accepted | 2026-11-12 | Patient Records Hold Name and Code; Only the Code Leaves the Dashboard |
 | DEC-028 | accepted | 2026-11-14 | The Game Renders with URP |
+| DEC-029 | accepted | 2026-11-16 | The Manuscript Master Is the Google Doc / Word File; the Repo Copy Is a Working Copy |
 
 ---
 
@@ -266,3 +267,10 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Reason:** At the M8 kickoff the human chose to switch the game from the Built-in render pipeline to the Universal Render Pipeline before the visual polish. `00_PROJECT.md` already names URP, the URP package was installed but unused, the Little Guys coach material is URP (DEC-018), and URP gives the lighting, shadows and post effects M8.2 and M8.4 need.
 - **Impact:** M8.1 assigns one URP asset in Graphics and every Quality level, converts all materials, ports `Hologram.shader` to URP HLSL and removes the `Standard` material swap in `HumanoidCoach`. From then on no Built-in shader may be used in the game (EditMode test). The removed DEC-017 toon shader is not revived. VR comfort rules stay: no motion blur, vignette, chromatic aberration, film grain, depth of field or camera shake. The headset path under URP is untested until HW.2.
 - **Supersedes:** none (the Built-in workaround noted under DEC-018 ends with M8.1)
+
+### DEC-029: The Manuscript Master Is the Google Doc / Word File; the Repo Copy Is a Working Copy
+- **Status:** accepted
+- **Date:** 2026-11-16
+- **Reason:** At the M9 kickoff the human said the capstone manuscript they submit lives in a Google Doc / Word file. `Research/THERAQUEST- MANUSCRIPT.md` is an export of it (9 October 2026) with the figures embedded as base64 image lines. The human also chose to leave Section 3.9 Data Analysis and all results and metrics out of M9, and to review edits by chapter.
+- **Impact:** Agents edit only the repo `.md` and must deliver every edit as a per-chapter change list (`Research/M9-changes-chapter-N.md`: section, original text, new text, reason) so the human can apply it to the master by hand. New or corrected figures are delivered as image files plus a placement list; the base64 image lines in the `.md` are never edited or regenerated. Section 3.9 is not edited during M9; problems found there are only reported. Research aims, objectives, benchmark targets, participants and instruments change only with the human's yes. If the master has moved on since the export, the human re-exports before the audit (M9.1).
+- **Supersedes:** none

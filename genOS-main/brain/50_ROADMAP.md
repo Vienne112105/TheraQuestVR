@@ -67,12 +67,17 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M7.4 | M7 | done | Unity Company Name |
 | M8 | — | active | Visual & UX Polish |
 | M8.1 | M8 | done | URP Migration |
-| M8.2 | M8 | active | Clinic Room Look |
+| M8.2 | M8 | TBF | Clinic Room Look |
 | M8.3 | M8 | planned | Feedback Motion |
 | M8.4 | M8 | planned | Hologram & Coach Window |
 | M8.5 | M8 | planned | Menus & Summary Polish |
-| M8.6 | M8 | planned | Dashboard Visual Refresh |
+| M8.6 | M8 | TBF | Dashboard Visual Refresh |
 | M8.7 | M8 | planned | Dashboard Hidden Data |
+| M9 | — | active | Manuscript Finalization & Polish |
+| M9.1 | M9 | active | Manuscript Audit |
+| M9.2 | M9 | planned | Language and Flow Edit |
+| M9.3 | M9 | planned | Sync with the Built System |
+| M9.4 | M9 | planned | Figures and Screenshots |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -85,6 +90,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 ## Suggested sequence
 
 `M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience, first-person view and tracking safeguards; their human checks moved to HW) ➔ `M6` (done: camera tracking mechanics, webcam only, no headset) ➔ `M7` (done: pre-study data readiness, backlog TASK-003..TASK-006)
+
+In progress: `M8` (active: visual and UX polish; M8.2 and M8.6 are TBF, the other children wait) and `M9` (active since 2026-11-16: manuscript finalization; the progress pointer is on M9).
 
 Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided (it takes the next free `M` number when scheduled).
 
@@ -534,7 +541,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience, AvatarCoach
 
 ### M8.2 — Clinic Room Look
-- **Status:** active
+- **Status:** TBF (closed temporarily by the human on 2026-11-16: all code and tests done, 137 EditMode tests pass; still open: frame-time check vs the 4.32 ms M8.1 reference, standing/seated/lying before-and-after screenshots, human approval. Remind the human of this whenever another milestone is started.)
 - **Objective:** A calm, bright clinic whose lighting draws the eye to the exercise spot and coach window.
 - **Deliverables:** soft directional sunlight with soft shadows, warm lamps, ambient light and a reflection probe rendered after the runtime room build; floor, wall and ceiling textures chosen by the human (current colours as fallback); one Volume with neutral tonemapping, gentle grading, light bloom and SSAO; exercise spot and mat readable on the new floor.
 - **Completion criteria:** human approves before and after screenshots from the standing, seated and lying viewpoints; frame time within 10% of M8.1; room builds with every texture missing; full suite green.
@@ -566,7 +573,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience, Gamification
 
 ### M8.6 — Dashboard Visual Refresh
-- **Status:** planned
+- **Status:** TBF (closed temporarily by the human 2026-11-16; code done, human walkthrough in the desktop app and any further layout fixes pending)
 - **Objective:** The therapist sees what matters for a patient at a glance.
 - **Deliverables:** type and spacing scale in the `:root` tokens; one button, card and table style; patient chart header (code, name, protocol and phase, adherence, last session, flags); caseload table polish (flag chips, hover and focus, sticky header); Chart.js styled from tokens; before and after screenshots on a throwaway database.
 - **Completion criteria:** server tests pass; browser check at 980 × 640 and full size (no horizontal scroll, no console errors, keyboard use and dialogs as in M5.1); therapist exe rebuilt; human walkthrough in the desktop app.
@@ -580,6 +587,54 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Completion criteria:** server tests pass; browser check on a throwaway database with a patient with no sessions, one with missed days and one with a phase change; exe rebuilt; human walkthrough in the desktop app.
 - **Dependencies:** M8.6 (`dashboard.html`)
 - **Systems:** TherapistDashboard
+
+## M9 — Manuscript Finalization & Polish
+
+- **Status:** active (started 2026-11-16)
+- **Objective:** Make the existing capstone manuscript (Chapters 1 to 3 and its lists; working copy `Research/THERAQUEST- MANUSCRIPT.md`) read as finished and describe the system as it is actually built (approved by the human 2026-11-16). No new chapters. Section 3.9 Data Analysis and all results and metrics are out of scope. The master is the human's Google Doc / Word file, so every edit is also delivered as a change list (DEC-029).
+- **Success criteria:**
+  - `Research/M9-audit.md` has no open item except those the human chose to leave.
+  - The human approved Chapters 1, 2 and 3 and the figure set.
+  - Section 3.9 and the embedded image lines of the `.md` are byte-identical to the start.
+  - A change list exists for every chapter so the master can be brought in line.
+  - Research aims, objectives, benchmark targets, participants and instruments are changed only with the human's yes; no invented citations, numbers or results.
+- **Children:** `M9.1` Manuscript Audit; `M9.2` Language and Flow Edit; `M9.3` Sync with the Built System; `M9.4` Figures and Screenshots.
+- **Plan:** `docs/superpowers/plans/2026-11-16-m9-manuscript-finalization.md` (repository root; holds the rules, the first-read findings and the verification commands). Order M9.1 → M9.2 → M9.3 → M9.4; review by chapter; one chapter per session.
+- **Done when:** all children are done.
+- **Dependencies:** none to start. M9.4 game screenshots need the human's approval of the M8.2 look (otherwise they are provisional).
+- **Systems:** none changed; all `brain/systems` files are read as the reference for M9.3.
+
+### M9.1 — Manuscript Audit
+- **Status:** active
+- **Objective:** List every place where the manuscript text, figures and tables disagree with the built system or have structure or language problems, before anything is edited.
+- **Deliverables:** `Research/M9-audit.md` with one table per chapter (ID, section, quoted text, problem type, proposed action) and one list of open decisions for the human (tense of Chapter 3, the 2.3 numbering, title-page date and timeline, how much new system detail to add, which figures to redraw, keep or drop). The human first confirms that the 9 October `.md` still matches the master, or re-exports it.
+- **Completion criteria:** the manuscript is not edited in this child; the human has read the audit and answered the open decisions.
+- **Dependencies:** none
+- **Systems:** none changed
+
+### M9.2 — Language and Flow Edit
+- **Status:** planned
+- **Objective:** Chapters 1, 2 and 3 read cleanly and consistently without any change of meaning.
+- **Deliverables:** per chapter: grammar, clarity, consistent terms (1.6 Definition of Terms is the reference), consistent tense as decided in M9.1, headings and numbering repaired, captions and contents entries matched to the lists; `Research/M9-changes-chapter-N.md` (section, original text, new text, reason). Chapter 3 skips 3.9. Chapter 2 claims about other systems get a language edit only.
+- **Completion criteria:** hash checks for Section 3.9 and the image lines unchanged; no empty headings and numbering in order; the human approves each chapter; one commit per approved chapter.
+- **Dependencies:** M9.1
+- **Systems:** none changed
+
+### M9.3 — Sync with the Built System
+- **Status:** planned
+- **Objective:** The manuscript describes the system that exists.
+- **Deliverables:** every system-mismatch item from the audit resolved in 1.1, 1.3, 1.5, 1.6, 3.2 to 3.7 and 3.10 (single external webcam and 2D angles, tethered Quest Link with desktop fallback, MediaPipe Pose and OpenCV, SQLite, therapist desktop app, first-person view, patient code and name rule, encrypted backup, actual timeline), each checked against [[00_PROJECT]], [[30_DECISIONS]], the systems files and the code, and appended to the chapter change list with its source.
+- **Completion criteria:** every system-mismatch item is closed or marked kept by the human; items that change a research claim were applied only after the human's yes; hash checks unchanged; the human approves.
+- **Dependencies:** M9.2 (same file)
+- **Systems:** none changed
+
+### M9.4 — Figures and Screenshots
+- **Status:** planned
+- **Objective:** Figures, tables and their lists match the text and the built system.
+- **Deliverables:** for each figure the audit marks as not matching, a corrected version built from the real system saved in `Research/Figures/figures/` beside the old one for the human to keep or replace; screenshots only where the human wants them (throwaway database, patient codes only, DEC-027); captions, List of Figures and List of Tables updated; a placement list (figure number, caption, after which paragraph) for the master. The base64 image lines in the `.md` are not regenerated.
+- **Completion criteria:** every figure and table label in the body matches its list entry and the reverse; the human approves the figure set.
+- **Dependencies:** M9.3; M8.2 approval for final game screenshots
+- **Systems:** none changed
 
 ## HW — Hardware Integration & Field Validation (unscheduled)
 
