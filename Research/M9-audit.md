@@ -32,6 +32,26 @@
 | D14 | **Instruments.** Objective 4 says "SUS or ISO 25010"; the methodology uses SUS only. Chapter 3 also promises "user satisfaction", a "user feedback questionnaire" and an "observation checklist" that are never described as instruments. Remove the mentions, or will you describe the instruments? | Instruments are yours. |
 | D15 | **"Movement Classifier".** 3.6.3 says the tracker decides which exercise the patient is doing. The built tracker does not: the exercise comes from the prescription, and the evaluator classifies each repetition as correct or incorrect. Change the text to that? | Keeps 3.6.3 in line with the confusion matrix in 3.9 (correct vs incorrect movement). |
 
+### Answers from the human (2026-11-16)
+
+| ID | Answer |
+|----|--------|
+| D1 | Present tense for the system and the method; "will" for steps that have not happened yet (participant evaluation). |
+| D2 | TAM, DeLone and McLean and Self-Determination Theory were removed on purpose. Renumber the four remaining theories 2.3.1 to 2.3.4 and fix the contents, the List of Figures, the captions and the Chapter 2 introduction. |
+| D3 | Update to real dates, but the dates are **not decided yet** (the only decision still open). Until they are: development phases are worded as done (January to November 2026); the evaluation and deployment dates and the title-page date are listed in the change list as "to be supplied by the human". The Gantt figure is redrawn in M9.4 once the dates exist. |
+| D4 | Change to tethered Quest Link with desktop fallback everywhere, and add one sentence in 2.2.5 explaining why (the PC runs the tracker and the database). |
+| D5 | Change the wording to 2D joint angles from one external webcam (1.1, Limitation 2, 3.6.3, 3.7.1, 3.8.1, 3.8.3). Section 3.9 stays untouched and is only reported. |
+| D6 | Soften both: aim 5 and Scope 5 are reworded to what the study can show (how the integrated system supports adherence monitoring). Exact wording goes in the change list for the human's approval before it is applied. |
+| D7 | Describe what is built: session completion plus the 14-day calendar, adherence percentage and attention flags the therapist sees. |
+| D8 | Therapist-approved progression: the system recommends, the therapist approves. Rewards are XP levels, badges, stars and combo streaks. |
+| D9 | One or two sentences per built feature, only where the current text is wrong or silent. |
+| D10 | Rewrite 3.10: RA 10173, consent to name storage, code-only exports, encrypted backups, local storage. Exact wording goes in the change list for approval. |
+| D11 | Rewrite 3.5.1 and 3.6.1 (therapist password login in the desktop app; the game loads the program by patient code) and redraw the use case diagram and the flowchart in M9.4. |
+| D12 | **Remove the citations** that have no reference entry (Laver 2017, De Guzman 2024, Buckingham 2024, Yang 2023, Deterding 2011, Winstein 2014, Ebrahimi 2025, Tu 2026, Zhu 2025, Navea 2025b, Sunido & Soreño 2026), and reword any sentence left without a source so it claims less. Each removal is listed in the change list. "Schmidt & Lee, 2011" is a year mismatch with a listed entry (R6), not a missing reference: it is flagged, not removed. |
+| D13 | Redraw in M9.4: the six module figures, the ERD and class diagram, the architecture and the two data flow diagrams, plus the use case diagram and flowchart (D11). **No new screenshots.** The Gantt figure waits on D3. |
+| D14 | Remove the mentions: Objective 4 says SUS only; the undescribed "user feedback questionnaire", "observation checklist" and "user satisfaction" wording are removed or folded into SUS. |
+| D15 | Change 3.6.3: no exercise-type classifier; the exercise comes from the prescription and each repetition is classified as correct or incorrect. |
+
 ---
 
 ## Front matter (lines 1 to 183)

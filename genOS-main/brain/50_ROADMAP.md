@@ -74,8 +74,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M8.6 | M8 | TBF | Dashboard Visual Refresh |
 | M8.7 | M8 | planned | Dashboard Hidden Data |
 | M9 | — | active | Manuscript Finalization & Polish |
-| M9.1 | M9 | active | Manuscript Audit |
-| M9.2 | M9 | planned | Language and Flow Edit |
+| M9.1 | M9 | done | Manuscript Audit |
+| M9.2 | M9 | active | Language and Flow Edit |
 | M9.3 | M9 | planned | Sync with the Built System |
 | M9.4 | M9 | planned | Figures and Screenshots |
 | HW | — | planned | Hardware Integration & Field Validation |
@@ -605,7 +605,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** none changed; all `brain/systems` files are read as the reference for M9.3.
 
 ### M9.1 — Manuscript Audit
-- **Status:** active
+- **Status:** done (2026-11-16: audit in `Research/M9-audit.md`, 138 items; the human answered D1 to D15; only the real dates for D3 are still to be supplied)
 - **Objective:** List every place where the manuscript text, figures and tables disagree with the built system or have structure or language problems, before anything is edited.
 - **Deliverables:** `Research/M9-audit.md` with one table per chapter (ID, section, quoted text, problem type, proposed action) and one list of open decisions for the human (tense of Chapter 3, the 2.3 numbering, title-page date and timeline, how much new system detail to add, which figures to redraw, keep or drop). The human first confirms that the 9 October `.md` still matches the master, or re-exports it.
 - **Completion criteria:** the manuscript is not edited in this child; the human has read the audit and answered the open decisions.
@@ -613,7 +613,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** none changed
 
 ### M9.2 — Language and Flow Edit
-- **Status:** planned
+- **Status:** active
 - **Objective:** Chapters 1, 2 and 3 read cleanly and consistently without any change of meaning.
 - **Deliverables:** per chapter: grammar, clarity, consistent terms (1.6 Definition of Terms is the reference), consistent tense as decided in M9.1, headings and numbering repaired, captions and contents entries matched to the lists; `Research/M9-changes-chapter-N.md` (section, original text, new text, reason). Chapter 3 skips 3.9. Chapter 2 claims about other systems get a language edit only.
 - **Completion criteria:** hash checks for Section 3.9 and the image lines unchanged; no empty headings and numbering in order; the human approves each chapter; one commit per approved chapter.
