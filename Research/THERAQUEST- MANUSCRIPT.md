@@ -92,7 +92,7 @@
 
 	3.5.1  Use Case Diagram	74
 
-	3.5.2  Entity Relationship DIagram	76
+	3.5.2  Entity Relationship Diagram	76
 
 	3.5.3  Data Flow Diagram	80
 
@@ -118,7 +118,7 @@
 
 	3.8.2  Research Participants	114
 
-	3.8.3  Research Instruments	116
+	3.8.3  Research Instrument	116
 
 3.9	Data Analysis	120
 
@@ -130,7 +130,7 @@
 
 	3.9.4  Expert Evaluation	129
 
-3.10	Ethical Consideration	130
+3.10	Ethical Considerations	130
 
 [**REFERENCES**](#heading=h.8qhwt624zi3z)	133	
 
@@ -146,12 +146,12 @@
 | **Figure 2.3.4** | Behavior Change Theory (COM-B Model) |
 | **Figure 3.2.1** | TheraQuest VR: Human-Computer Interaction (HCI) Conceptual Framework |
 | **Figure 3.3.1** | Phases of the Iterative-Incremental Methodology |
-| **Figure 3.4.1.1** | Project Timeline of the TheraQuest VR System |
+| **Figure 3.4.1.1** | Project Gantt Timeline of the Development of the TheraQuest VR System |
 | **Figure 3.5.1.1** | Use Case Diagram of the TheraQuest VR System |
 | **Figure 3.5.2.1** | Entity Relationship Diagram (ERD) of the TheraQuest VR System |
 | **Figure 3.5.3.1** | Context Diagram of the TheraQuest VR System |
 | **Figure 3.5.3.2** | Data Flow Diagram of the TheraQuest VR System |
-| **Figure 3.6.1.1** | System Flowchart of the TheraQuest VR |
+| **Figure 3.6.1.1** | System Flowchart of the TheraQuest VR System |
 | **Figure 3.6.2.1** | Four-Layer System Architecture of the TheraQuest VR System |
 | **Figure 3.6.3.1** | VR Environment Module of the TheraQuest VR System |
 | **Figure 3.6.3.2** | Motion Tracking Module of the TheraQuest VR System |
@@ -504,13 +504,13 @@ Based on the synthesis, a major gap exists in the lack of rehabilitation systems
 
 	This chapter presents the methodology used in the design, development, implementation, and evaluation of TheraQuest VR, a gamified virtual reality-based physical therapy system with real-time computer vision motion tracking and adherence monitoring. It describes the research design, conceptual framework, software development approach, system planning, architecture, implementation process, evaluation methods, data analysis techniques, and ethical considerations. The study follows a developmental research design combined with a descriptive-evaluative approach to ensure that the system is both functionally developed and properly assessed based on its intended purpose.
 
-The methodology is guided by the Iterative-Incremental Model, which supports progressive development of system modules such as the VR environment, motion tracking, exercise evaluation, feedback system, gamification features, and adherence monitoring. Evaluation focuses on motion tracking accuracy, system functionality, usability, user satisfaction, and relevance to rehabilitation monitoring. Data collection involves system logs, usability questionnaires, observation checklists, and expert evaluation from licensed physical therapists to ensure structured, ethical, and evidence-based assessment of the system.
+The methodology is guided by the Iterative-Incremental Model, which supports progressive development of system modules such as the VR environment, motion tracking, exercise evaluation, feedback system, gamification features, and adherence monitoring. Evaluation focuses on motion tracking accuracy, system functionality, usability, and relevance to rehabilitation monitoring. Data collection involves system logs, the System Usability Scale, and expert evaluation from licensed physical therapists to ensure structured, ethical, and evidence-based assessment of the system.
 
 ## **3.1    Research Design** {#3.1-research-design}
 
-	This study employed a **Developmental research design** combined with a **Descriptive-evaluative approach** to guide the design, development, and assessment of the TheraQuest VR system. The developmental design focuses on the systematic creation and refinement of the system through the integration of virtual reality, gamification, and computer vision-based motion tracking, ensuring that the system is functional and aligned with rehabilitation objectives.
+	This study employs a **Developmental research design** combined with a **Descriptive-evaluative approach** to guide the design, development, and assessment of the TheraQuest VR system. The developmental design focuses on the systematic creation and refinement of the system through the integration of virtual reality, gamification, and computer vision-based motion tracking, ensuring that the system is functional and aligned with rehabilitation objectives.
 
-The descriptive-evaluative approach is used to assess the system’s performance based on predefined criteria, including motion tracking accuracy, adherence monitoring, usability, and user satisfaction. Motion tracking accuracy evaluates the system’s ability to correctly detect and interpret user movements, while adherence monitoring determines whether prescribed rehabilitation sessions are properly completed and recorded. Usability and user satisfaction assess the ease of use, interaction, and overall experience of both patients and physical therapists.
+The descriptive-evaluative approach is used to assess the system’s performance based on predefined criteria, including motion tracking accuracy, adherence monitoring, and usability. Motion tracking accuracy evaluates the system’s ability to correctly detect and interpret user movements, while adherence monitoring determines whether prescribed rehabilitation sessions are properly completed and recorded. Usability assesses the ease of use, interaction, and overall experience of both patients and physical therapists.
 
 This combined approach ensures that the system is not only successfully developed but also evaluated for its effectiveness and practical value in supporting physical therapy rehabilitation and monitoring.
 
@@ -520,15 +520,13 @@ The conceptual framework of this study illustrates the interaction between the p
 
 The framework follows a continuous interaction cycle where patients perform rehabilitation exercises within the VR environment and the system evaluates movements through modules such as feedback generation, gamification, and adherence monitoring. Outputs including accuracy scores, corrective feedback, progress summaries, and adherence records are delivered to both patients and therapists. It emphasizes human-computer interaction and real-time feedback while defining the system’s scope as rehabilitation support and monitoring only, excluding diagnosis and clinical decision-making.
 
-**Figure 3.2.1** TheraQuest VR : Human \- Computer Interaction (HCI) Conceptual Framework
-
-### 
+**Figure 3.2.1** TheraQuest VR: Human-Computer Interaction (HCI) Conceptual Framework
 
 ### **1\. User (Patient) Interaction**
 
 The framework begins with the patient as the primary user of the system. The patient interacts with the VR environment by wearing a VR headset, performing prescribed rehabilitation exercises, and responding to system-generated feedback. These actions serve as the primary input to the system, representing real-time physical movements and user engagement during therapy sessions.
 
-This interaction is consistent with the study’s objective of enabling patients to perform exercises in an immersive environment while receiving guidance and monitoring support .
+This interaction is consistent with the study’s objective of enabling patients to perform exercises in an immersive environment while receiving guidance and monitoring support.
 
 ### **2\. System Input and Interface Layer**
 
@@ -545,11 +543,7 @@ The processing layer serves as the computational core of the framework. It inclu
 * Gamification mechanisms for engagement  
 * Adherence monitoring for session completion
 
-At this stage, the system analyzes the patient’s movements and determines whether the exercises are performed correctly. This aligns with the study’s focus on evaluating motion tracking accuracy and adherence monitoring functionality .
-
-### 
-
-### 
+At this stage, the system analyzes the patient’s movements and determines whether the exercises are performed correctly. This aligns with the study’s focus on evaluating motion tracking accuracy and adherence monitoring functionality.
 
 ### **4\. Feedback and Response Layer**
 
@@ -559,7 +553,7 @@ After processing, the system generates real-time feedback to guide the patient. 
 * Auditory feedback (instructions and encouragement)  
 * Motivational feedback (rewards, progress indicators)
 
-This feedback loop is critical because it allows the patient to immediately adjust their movements, supporting motor learning and improving exercise accuracy. The presence of continuous feedback distinguishes this framework from traditional linear models and reflects the importance of real-time guidance in rehabilitation .
+This feedback loop is critical because it allows the patient to immediately adjust their movements, supporting motor learning and improving exercise accuracy. The presence of continuous feedback distinguishes this framework from traditional linear models and reflects the importance of real-time guidance in rehabilitation.
 
 ### **5\. Output and Presentation Layer**
 
@@ -569,9 +563,7 @@ The system produces outputs that are accessible to both patients and physical th
 * Adherence reports (session completion and consistency)  
 * Progress tracking and achievements
 
-These outputs provide measurable data that can be used to evaluate the effectiveness of the rehabilitation process and support clinical decision-making.
-
-### 
+These outputs provide measurable data that can be used to evaluate the effectiveness of the rehabilitation process and inform the therapist’s own decisions.
 
 ### **6\. Physical Therapist Interaction**
 
@@ -582,7 +574,7 @@ The physical therapist interacts with the system through a monitoring dashboard.
 * Reviewing system-generated reports  
 * Adjusting therapy plans based on results
 
-This interaction ensures that the system supports clinical supervision without requiring constant physical presence, addressing the problem of limited supervision identified in the study .
+This interaction ensures that the system supports clinical supervision without requiring constant physical presence, addressing the problem of limited supervision identified in the study.
 
 ### **7\. User Experience (UX) Principles**
 
@@ -594,7 +586,7 @@ The framework incorporates key user experience principles, including:
 * Feedback clarity  
 * Data privacy and trust
 
-These principles guide the design of the system to ensure that it is easy to use, motivating, and suitable for both patients and therapists. This aligns with the study’s evaluation criteria on usability and user satisfaction .
+These principles guide the design of the system to ensure that it is easy to use, motivating, and suitable for both patients and therapists. This aligns with the study’s evaluation criteria on usability.
 
 ### **8\. Outcomes and Scope Boundaries**
 
@@ -619,7 +611,7 @@ This distinction ensures that the study remains focused on evaluating the system
 
 ## **3.3 Software Development Methodology**
 
-The development of the TheraQuest VR system follows the **Iterative Incremental Model**, a software development methodology in which the system is developed through repeated cycles and divided into smaller functional parts. This approach is appropriate for the study because the system consists of several interconnected modules, including the VR Environment, Motion Tracking, Exercise Evaluation, Feedback Generation, Gamification, and Adherence Monitoring modules. Instead of developing the entire system in a single process, each module is planned, designed, implemented, tested, evaluated, and improved until it becomes part of the complete rehabilitation system.
+The development of the TheraQuest VR system follows the **Iterative-Incremental Model**, a software development methodology in which the system is developed through repeated cycles and divided into smaller functional parts. This approach is appropriate for the study because the system consists of several interconnected modules, including the VR Environment, Motion Tracking, Exercise Evaluation, Feedback Generation, Gamification, and Adherence Monitoring modules. Instead of developing the entire system in a single process, each module is planned, designed, implemented, tested, evaluated, and improved until it becomes part of the complete rehabilitation system.
 
 This methodology allows the researchers to gradually build the system while continuously identifying errors, applying improvements, and refining features based on testing results and user feedback. It is suitable for the TheraQuest VR system because VR interaction, motion tracking, feedback delivery, and adherence monitoring require repeated testing and adjustment to ensure accuracy, responsiveness, usability, and reliability.
 
@@ -629,7 +621,7 @@ This methodology allows the researchers to gradually build the system while cont
 
 ### **Initial Planning Phase**
 
-### The Initial Planning Phase establishes the preliminary conceptualization, scope, and feasibility of the TheraQuest VR system prior to entering iterative development. During this stage, the researchers define the core research problem—low patient adherence and the absence of objective real-time supervision in physical therapy. Project milestones, hardware capabilities (e.g., standalone VR HMDs, external camera sensors), target patient demographics, and clinical collaboration protocols with licensed physical therapists are established to set the project's strategic foundation.
+The Initial Planning Phase establishes the preliminary conceptualization, scope, and feasibility of the TheraQuest VR system prior to entering iterative development. During this stage, the researchers define the core research problem—low patient adherence and the absence of objective real-time supervision in physical therapy. Project milestones, hardware capabilities (e.g., standalone VR HMDs, external camera sensors), target patient demographics, and clinical collaboration protocols with licensed physical therapists are established to set the project's strategic foundation.
 
 ### **Planning Phase**
 
@@ -653,9 +645,9 @@ The Testing Phase systematically verifies that each newly developed increment op
 
 ### **Evaluation Phase**
 
-The Evaluation Phase assesses the working increment against predefined technical, usability, and clinical benchmarks. Motion classification performance is evaluated using a confusion matrix (accuracy, precision, recall, and F1-score). Usability, interface learnability, and user satisfaction are measured using the System Usability Scale (SUS) and structured observation checklists. In addition, licensed physical therapists evaluate the clinical relevance, clarity, and utility of generated adherence and performance reports. Findings and user feedback from this phase directly feed back into the next iteration's Planning Phase for progressive enhancement. 
+The Evaluation Phase assesses the working increment against predefined technical, usability, and clinical benchmarks. Motion classification performance is evaluated using a confusion matrix (accuracy, precision, recall, and F1-score). Usability and interface learnability are measured using the System Usability Scale (SUS). In addition, licensed physical therapists evaluate the clinical relevance, clarity, and utility of generated adherence and performance reports. Findings and user feedback from this phase directly feed back into the next iteration's Planning Phase for progressive enhancement. 
 
-### **Iteration (Iterate) Phase**
+### **Iteration Phase**
 
 The Iteration Phase represents the central control loop of the methodology, linking evaluation findings directly back into the subsequent planning cycle. In this phase, results obtained from testing and evaluation such as tracking inaccuracies, latency bottlenecks, usability feedback, or therapist recommendations are reviewed to assess whether the increment satisfies its acceptance criteria. If deficiencies are detected, or when advancing to develop the next planned system module (e.g., transitioning from basic VR environment building to integrating MediaPipe motion tracking, gamification mechanics, and adherence reporting), the system re-enters the cycle at the Planning Phase. This continuous loop repeats across planned increments until all functional modules are integrated, stable, and clinically verified.
 
@@ -675,17 +667,17 @@ The project timeline outlines the sequential phases involved in the development 
 
 **Figure 3.4.1.1** Project Gantt Timeline of the Development of the TheraQuest VR System
 
-During **January (Initial Planning Phase)**, the study establishes the preliminary conceptualization, scope, and feasibility of the TheraQuest VR system. This includes defining the core research problem, project milestones, hardware capabilities, target patient demographics, and clinical collaboration protocols with licensed physical therapists.
+During **January (Initial Planning Phase)**, the study established the preliminary conceptualization, scope, and feasibility of the TheraQuest VR system. This included defining the core research problem, project milestones, hardware capabilities, target patient demographics, and clinical collaboration protocols with licensed physical therapists.
 
-In **February (Planning Phase)**, the specific objectives, tasks, and deliverables for the development cycle are defined. The team determines which functional module or feature increment will be prioritized, sets technical milestones, schedules development sprints, and identifies technical constraints before active development begins.
+In **February (Planning Phase)**, the specific objectives, tasks, and deliverables for the development cycle were defined. The team determined which functional module or feature increment would be prioritized, set technical milestones, scheduled development sprints, and identified technical constraints before active development began.
 
-**March (Requirements Phase)** focuses on identifying, analyzing, and documenting the functional and non-functional requirements of the system. Functional requirements include markerless joint tracking, pose classification, exercise accuracy scoring, feedback delivery, and adherence tracking, while non-functional requirements cover responsiveness, latency, stability, and data privacy compliance.
+**March (Requirements Phase)** focused on identifying, analyzing, and documenting the functional and non-functional requirements of the system. Functional requirements included markerless joint tracking, pose classification, exercise accuracy scoring, feedback delivery, and adherence tracking, while non-functional requirements covered responsiveness, latency, stability, and data privacy compliance.
 
-**During April–May (Analysis & Design Phase)**, the specified requirements are translated into structural, computational, and architectural models. This includes designing the system's four-layer architecture, data flow diagrams, use case specifications, class diagrams, entity-relationship models, and the algorithms and database schemas needed to guide implementation.
+**During April–May (Analysis & Design Phase)**, the specified requirements were translated into structural, computational, and architectural models. This included designing the system's four-layer architecture, data flow diagrams, use case specifications, class diagrams, entity-relationship models, and the algorithms and database schemas needed to guide implementation.
 
-**In June–July (Implementation Phase)**, the technical construction of the designed models into working code takes place. Development begins with building the 3D therapeutic environment in Unity, followed by integrating computer vision scripts for motion tracking, exercise evaluation logic, corrective feedback overlays, gamification mechanics, and database logging services.
+**In June–July (Implementation Phase)**, the technical construction of the designed models into working code took place. Development began with building the 3D therapeutic environment in Unity, followed by integrating computer vision scripts for motion tracking, exercise evaluation logic, corrective feedback overlays, gamification mechanics, and database logging services.
 
-**August (Testing Phase)** involves systematically verifying that each developed increment operates accurately and interfaces correctly with existing modules. This includes functional verification, motion tracking latency and accuracy testing, corrective prompt validation, and database integrity checks, with identified defects isolated and debugged.
+**August (Testing Phase)** involved systematically verifying that each developed increment operated accurately and interfaced correctly with existing modules. This included functional verification, motion tracking latency and accuracy testing, corrective prompt validation, and database integrity checks, with identified defects isolated and debugged.
 
 **In September (Evaluation Phase)**, the working system is assessed against predefined technical, usability, and clinical benchmarks. Motion classification performance is evaluated using a confusion matrix, usability is measured through the System Usability Scale, and licensed physical therapists evaluate the clinical relevance and utility of the system's reports.
 
@@ -711,7 +703,7 @@ The system shall **provide real-time feedback to guide users during therapy sess
 
 The system shall **track user adherence and performance at the session level**, recording whether the prescribed rehabilitation exercises assigned by the physical therapist have been completed. This focuses on session completion rather than long-term behavioral tracking or frequency analysis.
 
-The system shall display progress and gamification elements, such as scores, rewards, and levels, to enhance user engagement and motivation. These elements reflect performance within a session and support interactive learning during rehabilitation exercises.
+The system shall **display progress and gamification elements**, such as scores, rewards, and levels, to enhance user engagement and motivation. These elements reflect performance within a session and support interactive learning during rehabilitation exercises.
 
 #### **Non-Functional Requirements**
 
@@ -729,7 +721,7 @@ The system should be **scalable and maintainable**, allowing future updates, fea
 
 ## **3.5 System Analysis**
 
-This section presents the system analysis of the proposed TheraQuest VR system, focusing on identifying and defining the system components, data structures, and functional interactions required to support virtual reality-based rehabilitation. It examines how user requirements are translated into system specifications, including the relationships between users, system processes, and data management. Through the use of modeling tools such as **Use Case diagrams**, **Entity Relationship diagrams (ERD)**, and **System Flowcharts**, this section provides a structured representation of how the system operates. The analysis serves as the foundation for system design and development, ensuring that all components are aligned with the objectives of motion tracking, feedback generation, and adherence monitoring within the rehabilitation process.
+This section presents the system analysis of the proposed TheraQuest VR system, focusing on identifying and defining the system components, data structures, and functional interactions required to support virtual reality-based rehabilitation. It examines how user requirements are translated into system specifications, including the relationships between users, system processes, and data management. Through the use of modeling tools such as **Use Case diagrams**, **Entity Relationship diagrams (ERD)**, and **Data Flow diagrams (DFD)**, this section provides a structured representation of how the system operates. The analysis serves as the foundation for system design and development, ensuring that all components are aligned with the objectives of motion tracking, feedback generation, and adherence monitoring within the rehabilitation process.
 
 ### **3.5.1 Use Case Diagram**
 
@@ -781,9 +773,13 @@ Within this context, the diagram identifies the **external entities** that inter
 
 The diagram also illustrates the **major data flows** between these external entities and the system. These data flows represent the movement of information into and out of the system, emphasizing what type of data is exchanged rather than how it is processed. For example, movement data flows from the patient to the system, while feedback flows back to the patient. Similarly, rehabilitation parameters flow from the therapist into the system, and performance or adherence reports flow back to the therapist. By focusing only on these high-level exchanges, the Level 0 DFD provides a clear and simplified view of how the system interacts with its environment, without introducing the complexity of internal operations.
 
-#### **B. LEVEL 1 DFD**
+#### **B. Level 1 DFD**
 
-The **Level 1 Data Flow Diagram** expands the Context Diagram by decomposing the TheraQuest VR system into its major internal processes to show how data is handled within the system rather than only between external entities. Unlike the Level 0 view, which represents the system as a single process, this level illustrates how user inputs are processed through key functions such as motion tracking, exercise evaluation, feedback generation, and adherence monitoring, allowing a clearer understanding of how raw movement data is transformed into meaningful outputs like real-time feedback and performance results. It also introduces the system’s database as a central data store where user records, session data, performance metrics, and adherence information are saved and retrieved as needed. External entities such as the patient and physical therapist remain part of the diagram, but their interactions are now linked to specific processes, showing how patient movements flow into the system and how feedback is returned, while therapists provide rehabilitation parameters and receive generated reports. This level of representation provides a more detailed view of system behavior and clarifies how each functional component contributes to the overall data flow and system operation.
+The **Level 1 Data Flow Diagram** expands the Context Diagram by decomposing the TheraQuest VR system into its major internal processes to show how data is handled within the system rather than only between external entities. Unlike the Level 0 view, which represents the system as a single process, this level illustrates how user inputs are processed through key functions such as motion tracking, exercise evaluation, feedback generation, and adherence monitoring, allowing a clearer understanding of how raw movement data is transformed into meaningful outputs like real-time feedback and performance results.
+
+It also introduces the system’s database as a central data store where user records, session data, performance metrics, and adherence information are saved and retrieved as needed. External entities such as the patient and physical therapist remain part of the diagram, but their interactions are now linked to specific processes, showing how patient movements flow into the system and how feedback is returned, while therapists provide rehabilitation parameters and receive generated reports.
+
+This level of representation provides a more detailed view of system behavior and clarifies how each functional component contributes to the overall data flow and system operation.
 
 ![][image7]
 
@@ -805,9 +801,9 @@ System design and architecture present the overall structure, organization, and 
 
 The system flowchart illustrates the step-by-step processes involved in the operation of the TheraQuest VR system. It shows the sequence of user interactions from system access to exercise execution, motion tracking, evaluation, feedback generation, and session completion. This provides a clear view of how inputs are processed into outputs and ensures that the system workflow is organized and aligned with its functional requirements.
 
-**Figure 3.6.1.1** System Flowchart of the TheraQuest VR
+**Figure 3.6.1.1** System Flowchart of the TheraQuest VR System
 
-The system flowchart illustrates the overall operational process of the **TheraQuest VR system**, beginning from user login and continuing through two possible user paths: the **Patient workflow** and the **Physical Therapist workflow**. It shows how the system manages authentication, rehabilitation exercise execution, motion analysis, feedback generation, adherence recording, and therapist monitoring.
+The flowchart begins at user login and continues through two possible user paths: the **Patient workflow** and the **Physical Therapist workflow**. It shows how the system manages authentication, rehabilitation exercise execution, motion analysis, feedback generation, adherence recording, and therapist monitoring.
 
 The process begins when the user starts the system and proceeds to the **Log In** step. After entering login details, the system validates the user’s credentials to confirm access. Once validated, the system determines whether the user is a **Patient** or a **Physical Therapist**. This decision point separates the system into two major workflows based on the role of the authenticated user.
 
@@ -829,21 +825,21 @@ The system architecture presents the structural organization of the TheraQuest V
 
 **Figure 3.6.2.1** Four-Layer System Architecture of the TheraQuest VR System
 
-The system architecture diagram presents the TheraQuest VR system as a four layer structure that illustrates how system components interact to support rehabilitation processes. The layers are arranged vertically to show the flow of data and functionality, from user interaction at the top to data storage at the bottom.
+The system architecture diagram presents the TheraQuest VR system as a four-layer structure that illustrates how system components interact to support rehabilitation processes. The layers are arranged vertically to show the flow of data and functionality, from user interaction at the top to data storage at the bottom.
 
 The **Presentation Layer** represents the user interface of the system, where both the patient and the physical therapist interact with the platform. It includes the VR Environment, which delivers immersive rehabilitation exercises, the Gamification module, which displays scores, rewards, and progress indicators, and the Therapist Dashboard, which provides access to reports, monitoring tools, and system configuration.
 
 The **Application Layer** serves as the control and coordination layer of the system. It manages user authentication to ensure secure access, session management to handle the start and tracking of rehabilitation activities, and program management to assign and configure exercises based on the therapist’s plan.
 
-The **Processing Layer** functions as the core of the system, where movement data is analyzed and evaluated. The Motion Tracking module captures and interprets body movements in real time, which are then assessed by the Exercise Evaluation module to determine accuracy. Based on the results, the system generates real time feedback through the Feedback module and records session completion through the Adherence Monitoring module.
+The **Processing Layer** functions as the core of the system, where movement data is analyzed and evaluated. The Motion Tracking module captures and interprets body movements in real time, which are then assessed by the Exercise Evaluation module to determine accuracy. Based on the results, the system generates real-time feedback through the Feedback module and records session completion through the Adherence Monitoring module.
 
-The **Data Layer** is responsible for storing and organizing all system data. It includes patient and session information, performance results, adherence records, and rehabilitation programs. This data supports progress tracking, report generation, and therapist decision making.
+The **Data Layer** is responsible for storing and organizing all system data. It includes patient and session information, performance results, adherence records, and rehabilitation programs. This data supports progress tracking, report generation, and therapist decision-making.
 
 Overall, the architecture highlights how each layer works together to deliver a continuous flow of interaction, processing, feedback, and monitoring within the TheraQuest VR system.
 
 ### **3.6.3 System Components and Functional Modules**
 
-The TheraQuest VR system consists of six core functional modules: VR Environment, Motion Tracking, Exercise Evaluation, Feedback Generation, Gamification, and Adherence Monitoring. These modules work together as interconnected components to support the rehabilitation process by capturing user input, analyzing movements, generating feedback, and recording performance data. Each module performs a specific function, contributing to accurate motion tracking, real time feedback, user engagement, and session level adherence monitoring, forming the core operation of the system.
+The TheraQuest VR system consists of six core functional modules: VR Environment, Motion Tracking, Exercise Evaluation, Feedback Generation, Gamification, and Adherence Monitoring. These modules work together as interconnected components to support the rehabilitation process by capturing user input, analyzing movements, generating feedback, and recording performance data. Each module performs a specific function, contributing to accurate motion tracking, real-time feedback, user engagement, and session-level adherence monitoring, forming the core operation of the system.
 
 #### **VR Environment Module**
 
@@ -939,11 +935,11 @@ An **adequate physical space** is required to ensure safe and effective use of t
 
 The development of the system utilizes the **Unity engine**, which serves as the primary platform for building the VR environment. Unity supports the creation of interactive 3D applications and enables integration with VR hardware, making it suitable for developing immersive rehabilitation scenarios.
 
-For motion tracking and analysis, the system uses computer vision libraries such as **OpenCV** or **MediaPipe,** or any similar libraries. These tools provide functionalities for detecting and interpreting human body movements, including pose estimation and gesture recognition, which are essential for evaluating exercise accuracy.
+For motion tracking and analysis, the system uses computer vision libraries such as **OpenCV** or **MediaPipe**, or any similar libraries. These tools provide functionalities for detecting and interpreting human body movements, including pose estimation and gesture recognition, which are essential for evaluating exercise accuracy.
 
-Programming languages such as **C\#** and **Python** is used in system development. **C\#** is primarily used within Unity for implementing system logic, user interaction, and gamification features, while Python is used for computer vision processing and integration of motion tracking algorithms.
+Programming languages such as **C\#** and **Python** are used in system development. **C\#** is primarily used within Unity for implementing system logic, user interaction, and gamification features, while Python is used for computer vision processing and integration of motion tracking algorithms.
 
-A **database system** is required to store and manage system data, including patient information, session records, performance metrics, and adherence results. The database ensures that data is securely stored and can be retrieved efficiently by the system, particularly for monitoring and reporting purposes by physical therapist.
+A **database system** is required to store and manage system data, including patient information, session records, performance metrics, and adherence results. The database ensures that data is securely stored and can be retrieved efficiently by the system, particularly for monitoring and reporting purposes by the physical therapist.
 
 ### **3.7.2 Class Diagram**
 
@@ -991,7 +987,7 @@ The testing process also includes debugging and error correction. During this st
 
 This section presents the procedures used to evaluate the **TheraQuest VR** system after development and implementation. The evaluation focuses on determining the system’s usability, motion tracking accuracy, adherence monitoring functionality, and relevance as a rehabilitation support tool. It involves healthy volunteers for system testing and refinement, physical therapy patients for final usability testing, and licensed physical therapists for expert evaluation of the system-generated adherence reports and performance summaries.
 
-Data are gathered through system-generated records, observation checklists, usability questionnaires, and expert evaluation forms. These data include motion tracking results, exercise performance, session completion status, adherence records, and feedback outputs. Overall, this section ensures that the system is evaluated in a structured, safe, and ethical manner based on both technical performance and user-centered assessment.
+Data are gathered through system-generated records, the System Usability Scale, and expert evaluation forms. These data include motion tracking results, exercise performance, session completion status, adherence records, and feedback outputs. Overall, this section ensures that the system is evaluated in a structured, safe, and ethical manner based on both technical performance and user-centered assessment.
 
 ### **3.8.1 Research Locale**
 
@@ -1007,15 +1003,15 @@ Overall, the selected research locale provides a controlled and clinically relev
 
 ### **3.8.2 Research Participants**
 
-The participants of the study consist of three groups: physical therapy patients, healthy volunteers, and licensed physical therapists (PT doctors). These participants are selected using purposive sampling based on their relevance to the study and their ability to interact with or evaluate the system.
+The participants of the study consist of three groups: physical therapy patients, healthy volunteers, and licensed physical therapists. These participants are selected using purposive sampling based on their relevance to the study and their ability to interact with or evaluate the system.
 
 A total of **5 to 10 physical therapy patients** will participate in the study. Their involvement is limited to the final system testing and evaluation phase to ensure that participation does not interfere with their ongoing or future rehabilitation. During this phase, patients will use the system to perform prescribed exercises, allowing the researchers to assess usability, safety, and system effectiveness in a real rehabilitation setting.
 
 In addition, **5 to 10 healthy volunteers** will be involved during the development and testing phases of the system. These participants will assist in the iterative refinement of the system by performing simulated rehabilitation exercises and providing feedback on usability, interaction, and responsiveness. They are selected based on their ability to perform motor movements aligned with the required rehabilitation exercises, enabling accurate testing of motion tracking, feedback mechanisms, and overall system functionality without risking patient safety.
 
-Furthermore, **3 to 5 licensed physical therapists (PT doctors)** will participate as expert evaluators. They will assess the usefulness, effectiveness, and clinical relevance of the system, particularly the adherence monitoring component. PT doctors will review system-generated outputs such as adherence reports and performance summaries to determine whether the system provides accurate and meaningful data that can support rehabilitation monitoring and clinical decision-making.
+Furthermore, **3 to 5 licensed physical therapists** will participate as expert evaluators. They will assess the usefulness, effectiveness, and clinical relevance of the system, particularly the adherence monitoring component. The therapists will review system-generated outputs such as adherence reports and performance summaries to determine whether the system provides accurate and meaningful data that can support rehabilitation monitoring and clinical decision-making.
 
-The inclusion of these participant groups ensures a comprehensive evaluation of the system. Healthy volunteers contribute to system development and technical validation, physical therapy patients provide real-world usability testing, and PT doctors offer expert assessment of the system’s clinical applicability and effectiveness.
+The inclusion of these participant groups ensures a comprehensive evaluation of the system. Healthy volunteers contribute to system development and technical validation, physical therapy patients provide real-world usability testing, and licensed physical therapists offer expert assessment of the system’s clinical applicability and effectiveness.
 
 ### **3.8.3 Research Instrument**
 
@@ -1059,11 +1055,10 @@ First, participants are given an **orientation session**, where they are introdu
 
 Following the orientation, participants proceed to **perform VR-based rehabilitation exercises** using the system. During this phase, they interact with the virtual environment while executing prescribed movements.
 
-While the participants are performing the tasks, the system automatically **records performance data**, including motion tracking accuracy, movement evaluation results, and adherence monitoring outputs. At the same time, researchers utilize an observation checklist to monitor user interaction and note any usability issues or behavioral responses.
+While the participants are performing the tasks, the system automatically **records performance data**, including motion tracking accuracy, movement evaluation results, and adherence monitoring outputs.
+After completing the session, participants are asked to **answer the System Usability Scale (SUS) questionnaire** to evaluate their experience with the system.
 
-After completing the session, participants are asked to **answer the survey questionnaires**, including the System Usability Scale (SUS) and the user feedback questionnaire, to evaluate their experience with the system.
-
-Finally, all collected data, including system-generated logs, observation records, and questionnaire responses are compiled for analysis to assess the system’s accuracy, usability, and the functionality and relevance of its adherence monitoring component.
+Finally, all collected data, including system-generated logs and questionnaire responses are compiled for analysis to assess the system’s accuracy, usability, and the functionality and relevance of its adherence monitoring component.
 
 ## **3.9 Data Analysis**
 
