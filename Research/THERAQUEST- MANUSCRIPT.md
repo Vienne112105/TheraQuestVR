@@ -24,7 +24,7 @@
 
 [1.1    Background of the Study	1](#1.1-background-of-the-study)
 
-[1.2    Statement of the Problem](#heading=h.5w2vrzq7y3aj)	5
+[1.2    Statement of the Problem](#1.2-statement-of-the-problem)	5
 
 [1.3    Objectives of the Study](#1.3-objectives-of-the-study)	7
 
@@ -186,17 +186,17 @@
 
 ##  **1.1    Background of the Study** {#1.1-background-of-the-study}
 
-		 Post-surgical recovery, neurological disorders, and musculoskeletal injuries are some of the conditions for which physical therapy rehabilitation is a cornerstone of recovery. The effectiveness of such rehabilitation programs is dependent on patient adherence to prescribed exercise regimens, especially home exercise programs. However, many studies have reported persistently low patient adherence to home exercise programs, with recent evidence indicating that only about 43% of patients fully adhere to prescribed physical therapy programs (Shahidi et al., 2022). Some of the frequently cited barriers to adherence to home exercise programs include lack of supervision, absence of in-the-moment corrective feedback, and repeating exercise content and processes. Without appropriate guidance, patients can perform exercises incorrectly, which might lead to reinjury or delay recovery.
+		 Post-surgical recovery, neurological disorders, and musculoskeletal injuries are some of the conditions for which physical therapy rehabilitation is a cornerstone of recovery. The effectiveness of such rehabilitation programs is dependent on patient adherence to prescribed exercise regimens, especially home exercise programs. However, many studies have reported persistently low patient adherence to home exercise programs, with recent evidence indicating that only about 43% of patients fully adhere to prescribed physical therapy programs (Shahidi et al., 2022). Frequently cited barriers to adherence to home exercise programs include lack of supervision, absence of in-the-moment corrective feedback, and repetitive exercise content. Without appropriate guidance, patients can perform exercises incorrectly, which might lead to reinjury or delay recovery.
 
-To address accessibility and monitoring, digital health tools, including mobile health (mHealth) apps, have been developed to offer instructional, educational, and reminder services, as well as tools for logging training progress. However, although simplifying access, such tools lack direct real-time or even interactive supervision, thus making patients lose interest and reducing long-term adherence in their rehabilitation process.
+To address accessibility and monitoring, digital health tools, including mobile health (mHealth) apps, have been developed to offer instructional, educational, and reminder services, as well as tools for logging training progress. However, although these tools make access easier, they lack real-time, interactive supervision, so patients may lose interest and long-term adherence to their rehabilitation may decline.
 
-The latest progress in VR technology has created many new doors for rehabilitation. VR technology enables the development of immersive, computer-generated worlds, vastly improving the patients’ engagement in the therapy and allowing for guided, controlled, and repeatable therapeutic settings. Recent studies report that VR-based rehabilitation increases motivation and enjoyment while decreasing perceived pain and fatigue, and these positive experiences during the therapy may contribute to greater adherence to the treatment program (Laver et al., 2017).
+Recent progress in VR technology has opened new possibilities for rehabilitation. VR technology enables the development of immersive, computer-generated worlds that can improve patients’ engagement in therapy and allow for guided, controlled, and repeatable therapeutic settings. Such engaging experiences during therapy may increase motivation and enjoyment, which may in turn contribute to greater adherence to the treatment program.
 
-However, it is not enough to have patients immersed and engaged if their movements cannot be monitored and quantified in real time. Recent studies have demonstrated that computer vision-based systems can objectively monitor and classify rehabilitation exercises through real-time motion tracking and machine learning techniques (Arrowsmith et al., 2023). This study presents a computer vision-based motion-tracking framework for markerless, noninvasive, real-time, 3D posture and movement tracking of a patient directly within an HMD-based VR system. This approach is particularly well-suited for tracking physical rehabilitation exercises in the home because it requires no special devices or clothing and no optical markers that would occlude the patient’s view of his/her own body.
+However, it is not enough to have patients immersed and engaged if their movements cannot be monitored and quantified in real time. Recent studies have demonstrated that computer vision-based systems can objectively monitor and classify rehabilitation exercises through real-time motion tracking and machine learning techniques (Arrowsmith et al., 2023). This study presents a computer vision-based motion-tracking framework for markerless, noninvasive, real-time, 3D posture and movement tracking of a patient directly within an HMD-based VR system. This approach is particularly well-suited for tracking physical rehabilitation exercises in the home because it requires no special devices or clothing, and no markers or wearable sensors on the patient’s body.
 
-Also, research has shown that incorporating these types of game elements provides continual feedback in these systems and establishes movement goals, likely to be met, and performance rewards in the context of those goals. (Sardi, Idri, & Fernández-Alemán, 2017). These features help to positively reinforce the motor behavior goals intended by the user's therapist.
+Research has also shown that incorporating game elements into such systems provides continual feedback, sets achievable movement goals, and rewards performance in the context of those goals (Sardi, Idri, & Fernández-Alemán, 2017). These features help to positively reinforce the motor behavior goals intended by the user's therapist.
 
-Although there is more and more research about VR and rehab, there is a big gap in the availability of fully integrated systems, including both immersive VR, engaging game mechanics, real-time computer-vision motion tracking, and adherence monitoring functionalities in one solution. Most systems focus on immersion or tracking, and they do not include the levels of integrated performance analytics necessary to make them useful for both therapists and patients.
+Although research on VR rehabilitation is growing, fully integrated systems that combine immersive VR, engaging game mechanics, real-time computer vision motion tracking, and adherence monitoring in one solution remain scarce. Most systems focus on either immersion or tracking and do not include the integrated performance analytics needed to make them useful to both therapists and patients.
 
 The importance of this study is further strengthened by its alignment with the institutional and developmental priorities of Caraga State University. CSU’s LIKHA Summit 2025 frames research and innovation around the theme **“Innovating for a Sustainable Future: Research, Development, Innovation, and Extension in Practice,”** emphasizing the practical application of research, the creation of meaningful solutions, digital transformation, and the translation of knowledge into actionable outcomes. The Summit also highlights computing, engineering, and health sciences as relevant areas for impactful and interdisciplinary innovation. In this regard, TheraQuest VR directly aligns with the LIKHA agenda because it applies computing and immersive technology to address a real health-related problem through a functional and evaluable system.
 
@@ -206,17 +206,19 @@ Moreover, CSU’s 2026–2028 research roadmap emphasizes aligning university re
 
 Hence, this study presents the design, development, and evaluation of TheraQuest VR, a gamified Virtual Reality-based physical therapy system that integrates real-time computer vision motion tracking and adherence monitoring. Beyond addressing a documented rehabilitation problem, the study also reflects CSU’s emphasis on innovation, sustainability, and research with practical value. Through this alignment, TheraQuest VR positions itself not only as a technological solution for physical therapy support but also as a meaningful academic contribution to health innovation and sustainable development.  
 
+## **1.2    Statement of the Problem** {#1.2-statement-of-the-problem}
+
 Patient adherence to home-based physical therapy remains a persistent challenge despite advancements in digital health technologies. The absence of real-time supervision and corrective feedback contributes to inconsistent therapy participation and improper execution of rehabilitation exercises. These limitations may delay patient recovery and reduce treatment effectiveness, as adherence to rehabilitation programs continues to be a major concern in clinical practice (Shahidi et al., 2022).
 
-The lack of these enabling technologies restricts the overall effectiveness of VR-based rehabilitation systems, as current applications provide limited exercise guidance and insufficient monitoring of patient motivation, participation, and exercise performance.
+The lack of real-time supervision, corrective feedback, and integrated monitoring also restricts the overall effectiveness of VR-based rehabilitation systems, as current applications provide limited exercise guidance and insufficient monitoring of patient motivation, participation, and exercise performance.
 
-This study addresses these gaps through the design, development, and evaluation of TheraQuest VR, the study aims to:
+This study addresses these gaps through the design, development, and evaluation of TheraQuest VR. Specifically, the study aims to:
 
 1. Design and develop a gamified VR-based rehabilitation system integrated with real-time computer vision motion tracking to support adherence monitoring and patient compliance tracking.  
 2. Evaluate the accuracy of the system in analyzing patient exercise performance and providing real-time feedback using computer vision-based human motion tracking.  
 3. Assess the effectiveness of the system in monitoring rehabilitation adherence and generating meaningful progress analytics for both patients and clinicians.  
-4. Determine the level of usability, functionality, and overall user satisfaction of the TheraQuest VR system among its intended users.  
-5. Examine the impact of integrating immersive VR, gamification, and computer vision-based feedback on adherence monitoring compared to conventional rehabilitation methods.
+4. Determine the level of usability and functionality of the TheraQuest VR system among its intended users.  
+5. Examine how integrating immersive VR, gamification, and computer vision-based feedback in one system supports adherence monitoring.
 
 These objectives guide the development and evaluation of TheraQuest VR as an integrated rehabilitation support system.
 
@@ -224,15 +226,15 @@ These objectives guide the development and evaluation of TheraQuest VR as an int
 
 To design, develop, and evaluate **TheraQuest VR**, a gamified Virtual Reality-based physical therapy system that integrates real-time computer vision motion tracking and adherence monitoring to support rehabilitation monitoring and improve exercise accuracy.
 
-The study specifically aims to:
+The specific objectives of the study are:
 
 1. **To design and develop** an immersive Virtual Reality rehabilitation application that provides structured therapeutic exercise environments aligned with prescribed physical therapy protocols.  
 2. **To implement** a real-time computer vision-based human motion tracking module capable of analyzing joint movements, posture alignment, and exercise execution accuracy without the use of wearable sensors.  
 3. **To integrate** gamification mechanics, including points, levels, rewards, performance scores, and achievement systems, to enhance patient motivation and sustained participation.  
 4. **To evaluate** the developed system based on:  
-   1. ○ Motion tracking accuracy,  
-   2. ○ Functionality and Relevance of an Adherence Monitoring System  
-   3. ○ System usability (e.g., SUS or ISO 25010 usability criteria)
+   1. Motion tracking accuracy;  
+   2. Functionality and relevance of the adherence monitoring system; and  
+   3. System usability, measured with the System Usability Scale (SUS).
 
 ## **1.4    Significance of the Study** {#1.4-significance-of-the-study}
 
@@ -262,9 +264,9 @@ The study’s scope includes:
 
 **3\. Computer Vision Motion Tracking:** Real-time tracking of human movements using markerless computer vision to provide corrective feedback and measure exercise accuracy.
 
-**4\. Wellness Monitoring and Analytics:** Development of an adherence monitoring and performance analytics backend system that records exercise completion rates, movement accuracy scores, and session frequency, and generates structured progress reports for patients and clinicians.
+**4\. Adherence Monitoring and Analytics:** Development of an adherence monitoring and performance analytics backend system that records exercise completion rates, movement accuracy scores, and session frequency, and generates structured progress reports for patients and clinicians.
 
-**5\. Pilot Evaluation:** Conducting user testing within a defined timeframe to assess usability, engagement, adherence improvement, and overall system effectiveness.
+**5\. Pilot Evaluation:** Conducting user testing within a defined timeframe to assess usability, engagement, the system's support for adherence monitoring, and overall system effectiveness.
 
 **6\. Participants:** Evaluation will involve a selected group of physical therapy patients and/or healthy volunteers within a specific geographical location.
 
@@ -275,12 +277,10 @@ The study is subject to the following constraints:
 1. **Hardware Dependency:** System operation requires specific VR hardware, such as standalone VR headsets like the Meta Quest, which may limit accessibility for some users who do not have access to such devices.  
 2. **Motion Tracking Accuracy:** The precision of computer vision motion tracking depends on consumer-level VR cameras and may not achieve the same level of accuracy as clinical motion capture systems used in professional rehabilitation settings.  
 3. **Limited Exercise Scope:** Due to development time and resource constraints, the prototype includes only a limited set of rehabilitation exercises and gamification features, which may not fully represent all types of physical therapy programs.  
-4. **Sample Size:** The evaluation phase involves a limited number of participants, which may affect the reliability and generalizability of the study results across a broader population.  
+4. **Sample Size:** The evaluation phase will involve a limited number of participants, which may affect the reliability and generalizability of the study results across a broader population.  
 5. **Supplementary Tool:** The TheraQuest VR system is designed to support rehabilitation and improve adherence to prescribed exercises. It is not intended to replace professional diagnosis, treatment planning, or direct supervision by a licensed physical therapist, and should be considered only as a supplementary or alternative support tool.  
 6. **Environmental Constraints:** The effectiveness of the system may be influenced by external factors such as available physical space, lighting conditions, and environmental setup, which can affect both motion tracking accuracy and user experience.  
 7. **Scope of Clinical Application:** The testing and evaluation conducted in this study are limited to rehabilitation activities under the field of Orthopedic Physical Therapy. As such, the findings may not be directly applicable to other areas of physical therapy, such as neurological or cardiopulmonary rehabilitation.
-
-### 
 
 ## **1.6 Definition of Terms**
 
@@ -300,7 +300,7 @@ The extent to which a patient performs prescribed physical therapy exercises as 
 The process of tracking and recording whether patients perform their assigned rehabilitation sessions. In this study, it refers to the system’s monitoring of session completion and participation.
 
 **TheraQuest VR:**  
-The gamified virtual reality-based rehabilitation system was developed in this study. It integrates immersive exercise environments, motion tracking, real-time feedback, and adherence monitoring.
+The gamified virtual reality-based rehabilitation system developed in this study. It integrates immersive exercise environments, motion tracking, real-time feedback, and adherence monitoring.
 
 **Computer Vision:**  
 A field of computing that enables a system to detect and analyze visual information from images or video. In this study, it is used to interpret patient movements during rehabilitation exercises.
@@ -321,19 +321,19 @@ The degree to which a rehabilitation exercise is performed correctly based on pr
 The proper positioning of body parts during exercise performance. In this study, it refers to the alignment assessed by the system during rehabilitation tasks.
 
 **Performance Metrics:**  
-Quantitative data generated by the system, such as accuracy scores and session results, are used to evaluate patient performance.
+Quantitative data generated by the system, such as accuracy scores and session results, that are used to evaluate patient performance.
 
 **Performance Analytics:**  
-Organized and interpreted performance data used to monitor rehabilitation progress over time. This study, it includes adherence, exercise accuracy, and session outcomes.
+Organized and interpreted performance data used to monitor rehabilitation progress over time. In this study, it includes adherence, exercise accuracy, and session outcomes.
 
 **Adherence Report:**  
 A summary of a patient’s session completion and performance data used by the therapist for monitoring and evaluation.
 
 **Immersive Rehabilitation Environment:**  
-A virtual therapeutic space where patients perform guided rehabilitation exercises. In this study, the exercise setting refers to the one within TheraQuest VR.
+A virtual therapeutic space where patients perform guided rehabilitation exercises. In this study, it refers to the exercise setting within TheraQuest VR.
 
 **User Engagement:**  
-The level of attention, interest, and participation shown by the user while interacting with the system. This study, it reflects patient involvement during rehabilitation sessions.
+The level of attention, interest, and participation shown by the user while interacting with the system. In this study, it reflects patient involvement during rehabilitation sessions.
 
 **System Usability:**  
 The degree to which the system is easy to learn and use. In this study, it refers to how effectively users can operate TheraQuest VR.
@@ -348,13 +348,13 @@ The degree to which the adherence monitoring feature is useful and appropriate f
 The observation and evaluation of patient activity through recorded digital data without requiring constant physical presence. In this study, it refers to the therapist's review of adherence and performance records.
 
 **Orthopedic Physical Therapy:**  
-A branch of physical therapy focused on the treatment of musculoskeletal conditions involving muscles, joints, ligaments, and bones. This study, it defines the clinical scope of the rehabilitation exercises.
+A branch of physical therapy focused on the treatment of musculoskeletal conditions involving muscles, joints, ligaments, and bones. In this study, it defines the clinical scope of the rehabilitation exercises.
 
 **Home-Based Physical Therapy:**  
-A rehabilitation approach in which therapeutic exercises are performed outside the clinic, usually at home. In this study, the setting refers to where adherence challenges commonly occur.
+A rehabilitation approach in which therapeutic exercises are performed outside the clinic, usually at home. In this study, it refers to the setting where adherence challenges commonly occur.
 
 **Rehabilitation Support System:**  
-A technology-based tool designed to assist in conducting, monitoring, and improving rehabilitation activities. In this study, it refers to TheraQuest VR is referred to as a supplementary tool for exercise guidance, performance evaluation, and adherence tracking. 
+A technology-based tool designed to assist in conducting, monitoring, and improving rehabilitation activities. In this study, it refers to TheraQuest VR as a supplementary tool for exercise guidance, performance evaluation, and adherence tracking. 
 
 # **CHAPTER 2\.  REVIEW OF RELATED LITERATURE** {#chapter-2.-review-of-related-literature}
 
