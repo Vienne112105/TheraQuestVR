@@ -60,25 +60,19 @@
 
 	2.2.4    Local Studies on Rehabilitation Adherence	34
 
+	2.2.5    System Feasibility of Virtual Reality in Physical Therapy and Rehabilitation
+
 2.3	Theoretical Framework	35
 
-	2.3.1     Technology Acceptance Model (TAM)	37
+	2.3.1    Motor Learning Theory   	41
 
-	2.3.2     Delone and McLean Information Systems Success Model	38
+	2.3.2    Feedback Intervention Theory (FIT)	42
 
-	2.3.3    Self-Determination Theory	40
+	2.3.3   Flow Theory	43
 
-	2.3.4    Motor Learning Theory   	41
-
-	2.3.5    Feedback Intervention Theory (FIT)	42
-
-	2.3.6   Flow Theory	43
-
-	2.3.7   Behavior Change Theory (COM-B Model)	44
+	2.3.4   Behavior Change Theory (COM-B Model)	44
 
 2.4	Synthesis and Gap Analysis	45
-
-	2.4.1    Research Gap and Study Positioning	48
 
 [**CHAPTER 3    METHODOLOGY**](#chapter-3-methodology)	53
 
@@ -146,11 +140,10 @@
 
 | Figure Label in Manuscript | Figure Title / Description |
 | ----- | ----- |
-| **Figure 2.3.1** | Self-Determination Theory Motivation Model |
-| **Figure 2.3.2** | Motor Learning Process in Rehabilitation |
-| **Figure 2.3.3** | Feedback Intervention Theory (FIT) |
-| **Figure 2.3.4** | Flow Theory |
-| **Figure 2.3.5** | Behavior Change Theory (COM-B Model) |
+| **Figure 2.3.1** | Motor Learning Process in Rehabilitation |
+| **Figure 2.3.2** | Feedback Intervention Theory (FIT) |
+| **Figure 2.3.3** | Flow Theory |
+| **Figure 2.3.4** | Behavior Change Theory (COM-B Model) |
 | **Figure 3.2.1** | TheraQuest VR: Human-Computer Interaction (HCI) Conceptual Framework |
 | **Figure 3.3.1** | Phases of the Iterative-Incremental Methodology |
 | **Figure 3.4.1.1** | Project Timeline of the TheraQuest VR System |
@@ -358,21 +351,21 @@ A technology-based tool designed to assist in conducting, monitoring, and improv
 
 # **CHAPTER 2\.  REVIEW OF RELATED LITERATURE** {#chapter-2.-review-of-related-literature}
 
-This chapter presents a comprehensive review of related literature and studies that establish the conceptual, theoretical, technological, and empirical foundation of the present research. It examines scholarly works on physical therapy rehabilitation, virtual reality, gamification, computer vision-based motion tracking, adherence monitoring, and integrated rehabilitation technologies that are relevant to the development of the proposed system. It also discusses the theoretical frameworks that support the study, particularly in relation to technology acceptance, system effectiveness, motivation, and motor learning. Through the analysis and synthesis of these sources, the chapter identifies prevailing trends, strengths, limitations, and research gaps in existing rehabilitation systems, thereby providing a clear basis for the design, development, and evaluation of **TheraQuest VR** as a gamified virtual reality-based physical therapy system with real-time motion tracking and adherence monitoring. 
+This chapter presents a comprehensive review of related literature and studies that establish the conceptual, theoretical, technological, and empirical foundation of the present research. It examines scholarly works on physical therapy rehabilitation, virtual reality, gamification, computer vision-based motion tracking, adherence monitoring, and integrated rehabilitation technologies that are relevant to the development of the proposed system. It also discusses the theoretical frameworks that support the study, particularly in relation to motor learning, feedback, engagement, and behavior change. Through the analysis and synthesis of these sources, the chapter identifies prevailing trends, strengths, limitations, and research gaps in existing rehabilitation systems, thereby providing a clear basis for the design, development, and evaluation of **TheraQuest VR** as a gamified virtual reality-based physical therapy system with real-time motion tracking and adherence monitoring. 
 
 ##  **2.1 Related Literature**  
 
-This section provides a comprehensive and in-depth discussion of existing concepts, principles, and technologies that are closely related to the study. It integrates and synthesizes relevant scholarly literature on physical therapy, virtual reality, gamification, computer vision, and adherence monitoring systems to establish a well-grounded understanding of the field. Through this review, the section highlights current developments, emerging trends, and practical applications of these technologies in rehabilitation contexts. Furthermore, it critically examines the limitations and gaps present in existing systems and studies, which serve as a basis for justifying the need for innovation. Overall, this section lays a strong theoretical and technological foundation that guides the design, development, and implementation of the proposed TheraQuest VR system.
+This section discusses existing concepts, principles, and technologies closely related to the study. It integrates and synthesizes relevant scholarly literature on physical therapy, virtual reality, gamification, computer vision, and adherence monitoring systems to establish a well-grounded understanding of the field. Through this review, the section highlights current developments, emerging trends, and practical applications of these technologies in rehabilitation contexts. Furthermore, it critically examines the limitations and gaps present in existing systems and studies, which serve as a basis for justifying the need for innovation. Overall, this section lays a strong theoretical and technological foundation that guides the design, development, and implementation of the proposed TheraQuest VR system.
 
 ### **2.1.1 Physical Therapy and Rehabilitation Context**  
 
-Physical therapy plays a critical role in restoring mobility, improving physical function, and enhancing the quality of life of individuals with musculoskeletal and orthopedic conditions (Bateni et al., 2024). Rehabilitation programs commonly involve structured therapeutic exercises that require consistent participation and proper execution to achieve effective recovery outcomes (Halbig et al., 2022). However, adherence to prescribed rehabilitation programs remains a persistent challenge, particularly in home-based physical therapy settings where patients often experience limited supervision, reduced motivation, and repetitive exercise routines. Studies indicate that patient adherence is strongly influenced by engagement, confidence, accessibility, and the availability of monitoring and feedback mechanisms (De Guzman et al., 2024; Shahidi et al., 2022).
+Physical therapy plays a critical role in restoring mobility, improving physical function, and enhancing the quality of life of individuals with musculoskeletal and orthopedic conditions (Bateni et al., 2024). Rehabilitation programs commonly involve structured therapeutic exercises that require consistent participation and proper execution to achieve effective recovery outcomes (Halbig et al., 2022). However, adherence to prescribed rehabilitation programs remains a persistent challenge, particularly in home-based physical therapy settings where patients often experience limited supervision, reduced motivation, and repetitive exercise routines. Studies indicate that patient adherence is strongly influenced by engagement, confidence, accessibility, and the availability of monitoring and feedback mechanisms (Shahidi et al., 2022).
 
-In the Philippine context, rehabilitation accessibility remains limited due to inadequate facilities, lack of equipment, insufficient healthcare personnel, and geographic barriers, especially in community-based and rural settings (Carrillo et al., 2021; Buckingham et al., 2024). Local studies further reported that rehabilitation adherence and therapy implementation are affected by clinical workload, practice conditions, and the limited availability of continuous patient monitoring systems (Abcede et al., 2016). These challenges highlight the need for technology-supported rehabilitation solutions that can improve patient engagement, provide exercise guidance, and support adherence monitoring beyond traditional clinical environments.
+In the Philippine context, rehabilitation accessibility remains limited due to inadequate facilities, lack of equipment, insufficient healthcare personnel, and geographic barriers, especially in community-based and rural settings (Carrillo et al., 2021). Local studies further reported that rehabilitation adherence and therapy implementation are affected by clinical workload, practice conditions, and the limited availability of continuous patient monitoring systems (Abcede et al., 2016). These challenges highlight the need for technology-supported rehabilitation solutions that can improve patient engagement, provide exercise guidance, and support adherence monitoring beyond traditional clinical environments.
 
 ### **2.1.2 Virtual Reality in Physical Rehabilitation**  
 
-Virtual Reality (VR) has emerged as a promising technology in healthcare, particularly in physical rehabilitation, due to its ability to create immersive and interactive environments (Oduoye et al., 2024). VR-based systems allow patients to perform therapeutic exercises within simulated environments while receiving visual and auditory feedback (Yang, 2023).  
+Virtual Reality (VR) has emerged as a promising technology in healthcare, particularly in physical rehabilitation, due to its ability to create immersive and interactive environments (Oduoye et al., 2024). VR-based systems can allow patients to perform therapeutic exercises within simulated environments while receiving visual and auditory feedback.  
 
 These systems enable repetitive training, which is essential in rehabilitation, while enhancing user engagement through immersive experiences. VR platforms can also provide structured environments that guide users through exercises and allow therapists to design controlled rehabilitation scenarios (Bateni et al., 2024).  
 
@@ -392,7 +385,7 @@ Computer vision technologies, particularly pose estimation and markerless motion
 
 In rehabilitation contexts, computer vision can be used to track patient movements in real time, allowing systems to analyze posture, detect errors, and provide corrective feedback (Maskeliūnas et al., 2023). This capability supports objective monitoring of exercise performance and reduces reliance on manual observation by therapists.  
 
-Despite these advancements, challenges remain in terms of accuracy, environmental sensitivity, and system calibration. Variations in lighting conditions, camera positioning, and occlusions can affect the reliability of motion tracking systems (Stepanenko & Dubko, 2025\)
+Despite these advancements, challenges remain in terms of accuracy, environmental sensitivity, and system calibration. Variations in lighting conditions, camera positioning, and occlusions can affect the reliability of motion tracking systems (Stepanenko & Dubko, 2025).
 
 ### **2.1.5 Therapy Adherence Monitoring Systems**  
 
@@ -412,11 +405,9 @@ This section reviews recent studies related to the development and application o
 
 ###  **2.2.1 Virtual Reality in Physical Rehabilitation**
 
-Recent studies have shown that virtual reality technologies can improve rehabilitation engagement by providing immersive and interactive therapy environments that support repetitive exercise training and immediate feedback (Bateni et al., 2024; Oduoye et al., 2024; Yang, 2023). VR-based rehabilitation systems allow patients to perform therapeutic exercises within simulated environments that enhance motivation, participation, and movement interaction. In addition, immersive technologies have been applied in patient care, rehabilitation support, and healthcare training because of their ability to improve user engagement and therapy experiences.
+Recent studies have shown that virtual reality technologies can improve rehabilitation engagement by providing immersive and interactive therapy environments that support repetitive exercise training and immediate feedback (Bateni et al., 2024; Oduoye et al., 2024). VR-based rehabilitation systems allow patients to perform therapeutic exercises within simulated environments that enhance motivation, participation, and movement interaction. In addition, immersive technologies have been applied in patient care, rehabilitation support, and healthcare training because of their ability to improve user engagement and therapy experiences.
 
 Despite these advantages, studies also identified several implementation challenges associated with VR rehabilitation systems, including usability concerns, technological limitations, lack of standardized implementation frameworks, and difficulties in system integration within clinical settings (Oudshoorn et al., 2023; Halbig et al., 2022). These findings indicate that although VR technologies have strong potential in rehabilitation, effective systems must also prioritize usability, accessibility, and integration with therapeutic workflows.
-
-### 
 
 ### **2.2.2  Motion Tracking and Real-Time Feedback in Rehabilitation Systems**
 
@@ -424,33 +415,25 @@ Recent rehabilitation studies emphasize the importance of motion tracking and re
 
 Several studies also reported that integrating motion tracking with immersive rehabilitation environments improves both patient engagement and rehabilitation effectiveness. Systems that combine motion analysis with real-time visual feedback and gamified interaction were found to enhance exercise accuracy, therapy participation, and adherence rates (Sardá-Gargallo et al., 2025; Lugrís et al., 2024). However, researchers also noted limitations related to calibration, environmental sensitivity, and movement detection accuracy, particularly in markerless computer vision systems (Stepanenko & Dubko, 2025).
 
-### 
-
-### 
-
-### 
-
 ### **2.2.3 Gamified Rehabilitation Systems**
 
 Gamification has been increasingly integrated into rehabilitation systems to improve patient motivation, engagement, and participation during therapy sessions. Recent studies reported that rehabilitation platforms incorporating rewards, levels, progress tracking, and interactive challenges help reduce therapy monotony and encourage sustained participation in repetitive exercises (Tuah et al., 2021; Al-Rayes et al., 2022; Damaševičius et al., 2023). Gamified rehabilitation environments were also found to positively influence therapy adherence and user satisfaction by creating more enjoyable and interactive rehabilitation experiences.
 
-Studies involving VR-based gamified rehabilitation systems further demonstrated that combining immersive environments with game mechanics improves user engagement and perceived therapy effectiveness (Navea et al., 2025; Consing & Aguila, 2024). However, researchers emphasized that many existing systems focus heavily on entertainment and motivation while lacking deeper integration with rehabilitation objectives, movement assessment, and standardized therapeutic feedback (Warsinsky et al., 2021; Lee et al., 2025). These findings highlight the importance of designing gamified rehabilitation systems that balance engagement with therapeutic functionality.
+Studies involving VR-based gamified rehabilitation systems further demonstrated that combining immersive environments with game mechanics improves user engagement and perceived therapy effectiveness (Navea et al., 2025a; Consing & Aguila, 2024). However, researchers emphasized that many existing systems focus heavily on entertainment and motivation while lacking deeper integration with rehabilitation objectives, movement assessment, and standardized therapeutic feedback (Warsinsky et al., 2021; Lee et al., 2025). These findings highlight the importance of designing gamified rehabilitation systems that balance engagement with therapeutic functionality.
 
 ### **2.2.4  Local Studies on Rehabilitation Adherence**
 
-In addition, a local study by Consing and Aguila (2024) examined the attitudes of rehabilitation professionals toward the use of immersive gamification technology systems (ImGTS) in therapy. The study found that rehabilitation professionals generally expressed positive perceptions regarding the usefulness of these systems in improving patient outcomes and enhancing therapy performance. Participants agreed that ImGTS can increase patient motivation, engagement, and adherence to rehabilitation programs. However, the study also identified limitations related to resource availability, technological support, and familiarity with such systems in clinical practice. These findings suggest that while immersive and gamified rehabilitation technologies are promising, their successful implementation depends on accessibility, training, and institutional support. 
+A local study by Consing and Aguila (2024) examined the attitudes of rehabilitation professionals toward the use of immersive gamification technology systems (ImGTS) in therapy. The study found that rehabilitation professionals generally expressed positive perceptions regarding the usefulness of these systems in improving patient outcomes and enhancing therapy performance. Participants agreed that ImGTS can increase patient motivation, engagement, and adherence to rehabilitation programs. However, the study also identified limitations related to resource availability, technological support, and familiarity with such systems in clinical practice. These findings suggest that while immersive and gamified rehabilitation technologies are promising, their successful implementation depends on accessibility, training, and institutional support. 
 
-Consistent with earlier findings, De Guzman et al. (2024) examined the relationship between patient compliance with prescribed home exercise programs and their confidence in performing physical activities. The study reported that higher compliance rates were associated with increased patient confidence and improved engagement in therapy. However, the study also emphasized that maintaining consistent adherence remains a challenge, particularly without continuous monitoring and feedback.
-
-These local findings reinforce the need for rehabilitation systems that can support both adherence monitoring and patient engagement. They further highlight the importance of integrating technologies that provide real-time feedback, performance tracking, and interactive rehabilitation environments, which are key components of the proposed TheraQuest VR system.
+This local study reinforces the need for rehabilitation systems that can support both adherence monitoring and patient engagement. They further highlight the importance of integrating technologies that provide real-time feedback, performance tracking, and interactive rehabilitation environments, which are key components of the proposed TheraQuest VR system.
 
 ### **2.2.5 System Feasibility of Virtual Reality in Physical Therapy and Rehabilitation** 
 
-System feasibility evaluates whether technology-assisted rehabilitation platforms can be practically integrated, operated, and accepted within clinical and home environments (Berton et al., 2020; de Vries et al., 2025; Reilly et al., 2021). Across modern digital health applications, establishing system feasibility encompasses four primary dimensions: clinical acceptance and user experience (de Vries et al., 2025; Reilly et al., 2021), technical tracking reliability and interface usability (Bateni et al., 2024; Reilly et al., 2021), operational safety and session efficiency (de Vries et al., 2025; Reilly et al., 2021), and economic scalability (Berton et al., 2020; Jeyaraman et al., 2024; Reilly et al., 2021).
+System feasibility evaluates whether technology-assisted rehabilitation platforms can be practically integrated, operated, and accepted within clinical and home environments (Berton et al., 2020; de Vries et al., 2025; Reilly et al., 2021). In digital health applications, system feasibility covers four main dimensions: clinical acceptance and user experience (de Vries et al., 2025; Reilly et al., 2021), technical tracking reliability and interface usability (Bateni et al., 2024; Reilly et al., 2021), operational safety and session efficiency (de Vries et al., 2025; Reilly et al., 2021), and economic scalability (Berton et al., 2020; Jeyaraman et al., 2024; Reilly et al., 2021).
 
-Empirical investigations into virtual reality (VR) physical therapy demonstrate high patient acceptability and willingness to adopt immersive modalities over conventional, clinic-bound regimens (de Vries et al., 2025; Jeyaraman et al., 2024; Reilly et al., 2021). In an evaluation of orthopaedic trauma patients with operative lower extremity fractures, Reilly et al. (2021) established baseline feasibility with a Feasibility of Intervention Measure (FIM) score of 4.0 out of 5, an Acceptability of Intervention Measure (AIM) score of 3.9 out of 5, and an average enjoyment rating of 7.5 out of 10\. Notably, 93.3% of participants expressed willingness to enroll in a randomized controlled trial evaluating VR physical therapy against the standard of care, and 86.7% preferred a hybrid model combining in-home VR with supplemental clinic-based therapy over standard clinic visits alone (Reilly et al., 2021). Similarly, in acute critical care and post-intensive care settings, de Vries et al. (2025) reported a median overall patient satisfaction of 80 out of 100 on a Visual Analogue Scale (VAS) when utilizing immersive head-mounted displays (HMDs) for upper extremity mobilization. Participants characterized the gamified virtual tasks as enjoyable and engaging, which mitigated the monotony typical of repetitive physical therapy regimens (de Vries et al., 2025).
+Empirical investigations into VR physical therapy demonstrate high patient acceptability and willingness to adopt immersive modalities over conventional, clinic-bound regimens (de Vries et al., 2025; Jeyaraman et al., 2024; Reilly et al., 2021). In an evaluation of orthopaedic trauma patients with operative lower extremity fractures, Reilly et al. (2021) established baseline feasibility with a Feasibility of Intervention Measure (FIM) score of 4.0 out of 5, an Acceptability of Intervention Measure (AIM) score of 3.9 out of 5, and an average enjoyment rating of 7.5 out of 10\. Notably, 93.3% of participants expressed willingness to enroll in a randomized controlled trial evaluating VR physical therapy against the standard of care, and 86.7% preferred a hybrid model combining in-home VR with supplemental clinic-based therapy over standard clinic visits alone (Reilly et al., 2021). Similarly, in acute critical care and post-intensive care settings, de Vries et al. (2025) reported a median overall patient satisfaction of 80 out of 100 on a Visual Analogue Scale (VAS) when utilizing immersive head-mounted displays (HMDs) for upper extremity mobilization. Participants characterized the gamified virtual tasks as enjoyable and engaging, which mitigated the monotony typical of repetitive physical therapy regimens (de Vries et al., 2025).
 
-Technical usability serves as a critical indicator of system feasibility, particularly when introducing digital interfaces to diverse patient demographics (Berton et al., 2020; Reilly et al., 2021). Using the standardized System Usability Scale (SUS), Reilly et al. (2021) reported a mean score of 67.5 out of 100, aligning with established thresholds for acceptable usability in emerging healthcare software. Systematic reviews by Berton et al. (2020) and Gumaa and Youssef (2019) corroborate that user-friendliness remains essential, as the majority of orthopaedic rehabilitation recipients are older adults (predominantly aged 40 to 60 years or older) who frequently present variable levels of digital literacy. Consequently, complex configurations requiring multi-camera calibration or tethered cabling create technical barriers that impede home deployment (Berton et al., 2020; Reilly et al., 2021). Modern system architectures increasingly shift toward standalone HMD units (such as Meta Quest) and markerless tracking frameworks (such as MediaPipe or OpenCV) to achieve an optimal balance between low setup complexity and motion tracking fidelity without placing cumbersome hardware on the patient (Bateni et al., 2024; Reilly et al., 2021; Sunido & Soreño, 2026).
+Technical usability serves as a critical indicator of system feasibility, particularly when introducing digital interfaces to diverse patient demographics (Berton et al., 2020; Reilly et al., 2021). Using the standardized System Usability Scale (SUS), Reilly et al. (2021) reported a mean score of 67.5 out of 100, aligning with established thresholds for acceptable usability in emerging healthcare software. Systematic reviews by Berton et al. (2020) and Gumaa and Youssef (2019) corroborate that user-friendliness remains essential, as the majority of orthopaedic rehabilitation recipients are older adults (predominantly aged 40 to 60 years or older) who frequently present variable levels of digital literacy. Consequently, complex configurations requiring multi-camera calibration or tethered cabling create technical barriers that impede home deployment (Berton et al., 2020; Reilly et al., 2021). Modern system architectures increasingly shift toward standalone HMD units (such as Meta Quest) and markerless tracking frameworks (such as MediaPipe or OpenCV) to achieve an optimal balance between low setup complexity and motion tracking fidelity without placing cumbersome hardware on the patient (Bateni et al., 2024; Reilly et al., 2021).
 
 A viable rehabilitation platform must balance interactive engagement with patient safety and physiological tolerance (de Vries et al., 2025; Reilly et al., 2021). Operational feasibility trials reveal that completely immersive environments carry inherent spatial risks, such as collision with physical obstacles, while early setups utilizing wired infrared sensors introduced cable entanglement hazards (Berton et al., 2020; Reilly et al., 2021). To address these challenges, researchers emphasize seated protocol execution, inside-out camera tracking, or augmented reality overlays to maintain situational awareness (de Vries et al., 2025; Reilly et al., 2021). Furthermore, session efficiency—defined as the proportion of active training time relative to total session duration—is heavily influenced by physical stamina (de Vries et al., 2025). In early mobilization studies, de Vries et al. (2025) observed session efficiencies ranging between 25% and 93% (median 57%), where fatigue (measured via the Borg Rating of Perceived Exertion Scale, median 11/20) and technical onboarding accounted for session cessations. Incorporating automated range-of-motion validation, adaptive difficulty scaling, and instant corrective prompts ensures that exercise sessions remain within safe physiological thresholds while preventing motor compensation (de Vries et al., 2025; Reilly et al., 2021).
 
@@ -458,49 +441,47 @@ The economic feasibility of VR-driven telerehabilitation represents a primary ju
 
 ## **2.3 Theoretical Framework**
 
-This section presents the theories that support the design and development of the proposed TheraQuest VR system. The study is grounded in theories related to motor learning, feedback, engagement, and behavior change to address challenges in rehabilitation such as low therapy adherence, limited engagement, and ineffective feedback mechanisms. Flow Theory supports the use of immersive and adaptive activities, accompanied by clear goals and immediate feedback, to maintain user engagement and enjoyment during rehabilitation exercises (Csikszentmihalyi, 1990). In parallel, gamification design principles leverage challenges, progress tracking, and performance rewards to sustain patient participation (Deterding et al., 2011).
+This section presents the theories that support the design and development of the proposed TheraQuest VR system. The study is grounded in theories related to motor learning, feedback, engagement, and behavior change to address challenges in rehabilitation such as low therapy adherence, limited engagement, and ineffective feedback mechanisms. Flow Theory supports the use of immersive and adaptive activities, accompanied by clear goals and immediate feedback, to maintain user engagement and enjoyment during rehabilitation exercises (Csikszentmihalyi, 1990). In parallel, gamification design principles leverage challenges, progress tracking, and performance rewards that can sustain patient participation.
 
-The study also applies Motor Learning Theory and Feedback Intervention Theory, which emphasize the importance of repetition, practice, and real-time feedback in improving motor performance and correcting movements during rehabilitation (Schmidt & Lee, 2011; Winstein et al., 2014; Kluger & DeNisi, 1996). In addition, the COM-B Model explains how capability, opportunity, and motivation interact to influence behavior and therapy adherence (Michie et al., 2011). Together, these theoretical frameworks support the integration of virtual reality, motion tracking, gamification, and real-time feedback within TheraQuest VR to improve rehabilitation engagement, exercise accuracy, and adherence to therapy.
+The study also applies Motor Learning Theory and Feedback Intervention Theory, which emphasize the importance of repetition, practice, and real-time feedback in improving motor performance and correcting movements during rehabilitation (Schmidt & Lee, 2011; Kluger & DeNisi, 1996). In addition, the COM-B Model explains how capability, opportunity, and motivation interact to influence behavior and therapy adherence (Michie et al., 2011). Together, these theoretical frameworks support the integration of virtual reality, motion tracking, gamification, and real-time feedback within TheraQuest VR to improve rehabilitation engagement, exercise accuracy, and adherence to therapy.
 
-###  **2.3.2 Motor Learning Theory**
+###  **2.3.1 Motor Learning Theory**
 
 **![][image1]**  
-**Figure 2.3.4** Motor Learning Process in Rehabilitation  
+**Figure 2.3.1** Motor Learning Process in Rehabilitation  
 (Based on Schmidt & Lee, 2011).
 
-Furthermore, the study draws from **Motor Learning Theory**, which emphasizes the role of **repetition, feedback, and practice** in the acquisition and improvement of motor skills. Motor learning research suggests that consistent practice combined with timely feedback enables individuals to refine movement patterns and improve performance over time (Schmidt & Lee, 2011). In rehabilitation contexts, repeated execution of therapeutic exercises and corrective feedback are essential for restoring motor function and facilitating skill reacquisition after injury or impairment (Winstein, Kay, & Woollacott, 2014). Within the **TheraQuest VR system**, rehabilitation exercises are supported by real-time motion feedback generated through computer vision–based tracking. This feature allows patients to monitor and adjust their movements during exercise, thereby supporting the gradual improvement of motor performance through repeated and guided practice.
+The study draws from **Motor Learning Theory**, which emphasizes the role of **repetition, feedback, and practice** in the acquisition and improvement of motor skills. Motor learning research suggests that consistent practice combined with timely feedback enables individuals to refine movement patterns and improve performance over time (Schmidt & Lee, 2011). In rehabilitation contexts, repeated execution of therapeutic exercises and corrective feedback are considered important for restoring motor function and facilitating skill reacquisition after injury or impairment. Within the **TheraQuest VR system**, rehabilitation exercises are supported by real-time motion feedback generated through computer vision–based tracking. This feature allows patients to monitor and adjust their movements during exercise, thereby supporting the gradual improvement of motor performance through repeated and guided practice.
 
-### **2.3.3 Feedback Intervention Theory (FIT)**
+### **2.3.2 Feedback Intervention Theory (FIT)**
 
 ![][image2]  
-**Figure 2.3.5** Feedback Intervention Theory (FIT)  
+**Figure 2.3.2** Feedback Intervention Theory (FIT)  
 (Based on Kluger & DeNisi, 1996). 
 
 Feedback Intervention Theory (FIT), developed by Kluger and DeNisi (1996), explains how feedback influences human performance by directing an individual’s attention toward task-related processes. The theory emphasizes that feedback is most effective when it focuses on specific actions, performance outcomes, and task goals rather than personal attributes. Immediate and relevant feedback enables individuals to identify errors, adjust their actions, and improve performance over time.
 
 In rehabilitation settings, FIT is particularly relevant because patients must perform physical exercises correctly to achieve optimal recovery outcomes. The presence of real-time feedback allows users to recognize incorrect movements and make necessary corrections during the exercise itself. Within the TheraQuest VR system, FIT supports the integration of computer vision–based motion tracking and real-time feedback mechanisms. These features provide instant visual and performance cues, enabling users to refine their movements and improve exercise accuracy, thereby enhancing the overall effectiveness of rehabilitation.
 
-### **2.3.4 Flow Theory**
+### **2.3.3 Flow Theory**
 
-**Figure 2.3.6** Flow Theory   
+**Figure 2.3.3** Flow Theory   
 (Based on Csikszentmihalyi, 1990). 
 
 Flow Theory, introduced by Csikszentmihalyi (1990), describes a psychological state in which an individual is fully immersed and deeply engaged in an activity. This state occurs when there is a balance between the difficulty of the task and the individual’s skill level, accompanied by clear goals and immediate feedback. When individuals experience flow, they tend to exhibit increased focus, intrinsic motivation, and enjoyment, which contribute to sustained participation in an activity.
 
 In the context of rehabilitation, maintaining patient engagement is essential for consistent participation in therapy sessions. Traditional rehabilitation exercises are often repetitive and may lead to boredom or reduced motivation. Flow Theory supports the use of gamification elements within the TheraQuest VR system to create an immersive and engaging environment. By incorporating challenges, rewards, and adaptive difficulty levels, the system aims to maintain an optimal balance between user ability and task difficulty. This promotes continuous engagement and encourages patients to remain actively involved in their rehabilitation process.
 
-### **2.3.5 Behavior Change Theory (COM-B Model)**
+### **2.3.4 Behavior Change Theory (COM-B Model)**
 
 ![][image3]
 
-**Figure 2.3.7** Behavior Change Theory (COM-B Model)  
-(Based on Michie et al, 2011). 
+**Figure 2.3.4** Behavior Change Theory (COM-B Model)  
+(Based on Michie et al., 2011). 
 
 The Behavior Change Model (COM-B), proposed by Michie et al. (2011), explains behavior as the result of three interacting components: capability, opportunity, and motivation. Capability refers to an individual’s physical and psychological ability to perform a behavior, opportunity refers to external factors that facilitate or enable the behavior, and motivation refers to internal processes that influence decision-making and persistence. According to this model, behavior change occurs when all three components are sufficiently supported.
 
 In rehabilitation, adherence to prescribed therapy programs is a critical factor in achieving successful outcomes. However, many patients fail to consistently follow their exercise routines due to limitations in ability, environment, or motivation. The TheraQuest VR system aligns with the COM-B model by addressing these components through its design. Capability is supported through guided exercises and real-time feedback, opportunity is enhanced by providing an accessible and interactive virtual environment, and motivation is strengthened through gamification and engaging system features. By addressing these factors, the system aims to improve adherence to therapy and promote sustained behavioral change in patients.
-
-## 
 
 ## **2\.4    Synthesis and Gap Analysis**
 
@@ -508,16 +489,16 @@ The reviewed literature and related studies show that virtual reality technologi
 
 Based on the synthesis, a major gap exists in the lack of rehabilitation systems that combine virtual reality, motion tracking, gamification, and real-time monitoring into a single platform, especially within the Philippine context. Most existing systems implement these technologies separately, limiting their overall effectiveness and user experience. To address this gap, the study proposes TheraQuest VR, a rehabilitation platform that integrates immersive virtual environments, computer vision–based motion tracking, and gamified therapy activities into one system. Through this integrated approach, the study aims to improve therapy engagement, movement monitoring, and rehabilitation accessibility while contributing to the development of more interactive and user-centered rehabilitation technologies.
 
-**Table 1\.** Summary of the Reviewed Related Literatures
+**Table 1\.** Summary of the Reviewed Related Literature
 
 | Author (Year) | Focus / Topic | Methodology | Key Findings | Relevance to Study |
 | ----- | :---: | :---: | :---: | :---: |
-| Abcede et al. (2016);De Guzman et al. (2024); Marshall et al. (2025); Sardá-Gargallo et al. (2025); Tran et al. (2022); Matsangidou et al. (2024) | Rehab adherence guidelines; rehab compliance; remote monitoring; remote rehab; gamification adherence; wearable tracking | Study; Study; Case-control; Systematic review; Review; Systematic review | Compliance improves through guidelines, monitoring, feedback systems, and gamification | Supports adherence monitoring, compliance improvement, and rehabilitation outcome tracking |
-| Navea et al. (2025a); Consing & Aguila (2024); Al-Rayes et al. (2022); Moreira et al. (2024); Ebrahimi et al. (2025); Tung et al. (2024); Damaševičius et al. (2023); Tuah et al. (2021); Warsinsky et al. (2021); Lee et al. (2025) | VR gamified rehab; gamification perception; gamification healthcare; VR game rehab; gamification rehab; gamification learning; serious games; gamification rehab; gamification framework; gamification design | Experimental; Survey; Review; Experimental; Meta-analysis; Systematic review; Meta-review; Survey; Review; Scoping review | Gamification improves motivation, engagement, usability, and rehabilitation performance | Supports gamification-based engagement, motivation, and behavioral adherence in rehabilitation systems |
-| Lorkowski et al. (2025); Tu et al. (2026); Paladugu et al. (2025); Bateni et al. (2024); Oduoye et al. (2024) | VR rehabilitation; VR neuro rehab; VR rehab systems; VR therapy; immersive tech | Review; Systematic review; Scoping review; Review; Review | VR improves motor recovery, cognitive outcomes, engagement, and interaction | Supports VR-based rehabilitation effectiveness and immersive therapy integration |
-| Zhu et al. (2025); Lam et al. (2023); Lugrís et al. (2024); Maskeliūnas et al. (2023);  Stepanenko & Dubko (2025) | Computer vision rehab; motion tracking rehab; motion capture; VR \+ tracking; motion tracking systems | RCT; Systematic review; Technical study; Experimental; Comparative study | Tracking systems improve accuracy, posture correction, and real-time feedback | Supports motion tracking, computer vision accuracy, and system performance optimization |
+| Abcede et al. (2016); Marshall et al. (2025); Sardá-Gargallo et al. (2025); Tran et al. (2022); Matsangidou et al. (2024) | Rehab adherence guidelines; remote monitoring; remote rehab; gamification adherence; wearable tracking | Study; Case-control; Systematic review; Review; Systematic review | Compliance improves through guidelines, monitoring, feedback systems, and gamification | Supports adherence monitoring, compliance improvement, and rehabilitation outcome tracking |
+| Navea et al. (2025a); Consing & Aguila (2024); Al-Rayes et al. (2022); Moreira et al. (2024); Tung et al. (2024); Damaševičius et al. (2023); Tuah et al. (2021); Warsinsky et al. (2021); Lee et al. (2025) | VR gamified rehab; gamification perception; gamification healthcare; VR game rehab; gamification learning; serious games; gamification rehab; gamification framework; gamification design | Experimental; Survey; Review; Experimental; Systematic review; Meta-review; Survey; Review; Scoping review | Gamification improves motivation, engagement, usability, and rehabilitation performance | Supports gamification-based engagement, motivation, and behavioral adherence in rehabilitation systems |
+| Lorkowski et al. (2025); Paladugu et al. (2025); Bateni et al. (2024); Oduoye et al. (2024) | VR rehabilitation; VR rehab systems; VR therapy; immersive tech | Review; Scoping review; Review; Review | VR improves motor recovery, cognitive outcomes, engagement, and interaction | Supports VR-based rehabilitation effectiveness and immersive therapy integration |
+| Lam et al. (2023); Lugrís et al. (2024); Maskeliūnas et al. (2023); Stepanenko & Dubko (2025) | Motion tracking rehab; motion capture; VR \+ tracking; motion tracking systems | Systematic review; Technical study; Experimental; Comparative study | Tracking systems improve accuracy, posture correction, and real-time feedback | Supports motion tracking, computer vision accuracy, and system performance optimization |
 | Maya et al. (2021); Halbig et al. (2022); Oudshoorn et al. (2023); Lee et al. (2025); Stepanenko & Dubko (2025) | Telerehabilitation tools; VR adoption; VR implementation; gamification design; motion tracking systems | Study; Study; Review; Scoping review; Comparative study | Usability, design structure, and implementation factors affect adoption and system effectiveness | Supports system design, usability, adoption, and implementation framework development |
-| Carrillo et al. (2021); Buckingham et al. (2024); Navea et al. (2025b) | Rehab center PH; stroke rehab PH; rehab challenges PH | Study; Protocol; Study | Limited access to rehabilitation services, especially in rural areas | Supports problem context: rehabilitation access gap and healthcare limitations in the Philippines |
+| Carrillo et al. (2021) | Rehab center PH | Study | Limited access to rehabilitation services, especially in rural areas | Supports problem context: rehabilitation access gap and healthcare limitations in the Philippines |
 
 # **CHAPTER 3    METHODOLOGY** {#chapter-3-methodology}
 
