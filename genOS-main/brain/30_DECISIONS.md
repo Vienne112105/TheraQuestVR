@@ -46,6 +46,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-027 | accepted | 2026-11-12 | Patient Records Hold Name and Code; Only the Code Leaves the Dashboard |
 | DEC-028 | accepted | 2026-11-14 | The Game Renders with URP |
 | DEC-029 | accepted | 2026-11-16 | The Manuscript Master Is the Google Doc / Word File; the Repo Copy Is a Working Copy |
+| DEC-030 | accepted | 2026-11-17 | The VR Client Moves to the XR Interaction Toolkit, Controllers Only |
 
 ---
 
@@ -274,3 +275,10 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Reason:** At the M9 kickoff the human said the capstone manuscript they submit lives in a Google Doc / Word file. `Research/THERAQUEST- MANUSCRIPT.md` is an export of it (9 October 2026) with the figures embedded as base64 image lines. The human also chose to leave Section 3.9 Data Analysis and all results and metrics out of M9, and to review edits by chapter.
 - **Impact:** Agents edit only the repo `.md` and must deliver every edit as a per-chapter change list (`Research/M9-changes-chapter-N.md`: section, original text, new text, reason) so the human can apply it to the master by hand. New or corrected figures are delivered as image files plus a placement list; the base64 image lines in the `.md` are never edited or regenerated. Section 3.9 is not edited during M9; problems found there are only reported. Research aims, objectives, benchmark targets, participants and instruments change only with the human's yes. If the master has moved on since the export, the human re-exports before the audit (M9.1).
 - **Supersedes:** none
+
+### DEC-030: The VR Client Moves to the XR Interaction Toolkit, Controllers Only
+- **Status:** accepted
+- **Date:** 2026-11-17
+- **Reason:** The human asked for a milestone on the Unity XR environment and the game's VR integration and had already added the XR Interaction Toolkit 3.6.1, XR Hands and Composition Layers packages to the project. Until now the game read `UnityEngine.XR` devices directly and used no toolkit ([[VRClinicExperience]]). Asked on 2026-11-17, the human chose controllers plus the XRI rig (no hand tracking) and chose to wait for a headset instead of building on the XR Device Simulator.
+- **Impact:** M10 in [[50_ROADMAP]] replaces the hand-written rig, input reads and locomotion with an XR Origin, input actions, ray-pointed menus and XRI locomotion. Desktop fallback (DEC-002), the first-person view and default heights (DEC-021), the URP comfort ban list (DEC-028) and the invariants in [[VRClinicExperience]] stay in force. Hand tracking stays a future change; the XR Hands package is removed in M10.1 unless the human wants it kept, and Composition Layers stays only if M10.4 needs it. M10 does not start until a Meta Quest is available. HW.2 tests the M10 result.
+- **Supersedes:** none (ends the "No XR Interaction Toolkit" note in [[VRClinicExperience]] once M10.1 is built)

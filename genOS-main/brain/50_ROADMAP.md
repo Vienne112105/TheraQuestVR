@@ -78,6 +78,11 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M9.2 | M9 | done | Language and Flow Edit |
 | M9.3 | M9 | active | Sync with the Built System |
 | M9.4 | M9 | planned | Figures and Screenshots |
+| M10 | — | planned | XR Environment & VR Integration |
+| M10.1 | M10 | planned | XR Origin Rig & Quest Link Lifecycle |
+| M10.2 | M10 | planned | Controller Input & Ray Menus |
+| M10.3 | M10 | planned | Comfort Locomotion in the Rig |
+| M10.4 | M10 | planned | Headset Panels & Rendering |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -636,6 +641,54 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Dependencies:** M9.3; M8.2 approval for final game screenshots
 - **Systems:** none changed
 
+## M10 — XR Environment & VR Integration
+
+- **Status:** planned (requested by the human 2026-11-17; waits for a headset, the human's choice)
+- **Objective:** Move the game's VR side from hand-written `UnityEngine.XR` device reads to a standard Unity XR setup built on the XR Interaction Toolkit (DEC-030): one XR Origin rig, controller input through input actions, ray-pointed menus, toolkit locomotion and headset-ready panels, with the desktop mode still working when no headset is present.
+- **Scope chosen by the human (2026-11-17):** controllers and the XRI rig. No hand tracking (it stays in [[VRClinicExperience]] Future Changes). Not built or tested on the XR Device Simulator alone: work starts when a Meta Quest is available.
+- **Success criteria:**
+  - The game runs in the headset over Quest Link on the XR Origin rig, and in desktop mode with Link off, from the same scene and build (DEC-002).
+  - Every menu and in-session action can be done with the Quest controllers by pointing and pressing; keyboard and mouse still work on the laptop.
+  - The comfort invariants in [[VRClinicExperience]] hold: the game never moves or turns the headset view on its own; only the instant re-center does.
+  - First-person exercise view, default heights, HUD, coach window and subtitles (DEC-021) behave as before on the new rig.
+  - All EditMode tests pass; the headset frame rate stays comfortable under URP (DEC-028).
+- **Children:** `M10.1` XR Origin Rig & Quest Link Lifecycle; `M10.2` Controller Input & Ray Menus; `M10.3` Comfort Locomotion in the Rig; `M10.4` Headset Panels & Rendering.
+- **Done when:** all children are done and the human has run a session in the headset on the new rig.
+- **Dependencies:** access to a Meta Quest headset and a VR-ready PC; HW.1 (Link installed and set as the OpenXR runtime). HW.2 tests the result of M10. M8.4 and M8.5 touch the same panels: do not run them in a parallel session with M10.4.
+- **Note:** the human's uncommitted changes already add `com.unity.xr.interaction.toolkit` 3.6.1, `com.unity.xr.hands` 1.9.0, `com.unity.xr.compositionlayers` 2.6.1, XR Management 4.7.0, `Assets/XRI/` and changed OpenXR settings (seen 2026-11-17). No TheraQuest script uses them yet. M10.1 starts by asking the human whether to commit them as they are.
+
+### M10.1 — XR Origin Rig & Quest Link Lifecycle
+- **Status:** planned
+- **Objective:** One camera rig that works in the headset and on the laptop, and a clean start, stop and loss of the Link connection.
+- **Deliverables:** the package set agreed and committed (XR Hands removed unless the human wants it kept); an XR Origin (floor tracking origin) built by `TheraQuestSceneBuilder` and used by `HeadTracking`, `FirstPersonGuide` and `PlayerMover` in place of the current rig; instant re-center and the per-posture default height kept; `TheraQuest → Set Up OpenXR` updated for the new packages; start with Link on, start with Link off, headset taken off (session pauses) and Link lost mid-session (falls back to desktop without losing the session); EditMode tests for the rig set-up and the fallback choice.
+- **Completion criteria:** the game starts in both modes from one build; re-center and default heights give the same view as before; the existing EditMode suite passes; the human sees the room in the headset.
+- **Dependencies:** HW.1; the human's answer on the uncommitted package changes
+- **Systems:** VRClinicExperience, SessionOrchestration
+
+### M10.2 — Controller Input & Ray Menus
+- **Status:** planned
+- **Objective:** Controllers drive the game through input actions, and menus are used by pointing at them.
+- **Deliverables:** an input actions asset (XRI defaults where they fit) read through `InputHelper`, replacing the direct `UnityEngine.XR` device reads; the current mapping kept (A select, B pause, Y re-center, thumbsticks for menus, walking and turning); a controller ray with the XR UI input module on the world-space menus, pause menu, settings and summary screens; visible controller models or pointers; keyboard and mouse unchanged; EditMode tests for the action mapping.
+- **Completion criteria:** main menu, settings, pause, summary and Progress page can each be completed with controllers only and with keyboard and mouse only; no script reads XR devices directly any more.
+- **Dependencies:** M10.1
+- **Systems:** VRClinicExperience, SessionOrchestration
+
+### M10.3 — Comfort Locomotion in the Rig
+- **Status:** planned
+- **Objective:** Walking and turning use the toolkit's locomotion on the XR Origin and keep the comfort rules.
+- **Deliverables:** snap turn (30°), optional smooth turn and thumbstick walking through XRI locomotion providers, with the room boundaries of `PlayerMover`; locomotion locked during exercises; re-center to the exercise spot; settings (snap or smooth) still saved in `GameSettings`; tests for the exercise lock and the boundaries.
+- **Completion criteria:** the invariants in [[VRClinicExperience]] hold in the headset (no view movement the patient did not ask for); the patient cannot leave the room or move during an exercise.
+- **Dependencies:** M10.1, M10.2
+- **Systems:** VRClinicExperience
+
+### M10.4 — Headset Panels & Rendering
+- **Status:** planned
+- **Objective:** Everything the patient reads is sharp, comfortable and in the right place in the headset.
+- **Deliverables:** HUD, floating menus, coach window, subtitles and the lying-posture panel positions checked and corrected on the new rig; text sharpness in the headset (composition layers only if plain world-space panels are not sharp enough; otherwise the package is removed); URP settings checked in stereo (MSAA, SSAO, bloom, shadows) against the comfort ban list of DEC-028; headset frame time measured for a full session.
+- **Completion criteria:** the human can read every panel standing, seated and lying without strain; the headset frame rate stays at the Link refresh rate through a session, or the cost is recorded with the setting that was lowered.
+- **Dependencies:** M10.1; M8.2 approval (room look); not in parallel with M8.4 or M8.5
+- **Systems:** VRClinicExperience, AvatarCoach
+
 ## HW — Hardware Integration & Field Validation (unscheduled)
 
 - **Status:** planned (unscheduled: not yet numbered or placed in the sequence)
@@ -667,7 +720,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Objective:** Verify the VR client on the real headset (moved here from M4.3's completion criteria on 2026-10-25).
 - **Deliverables:** test run covering head tracking and recentering (Y / R), controller mapping (A select, B pause, thumbsticks for menus, walking and turning), locomotion locked during exercises, HUD and menu legibility and comfort at the configured distances, subtitles, pause and quit in the headset, and the desktop fallback with Link off; the first-person view (M5.8): default height calibration standing, seated and lying, the limbs lining up with where the patient feels their body, and the panels' position when lying; fixes for problems found.
 - **Completion criteria:** every item passes in the headset, or has a recorded fix or workaround; a session done in the headset uploads to the dashboard.
-- **Dependencies:** HW.1
+- **Dependencies:** HW.1; M10 (the test runs on the M10 rig and input, added 2026-11-17)
 - **Systems:** VRClinicExperience, SessionOrchestration
 
 ### HW.3 — Webcam and Headset Concurrent Operation
