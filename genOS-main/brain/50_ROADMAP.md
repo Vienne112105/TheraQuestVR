@@ -75,8 +75,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M8.7 | M8 | planned | Dashboard Hidden Data |
 | M9 | — | active | Manuscript Finalization & Polish |
 | M9.1 | M9 | done | Manuscript Audit |
-| M9.2 | M9 | active | Language and Flow Edit |
-| M9.3 | M9 | planned | Sync with the Built System |
+| M9.2 | M9 | done | Language and Flow Edit |
+| M9.3 | M9 | active | Sync with the Built System |
 | M9.4 | M9 | planned | Figures and Screenshots |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
@@ -613,7 +613,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** none changed
 
 ### M9.2 — Language and Flow Edit
-- **Status:** active
+- **Status:** done (2026-11-17: Chapters 1, 2 and 3 approved and committed, one commit each; change lists in `Research/M9-changes-chapter-N.md`; system wording left in Part D of each list for M9.3)
 - **Objective:** Chapters 1, 2 and 3 read cleanly and consistently without any change of meaning.
 - **Deliverables:** per chapter: grammar, clarity, consistent terms (1.6 Definition of Terms is the reference), consistent tense as decided in M9.1, headings and numbering repaired, captions and contents entries matched to the lists; `Research/M9-changes-chapter-N.md` (section, original text, new text, reason). Chapter 3 skips 3.9. Chapter 2 claims about other systems get a language edit only.
 - **Completion criteria:** hash checks for Section 3.9 and the image lines unchanged; no empty headings and numbering in order; the human approves each chapter; one commit per approved chapter.
@@ -621,7 +621,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** none changed
 
 ### M9.3 — Sync with the Built System
-- **Status:** planned
+- **Status:** active
 - **Objective:** The manuscript describes the system that exists.
 - **Deliverables:** every system-mismatch item from the audit resolved in 1.1, 1.3, 1.5, 1.6, 3.2 to 3.7 and 3.10 (single external webcam and 2D angles, tethered Quest Link with desktop fallback, MediaPipe Pose and OpenCV, SQLite, therapist desktop app, first-person view, patient code and name rule, encrypted backup, actual timeline), each checked against [[00_PROJECT]], [[30_DECISIONS]], the systems files and the code, and appended to the chapter change list with its source.
 - **Completion criteria:** every system-mismatch item is closed or marked kept by the human; items that change a research claim were applied only after the human's yes; hash checks unchanged; the human approves.
