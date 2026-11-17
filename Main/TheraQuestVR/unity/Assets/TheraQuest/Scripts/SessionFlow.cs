@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.XR;
 
 namespace TheraQuest
 {
@@ -112,7 +111,7 @@ namespace TheraQuest
         public static ControlHints For(bool headset) => headset ? Controller : Keyboard;
 
         /// <summary>Hints for whatever the patient is using right now.</summary>
-        public static ControlHints Current => For(XRSettings.isDeviceActive);
+        public static ControlHints Current => For(XrMode.InHeadset);
 
         public string MenuFooter => this == Keyboard
             ? $"{Navigate} navigate   ·   {Change} or Click to change   ·   {Start} select   ·   {Back} back"

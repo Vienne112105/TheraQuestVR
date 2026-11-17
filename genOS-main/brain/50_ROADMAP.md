@@ -78,9 +78,9 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M9.2 | M9 | done | Language and Flow Edit |
 | M9.3 | M9 | active | Sync with the Built System |
 | M9.4 | M9 | planned | Figures and Screenshots |
-| M10 | — | planned | XR Environment & VR Integration |
-| M10.1 | M10 | planned | XR Origin Rig & Quest Link Lifecycle |
-| M10.2 | M10 | planned | Controller Input & Ray Menus |
+| M10 | — | active | XR Environment & VR Integration |
+| M10.1 | M10 | TBF | XR Origin Rig & Quest Link Lifecycle |
+| M10.2 | M10 | active | Controller Input & Ray Menus |
 | M10.3 | M10 | planned | Comfort Locomotion in the Rig |
 | M10.4 | M10 | planned | Headset Panels & Rendering |
 | HW | — | planned | Hardware Integration & Field Validation |
@@ -626,7 +626,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** none changed
 
 ### M9.3 — Sync with the Built System
-- **Status:** active
+- **Status:** active (paused by the human 2026-11-17 while M10 runs; nothing edited yet)
 - **Objective:** The manuscript describes the system that exists.
 - **Deliverables:** every system-mismatch item from the audit resolved in 1.1, 1.3, 1.5, 1.6, 3.2 to 3.7 and 3.10 (single external webcam and 2D angles, tethered Quest Link with desktop fallback, MediaPipe Pose and OpenCV, SQLite, therapist desktop app, first-person view, patient code and name rule, encrypted backup, actual timeline), each checked against [[00_PROJECT]], [[30_DECISIONS]], the systems files and the code, and appended to the chapter change list with its source.
 - **Completion criteria:** every system-mismatch item is closed or marked kept by the human; items that change a research claim were applied only after the human's yes; hash checks unchanged; the human approves.
@@ -643,7 +643,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 
 ## M10 — XR Environment & VR Integration
 
-- **Status:** planned (requested by the human 2026-11-17; waits for a headset, the human's choice)
+- **Status:** active (started 2026-11-17; the human has a Meta Quest available)
 - **Objective:** Move the game's VR side from hand-written `UnityEngine.XR` device reads to a standard Unity XR setup built on the XR Interaction Toolkit (DEC-030): one XR Origin rig, controller input through input actions, ray-pointed menus, toolkit locomotion and headset-ready panels, with the desktop mode still working when no headset is present.
 - **Scope chosen by the human (2026-11-17):** controllers and the XRI rig. No hand tracking (it stays in [[VRClinicExperience]] Future Changes). Not built or tested on the XR Device Simulator alone: work starts when a Meta Quest is available.
 - **Success criteria:**
@@ -655,10 +655,10 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Children:** `M10.1` XR Origin Rig & Quest Link Lifecycle; `M10.2` Controller Input & Ray Menus; `M10.3` Comfort Locomotion in the Rig; `M10.4` Headset Panels & Rendering.
 - **Done when:** all children are done and the human has run a session in the headset on the new rig.
 - **Dependencies:** access to a Meta Quest headset and a VR-ready PC; HW.1 (Link installed and set as the OpenXR runtime). HW.2 tests the result of M10. M8.4 and M8.5 touch the same panels: do not run them in a parallel session with M10.4.
-- **Note:** the human's uncommitted changes already add `com.unity.xr.interaction.toolkit` 3.6.1, `com.unity.xr.hands` 1.9.0, `com.unity.xr.compositionlayers` 2.6.1, XR Management 4.7.0, `Assets/XRI/` and changed OpenXR settings (seen 2026-11-17). No TheraQuest script uses them yet. M10.1 starts by asking the human whether to commit them as they are.
+- **Note:** the human's uncommitted changes already add `com.unity.xr.interaction.toolkit` 3.6.1, `com.unity.xr.hands` 1.9.0, `com.unity.xr.compositionlayers` 2.6.1, XR Management 4.7.0, `Assets/XRI/` and changed OpenXR settings (seen 2026-11-17). The human chose to commit them as they are (7bf9360, 2026-11-17). XR Hands and Composition Layers stay unused until M10.4 decides on Composition Layers.
 
 ### M10.1 — XR Origin Rig & Quest Link Lifecycle
-- **Status:** planned
+- **Status:** TBF (2026-11-17: code and EditMode tests done on branch m10-xr-integration; the headset checks are in [[20_PROGRESS.yaml]] → `pending_human_tests`)
 - **Objective:** One camera rig that works in the headset and on the laptop, and a clean start, stop and loss of the Link connection.
 - **Deliverables:** the package set agreed and committed (XR Hands removed unless the human wants it kept); an XR Origin (floor tracking origin) built by `TheraQuestSceneBuilder` and used by `HeadTracking`, `FirstPersonGuide` and `PlayerMover` in place of the current rig; instant re-center and the per-posture default height kept; `TheraQuest → Set Up OpenXR` updated for the new packages; start with Link on, start with Link off, headset taken off (session pauses) and Link lost mid-session (falls back to desktop without losing the session); EditMode tests for the rig set-up and the fallback choice.
 - **Completion criteria:** the game starts in both modes from one build; re-center and default heights give the same view as before; the existing EditMode suite passes; the human sees the room in the headset.
@@ -666,7 +666,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience, SessionOrchestration
 
 ### M10.2 — Controller Input & Ray Menus
-- **Status:** planned
+- **Status:** active (next up; M10.1 is TBF on its headset checks)
 - **Objective:** Controllers drive the game through input actions, and menus are used by pointing at them.
 - **Deliverables:** an input actions asset (XRI defaults where they fit) read through `InputHelper`, replacing the direct `UnityEngine.XR` device reads; the current mapping kept (A select, B pause, Y re-center, thumbsticks for menus, walking and turning); a controller ray with the XR UI input module on the world-space menus, pause menu, settings and summary screens; visible controller models or pointers; keyboard and mouse unchanged; EditMode tests for the action mapping.
 - **Completion criteria:** main menu, settings, pause, summary and Progress page can each be completed with controllers only and with keyboard and mouse only; no script reads XR devices directly any more.

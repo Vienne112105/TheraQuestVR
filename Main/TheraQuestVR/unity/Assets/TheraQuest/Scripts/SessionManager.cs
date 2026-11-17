@@ -73,9 +73,9 @@ namespace TheraQuest
             if (FindAnyObjectByType<MusicPlayer>() == null) gameObject.AddComponent<MusicPlayer>();
             if (FindAnyObjectByType<Subtitles>() == null) gameObject.AddComponent<Subtitles>();
             if (FindAnyObjectByType<ClinicRoom>() == null) gameObject.AddComponent<ClinicRoom>();
-            if (mover == null && head != null && head.transform.parent != null)
+            if (mover == null && head != null && head.Rig != null)
             {
-                var rig = head.transform.parent.gameObject;
+                var rig = head.Rig.gameObject;   // the XR Origin (M10.1)
                 mover = rig.GetComponent<PlayerMover>();
                 if (mover == null) mover = rig.AddComponent<PlayerMover>();
                 mover.head = head;
@@ -88,7 +88,17 @@ namespace TheraQuest
             }
         }
 
+        void OnEnable() { XrMode.Changed += OnXrChanged; }
+        void OnDisable() { XrMode.Changed -= OnXrChanged; }
         void OnDestroy() { Time.timeScale = 1f; AudioListener.pause = false; }
+
+        /// <summary>Headset taken off: pause the exercise (A resumes). Link lost: carry on on the laptop, reps kept (M10.1).</summary>
+        void OnXrChanged(XrModeLogic.Change change)
+        {
+            if (menu == null) return;
+            if (XrModeLogic.PausesSession(change, phase == Phase.Running, menu.IsOpen)) Pause();
+            else if (change == XrModeLogic.Change.FellBackToDesktop) Subtitles.Say(XrModeLogic.FallbackLine, 5f);
+        }
 
         /// <summary>
         /// Anti-aliasing for smooth edges instead of jagged pixels: MSAA where the pipeline allows it, plus
@@ -286,6 +296,7 @@ namespace TheraQuest
         void Update()
         {
             InputHelper.Tick();
+            XrMode.Tick();   // notices the headset being taken off or Link being lost
             float dt = Time.deltaTime;   // 0 while paused, which freezes the exercise
             // No walking during an exercise: stick drift or a bumped stick would move the patient (M4.3)
             if (mover != null) { mover.locked = menu.IsOpen; mover.walkLocked = phase == Phase.Running; }   // during exercises: stay on the spot, but turn and look freely

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.XR;
 
 namespace TheraQuest
 {
@@ -132,7 +131,7 @@ namespace TheraQuest
         {
             var cam = Camera.main;
             if (cam == null) return;
-            bool headset = XRSettings.isDeviceActive;
+            bool headset = XrMode.InHeadset;
             var ct = cam.transform;
             if (headset && lyingView)
             {
