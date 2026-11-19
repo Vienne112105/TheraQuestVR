@@ -213,8 +213,7 @@ namespace TheraQuest
         {
             leftCanvas = UIKit.Canvas(transform, "HUD Left", Vector3.zero, 0f, new Vector2(640, 900));
             var c = leftCanvas.transform;
-            leftCard = UIKit.Card(c, new Vector2(640, 900), UIKit.Cream, UIKit.Teal);
-            leftCard.Glass(GlassAlpha);
+            leftCard = UIKit.Window(c, new Vector2(640, 900), GlassAlpha);
             var card = leftCard.fill.transform;
 
             levelTxt = UIKit.Pill(card, new Vector2(28, -36), new Vector2(180, 56), UIKit.Purple, "LEVEL 1", 30, UIKit.White);
@@ -225,9 +224,10 @@ namespace TheraQuest
             pillsBlock = Group(card, "Pills");
             setTxt = UIKit.Pill(pillsBlock, new Vector2(28, 0), new Vector2(180, 52), UIKit.Orange, "GET READY", 24, UIKit.White);
             setPill = (Image)setTxt.transform.parent.GetComponent<Graphic>();
-            sideTxt = UIKit.Pill(pillsBlock, new Vector2(216, 0), new Vector2(200, 52), UIKit.Blue, "", 24, UIKit.White);
+            // Wide enough for "RIGHT SHOULDER" at the same size as "GET READY"
+            sideTxt = UIKit.Pill(pillsBlock, new Vector2(216, 0), new Vector2(250, 52), UIKit.Blue, "", 24, UIKit.White);
             sidePill = (Image)sideTxt.transform.parent.GetComponent<Graphic>();
-            cadenceTxt = UIKit.Pill(pillsBlock, new Vector2(424, 0), new Vector2(172, 52), UIKit.Teal, "SMOOTH", 22, UIKit.White);
+            cadenceTxt = UIKit.Pill(pillsBlock, new Vector2(474, 0), new Vector2(122, 52), UIKit.Teal, "SMOOTH", 22, UIKit.White);
             cadencePill = (Image)cadenceTxt.transform.parent.GetComponent<Graphic>();
             cadencePill.gameObject.SetActive(false);
 
@@ -259,9 +259,11 @@ namespace TheraQuest
 
             // Points and combo tiles
             tilesBlock = Group(card, "Tiles");
+            // Both tiles: white label and number, the number outlined in a darker shade of its tile
             pointsTile = Box(tilesBlock, new Vector2(28, 0), new Vector2(276, 140), UIKit.Yellow, "Points tile");
-            Label(pointsTile.transform, new Vector2(20, -14), new Vector2(240, 30), 24, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold).text = "POINTS";
-            scoreTxt = Label(pointsTile.transform, new Vector2(20, -46), new Vector2(240, 80), 62, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
+            Label(pointsTile.transform, new Vector2(20, -14), new Vector2(240, 30), 24, UIKit.White, TextAnchor.UpperLeft, FontStyle.Bold).text = "POINTS";
+            scoreTxt = UIKit.Stroke(Label(pointsTile.transform, new Vector2(20, -46), new Vector2(240, 80), 62, UIKit.White, TextAnchor.UpperLeft, FontStyle.Bold),
+                                    UIKit.Darker(UIKit.Yellow), 3f);
             UIKit.Bouncy(pointsTile);
             var comboTile = Box(tilesBlock, new Vector2(320, 0), new Vector2(276, 140), UIKit.Pink, "Combo tile");
             Label(comboTile.transform, new Vector2(20, -14), new Vector2(240, 30), 24, UIKit.White, TextAnchor.UpperLeft, FontStyle.Bold).text = "COMBO";
@@ -326,8 +328,7 @@ namespace TheraQuest
         {
             rightCanvas = UIKit.Canvas(transform, "HUD Right", Vector3.zero, 0f, new Vector2(640, 900));
             var c = rightCanvas.transform;
-            questCard = UIKit.Card(c, new Vector2(640, 900), UIKit.Cream, UIKit.Orange);
-            questCard.Glass(GlassAlpha);
+            questCard = UIKit.Window(c, new Vector2(640, 900), GlassAlpha);
             var card = questCard.fill.transform;
             Label(card, new Vector2(28, -36), new Vector2(400, 56), 44, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold).text = "Today's quest";
             questCount = UIKit.Pill(card, new Vector2(440, -36), new Vector2(156, 52), UIKit.Teal, "0 / 0", 28, UIKit.White);
@@ -350,8 +351,9 @@ namespace TheraQuest
             // Badges sit right below the last exercise (SetQuest moves them)
             badgesBlock = Group(card, "Badges");
             questFullOnly.Add(badgesBlock.gameObject);
-            Label(badgesBlock, new Vector2(28, 0), new Vector2(300, 40), 30, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold).text = "Badges";
-            badgeCount = Label(badgesBlock, new Vector2(28, 0), new Vector2(568, 40), 26, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
+            // Same section label as HOW FAR and REPS on the left card
+            Label(badgesBlock, new Vector2(28, 0), new Vector2(300, 40), UIKit.SectionLabelSize, UIKit.Muted, TextAnchor.UpperLeft, FontStyle.Bold).text = "BADGES";
+            badgeCount = Label(badgesBlock, new Vector2(28, 0), new Vector2(568, 40), UIKit.SectionLabelSize, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
             int b = 0;
             foreach (var code in GamificationManager.BadgeNames.Keys)
             {
@@ -387,8 +389,7 @@ namespace TheraQuest
             var hr = (RectTransform)holder;
             hr.anchorMin = hr.anchorMax = hr.pivot = new Vector2(0, 1);
             hr.sizeDelta = new Vector2(1200, 150);
-            bubbleCard = UIKit.Card(holder, new Vector2(1200, 150), UIKit.Cream, UIKit.Teal);
-            bubbleCard.Glass(GlassAlpha + 0.1f);
+            bubbleCard = UIKit.Window(holder, new Vector2(1200, 150), GlassAlpha + 0.1f);
             bubbleFill = bubbleCard.fill;
             bubbleBounce = UIKit.Bouncy(hr);
             var f = bubbleFill.transform;
@@ -409,7 +410,7 @@ namespace TheraQuest
             var c = summaryCanvas = UIKit.Canvas(transform, "Summary", Vector3.zero, 0f, new Vector2(900, 640));
             c.sortingOrder = 10;
             summary = c.gameObject;
-            sumCard = UIKit.Card(c.transform, new Vector2(900, 640), UIKit.Cream, UIKit.Yellow);
+            sumCard = UIKit.Window(c.transform, new Vector2(900, 640), 0.97f);
             var card = sumCard.fill.transform;
             sumTitle = UIKit.Stroke(Label(card, new Vector2(0, -50), new Vector2(884, 90), 72, UIKit.Orange, TextAnchor.UpperCenter, FontStyle.Bold), 3f);
             sumStars = UIKit.Stroke(Label(card, new Vector2(0, -130), new Vector2(884, 140), 124, UIKit.Yellow, TextAnchor.UpperCenter, FontStyle.Bold), 4f);
@@ -430,8 +431,7 @@ namespace TheraQuest
         void BuildCoachWindow()
         {
             coachCanvas = UIKit.Canvas(transform, "Coach Window", Vector3.zero, 0f, new Vector2(CoachW, CoachH));
-            var card = UIKit.Card(coachCanvas.transform, new Vector2(CoachW, CoachH), UIKit.Cream, UIKit.Green);
-            card.Glass(GlassAlpha);
+            var card = UIKit.Window(coachCanvas.transform, new Vector2(CoachW, CoachH), GlassAlpha);
             coachPicture = Picture(card.fill.transform, new Vector2(16, -32), CoachPicture, "Coach picture");
             coachWord = UIKit.Pill(coachPicture.transform, Vector2.zero, new Vector2(250, 52), UIKit.Orange, "", 26, UIKit.White);
             coachWordChip = (RectTransform)coachWord.transform.parent;
@@ -442,8 +442,7 @@ namespace TheraQuest
         void BuildMirror()
         {
             mirrorCanvas = UIKit.Canvas(transform, "Side Mirror", Vector3.zero, 0f, new Vector2(MirrorSize, MirrorSize));
-            var card = UIKit.Card(mirrorCanvas.transform, new Vector2(MirrorSize, MirrorSize), UIKit.Cream, UIKit.Teal);
-            card.Glass(GlassAlpha);
+            var card = UIKit.Window(mirrorCanvas.transform, new Vector2(MirrorSize, MirrorSize), GlassAlpha);
             mirrorPicture = Picture(card.fill.transform, new Vector2(16, -32), MirrorSize - 48f, "Side view");
             mirrorCanvas.gameObject.SetActive(false);
         }
@@ -719,7 +718,7 @@ namespace TheraQuest
                 nextName.text = hasNext ? exs[next].name : "Last one, then your summary";
             }
             var k = ControlHints.Current;
-            questHint.text = open ? $"{k.Quest} = hide   ·   {k.Back} = menu   ·   {k.Recenter} = back to your spot" : $"{k.Quest} = show all exercises";
+            questHint.text = open ? $"{k.Quest} hide   ·   {k.Back} menu   ·   {k.Recenter} back to your spot" : $"{k.Quest} show all exercises";   // same "key action" form as the menu footer
             // Open: badges right below the last exercise and the card just tall enough (no empty space)
             float rowsEnd = 110f + exs.Count * (rowH + gap) - gap;
             badgesBlock.anchoredPosition = new Vector2(0, -(rowsEnd + 26f));

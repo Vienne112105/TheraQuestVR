@@ -75,7 +75,7 @@ namespace TheraQuest
             ((RectTransform)canvas.transform).pivot = new Vector2(0.5f, 0.5f);
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             var t = canvas.transform;
-            card = UIKit.Card(t, new Vector2(Width, 900), UIKit.Cream, UIKit.Teal, "Card");
+            card = UIKit.Window(t, new Vector2(Width, 900), 0.97f, "Card");   // same frame as the HUD cards, nearly solid
             title = UIKit.Stroke(UIKit.Label(t, new Vector2(TitleX, -52), new Vector2(Width - 100, 80), 70, UIKit.Orange, TextAnchor.UpperLeft, FontStyle.Bold), 3f);
             var headsetIcon = UIKit.Icon("Headset");   // Font Awesome "vr-cardboard" (see CREDITS.md)
             if (headsetIcon != null)

@@ -313,6 +313,23 @@ namespace TheraQuest
             }
         }
 
+        /// <summary>Every floating window's top strip has this one colour (design consistency, human request 2026-11-19).</summary>
+        public static Color WindowStrip => Accent;
+
+        /// <summary>
+        /// A floating window: the same strip, soft outline and faint shadow on every one (menu, HUD cards, coach bubble,
+        /// coach window, side view, summary); only how see-through the fill is differs.
+        /// </summary>
+        public static CardRef Window(Transform parent, Vector2 size, float fillAlpha, string name = "Panel")
+        {
+            var c = Card(parent, size, Cream, WindowStrip, name);
+            c.Glass(fillAlpha);
+            return c;
+        }
+
+        /// <summary>A small grey capitals label over a section of a card ("HOW FAR", "REPS", "BADGES").</summary>
+        public const int SectionLabelSize = 24;
+
         public static CardRef Card(Transform parent, Vector2 size, Color fill, Color strip, string name = "Panel")
         {
             var c = new CardRef
@@ -360,7 +377,12 @@ namespace TheraQuest
         public static TextMeshProUGUI Pill(Transform parent, Vector2 pos, Vector2 size, Color color, string text, int fontSize, Color textColor)
         {
             var bg = Box(parent, pos, size, color, "Pill", true);
-            var t = Label(bg.transform, Vector2.zero, size, fontSize, textColor, TextAnchor.MiddleCenter, FontStyle.Bold);
+            var t = Label(bg.transform, new Vector2(10, 0), size - new Vector2(20, 0), fontSize, textColor, TextAnchor.MiddleCenter, FontStyle.Bold);
+            // One line always: long words shrink instead of wrapping out of the pill ("RIGHT SHOULDER")
+            t.textWrappingMode = TextWrappingModes.NoWrap;
+            t.enableAutoSizing = true;
+            t.fontSizeMin = 14;
+            t.fontSizeMax = fontSize;
             t.text = text;
             if (IsWhite(textColor)) Stroke(t, Darker(color), 2f);
             return t;
