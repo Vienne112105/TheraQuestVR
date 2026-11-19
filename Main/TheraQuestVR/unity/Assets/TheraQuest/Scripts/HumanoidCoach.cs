@@ -97,8 +97,9 @@ namespace TheraQuest
         [Tooltip("Yoga mat the coach exercises on (built at runtime). It turns and grows to fit each posture. " +
                  "The scene's old \"Exercise mat\", if any, is hidden.")]
         public Vector2 yogaMatSize = new Vector2(1.9f, 0.7f);
-        [Tooltip("Metres the coach stands further back than where the scene places it (human request 2026-10-27).")]
-        public float standBack = 0.6f;
+        // Renamed from standBack (0.6) so the scene's saved value no longer overrides it (human request 2026-11-19: further back)
+        [Tooltip("Metres the coach stands further back than where the scene places it (human requests 2026-10-27, 2026-11-19).")]
+        public float standBackMetres = 1.2f;
 
         public bool Ready => built.Count > 0 || fallback != null;
         public int Count => built.Count > 0 ? built.Count : (fallback != null ? FigureVisualizer.StyleCount : 0);
@@ -143,7 +144,7 @@ namespace TheraQuest
             if (femaleModel == null || maleModel == null)
                 OnValidate();
 #endif
-            transform.position -= transform.forward * standBack;   // the coach faces the player: step away from them
+            transform.position -= transform.forward * standBackMetres;   // the coach faces the player: step away from them
             // The yoga mat replaces the flat teal "Exercise mat" of older scenes
             var oldMat = GameObject.Find("Exercise mat");
             if (oldMat != null && oldMat.TryGetComponent<Renderer>(out var oldR)) oldR.enabled = false;

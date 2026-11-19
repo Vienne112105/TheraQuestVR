@@ -165,15 +165,17 @@ namespace TheraQuest
             float d, x, y, bubbleY, yaw;
             if (headset)
             {
-                d = 1.45f;
-                x = 0.90f;
-                y = 0.06f;
-                bubbleY = 0.66f;
+                // Pushed out from 1.45 m (human request 2026-11-19); the offsets scale with it to keep the same directions
+                d = 1.65f;
+                float k = d / 1.45f;
+                x = 0.90f * k;
+                y = 0.06f * k;
+                bubbleY = 0.66f * k;
                 yaw = 24f;
             }
             else
             {
-                d = 1.15f;
+                d = 1.35f;   // was 1.15 m (human request 2026-11-19: a bit further)
                 float halfH = d * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
                 float halfW = halfH * cam.aspect, margin = 0.035f;
                 x = Mathf.Max(card.x * 0.55f, halfW - margin - card.x / 2f);
