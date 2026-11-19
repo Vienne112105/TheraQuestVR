@@ -236,7 +236,12 @@ namespace TheraQuest
         static bool IsWhite(Color c) => c.r > 0.95f && c.g > 0.95f && c.b > 0.95f;
 
         /// <summary>9-sliced rounded rectangle, 36 canvas units corner radius. Small boxes become pills and circles.</summary>
-        public static Sprite Rounded => rounded != null ? rounded : (rounded = MakeRounded(96, 36));
+        public static Sprite Rounded => rounded != null ? rounded : (rounded = MakeRounded(96, CornerRadius));
+        public const int CornerRadius = 36;
+
+        /// <summary>Sliced-image multiplier that keeps the corners at most half the box's short side (round ends).</summary>
+        public static float RoundMultiplier(Vector2 size) =>
+            Mathf.Max(1f, CornerRadius / Mathf.Max(1f, Mathf.Min(size.x, size.y) * 0.5f));
 
         static Sprite MakeRounded(int size, int radius)
         {
@@ -286,6 +291,9 @@ namespace TheraQuest
             {
                 img.sprite = Rounded;
                 img.type = Image.Type.Sliced;
+                // Thin boxes (the windows' header strip, pills, bars): shrink the corners to half the short side so
+                // the ends are true half circles, not squashed flat ovals (human request 2026-11-19)
+                img.pixelsPerUnitMultiplier = RoundMultiplier(size);
             }
             img.raycastTarget = false;
             ApplyOnTop(img, parent);
