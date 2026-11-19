@@ -50,6 +50,28 @@ namespace TheraQuest
 
         public const string LogoMarkResource = "Logo/TheraQuestMark";
         public const int LogoNameSize = 66;      // at or above UIKit.DisplaySize: the cartoon display font
+
+        /// <summary>Sticker-style title (human request 2026-11-19, "flat and obscure"): white outline, a navy outer
+        /// edge and drop shadow so it stands off the cream card, and letters lit from above (darker toward the base).</summary>
+        public static void StyleLogoName(TMPro.TextMeshProUGUI t)
+        {
+            // Values tuned in the editor: heavier ones merge LuckiestGuy's letters into one blob
+            t.outlineColor = UIKit.White;
+            t.outlineWidth = 0.22f;
+            var m = t.fontMaterial;
+            m.SetFloat(TMPro.ShaderUtilities.ID_FaceDilate, 0.1f);
+            m.EnableKeyword(TMPro.ShaderUtilities.Keyword_Underlay);
+            m.SetColor(TMPro.ShaderUtilities.ID_UnderlayColor, UIKit.Ink);
+            m.SetFloat(TMPro.ShaderUtilities.ID_UnderlayOffsetX, 0.2f);
+            m.SetFloat(TMPro.ShaderUtilities.ID_UnderlayOffsetY, -0.3f);
+            m.SetFloat(TMPro.ShaderUtilities.ID_UnderlayDilate, 0.25f);
+            m.SetFloat(TMPro.ShaderUtilities.ID_UnderlaySoftness, 0f);
+            t.enableVertexGradient = true;
+            t.colorGradient = new TMPro.VertexGradient(Color.white, Color.white,
+                new Color(0.78f, 0.78f, 0.78f), new Color(0.78f, 0.78f, 0.78f));
+            t.extraPadding = true;
+            t.UpdateMeshPadding();
+        }
         public const string LogoText ="Thera<color=" + UIKit.HexTeal + ">Quest</color>";
         const float LogoMarkSize = 80f;
         RectTransform tabBar;                   // Progress page tabs
@@ -98,6 +120,7 @@ namespace TheraQuest
             logoName = UIKit.Label(t, new Vector2(nameX, -40), new Vector2(Width - 50 - nameX, LogoMarkSize), LogoNameSize, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
             logoName.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
             logoName.enableAutoSizing = true; logoName.fontSizeMin = UIKit.DisplaySize; logoName.fontSizeMax = LogoNameSize;
+            StyleLogoName(logoName);
             logoName.text = LogoText;
             badgeGrid = (RectTransform)new GameObject("Badge cards", typeof(RectTransform)).transform;
             badgeGrid.SetParent(t, false);
