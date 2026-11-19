@@ -62,7 +62,8 @@ The icons were trimmed, scaled to fit a 128 px cell and recoloured white so the 
 
 | File | Used for | Source | Licence |
 |------|----------|--------|---------|
-| `Headset.png` | VR headset logo beside the game name on the main menu | the `vr-cardboard` glyph (U+F729) of Font Awesome Free 6.7.2 `fa-solid-900.ttf` by Fonticons, Inc., github.com/FortAwesome/Font-Awesome (6.x branch, `webfonts/`), rendered to a 256 px white PNG the game tints | SIL Open Font License 1.1, which Font Awesome applies to its font files (`FontAwesome-LICENSE.txt`; the same icon as SVG is CC BY 4.0). Downloaded 2026-10-26 |
+| `Headset.png` | VR headset logo beside the game name on the main menu (not shown since 2026-11-19: replaced by the Joint Angle logo) | the `vr-cardboard` glyph (U+F729) of Font Awesome Free 6.7.2 `fa-solid-900.ttf` by Fonticons, Inc., github.com/FortAwesome/Font-Awesome (6.x branch, `webfonts/`), rendered to a 256 px white PNG the game tints | SIL Open Font License 1.1, which Font Awesome applies to its font files (`FontAwesome-LICENSE.txt`; the same icon as SVG is CC BY 4.0). Downloaded 2026-10-26 |
+| `Resources/Logo/TheraQuestMark.png` (512 px, main menu) and `Resources/Logo/TheraQuestIcon.png` (1024 px, app icon) | The "Joint Angle" logo mark: a bent limb with an orange joint and the angle being measured, white on the brand blue rounded square. Drawn by Claude with a Python/Pillow script on 2026-11-19 and chosen by the human from three concepts (M8.2); the name beside it is set in Nunito ExtraBold (see Fonts above) | Made for this project, no third-party content |
 
 ## Coach models (`Assets/LuceedStudio`)
 

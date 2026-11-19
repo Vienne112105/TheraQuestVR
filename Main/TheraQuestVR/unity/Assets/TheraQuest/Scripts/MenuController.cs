@@ -45,7 +45,12 @@ namespace TheraQuest
         Canvas canvas;
         UIKit.CardRef card;
         TextMeshProUGUI title, subtitle, info, footer;
-        Image headset;                          // VR headset logo after the game name (main page only)
+        Image logoMark;                         // the logo's mark (main page only)
+        TextMeshProUGUI logoName;               // the logo's name beside it
+
+        public const string LogoMarkResource = "Logo/TheraQuestMark";
+        public const string LogoText = "Thera<color=" + UIKit.HexTeal + ">Quest</color>";
+        const float LogoMarkSize = 80f;
         RectTransform tabBar;                   // Progress page tabs
         RectTransform badgeGrid;                // Progress page, Badges tab: one card per badge
         const int BadgeCols = 4;
@@ -77,16 +82,21 @@ namespace TheraQuest
             var t = canvas.transform;
             card = UIKit.Window(t, new Vector2(Width, 900), 0.97f, "Card");   // same frame as the HUD cards, nearly solid
             title = UIKit.Stroke(UIKit.Label(t, new Vector2(TitleX, -52), new Vector2(Width - 100, 80), 70, UIKit.Orange, TextAnchor.UpperLeft, FontStyle.Bold), 3f);
-            var headsetIcon = UIKit.Icon("Headset");   // Font Awesome "vr-cardboard" (see CREDITS.md)
-            if (headsetIcon != null)
+            // Logo (human choice "B Joint Angle", 2026-11-19): the mark, then the name in Nunito ExtraBold, "Thera" navy
+            // and "Quest" blue. It replaces the cartoon title and the tilted headset icon on the main page.
+            var markTex = Resources.Load<Texture2D>(LogoMarkResource);
+            float nameX = TitleX;
+            if (markTex != null)
             {
-                headset = UIKit.Box(t, Vector2.zero, new Vector2(96, 59), UIKit.Orange, "VR headset logo");
-                headset.sprite = headsetIcon;
-                headset.preserveAspect = true;
-                // Tilted 30° with its top leaning away from the word (human request 2026-10-26); turns about its centre
-                headset.rectTransform.pivot = new Vector2(0.5f, 0.5f);
-                headset.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -30f);
+                logoMark = UIKit.Box(t, new Vector2(TitleX, -40), new Vector2(LogoMarkSize, LogoMarkSize), Color.white, "Logo mark");
+                logoMark.sprite = Sprite.Create(markTex, new Rect(0, 0, markTex.width, markTex.height), new Vector2(0.5f, 0.5f), 100f);
+                logoMark.preserveAspect = true;
+                nameX += LogoMarkSize + 22f;
             }
+            logoName = UIKit.Label(t, new Vector2(nameX, -40), new Vector2(Width - 50 - nameX, LogoMarkSize), 40, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
+            logoName.fontSize = 66;   // the plain bold face, made big (a 66 label would get the display font and its outline)
+            logoName.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
+            logoName.text = LogoText;
             badgeGrid = (RectTransform)new GameObject("Badge cards", typeof(RectTransform)).transform;
             badgeGrid.SetParent(t, false);
             badgeGrid.anchorMin = badgeGrid.anchorMax = badgeGrid.pivot = new Vector2(0, 1);
@@ -151,15 +161,12 @@ namespace TheraQuest
                 default: BuildSettings(); break;
             }
             footer.text = page == Page.Progress ? ProgressFooter : ControlHints.Current.MenuFooter;
-            // The VR headset logo follows the game name on the main page
-            bool logo = page == Page.Main && headset != null;
-            if (headset != null) headset.gameObject.SetActive(logo);
+            // The main page shows the logo in place of the page title
+            bool logo = page == Page.Main;
+            title.gameObject.SetActive(!logo);
+            logoName.gameObject.SetActive(logo);
+            if (logoMark != null) logoMark.gameObject.SetActive(logo);
             title.rectTransform.anchoredPosition = new Vector2(TitleX, -52);
-            if (logo)
-            {
-                float nameW = title.GetPreferredValues(title.text).x;
-                headset.rectTransform.anchoredPosition = new Vector2(TitleX + nameW + 22f + 48f, -44f - 30f);
-            }
             tabBar.gameObject.SetActive(page == Page.Progress);
             Layout();
             if (!IsOpen) PlaceInFront();
