@@ -11,6 +11,11 @@ namespace TheraQuest
     public static class FirstPersonMath
     {
         public const float StandingEye = 1.55f, SeatedEye = 1.15f, LyingEye = 0.25f, SideLyingEye = 0.30f;
+        /// <summary>
+        /// Metres the arm guide's shoulders sit forward of the real shoulder line (1.5 in), so the patient sees the arm
+        /// hologram with less turning and bending of the neck (human request 2026-11-19). Legs are not moved.
+        /// </summary>
+        public const float ArmGuideForward = 0.0381f;
         public const float UpperArm = 0.30f, Forearm = 0.27f, Hand = 0.09f, Thigh = 0.42f, Shin = 0.40f, Foot = 0.20f;
 
         /// <summary>One limb, from its top joint to the fingertips or toes.</summary>
@@ -163,7 +168,7 @@ namespace TheraQuest
 
         static Chain Arm(int s, Vector3 upper, Vector3 fore)
         {
-            var c = new Chain { root = new Vector3(s * 0.19f, -0.24f, -0.06f) };
+            var c = new Chain { root = new Vector3(s * 0.19f, -0.24f, -0.06f + ArmGuideForward) };
             c.mid = c.root + upper * UpperArm;
             c.end = c.mid + fore * Forearm;
             c.tip = c.end + fore * Hand;
