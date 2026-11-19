@@ -74,6 +74,7 @@ namespace TheraQuest
         }
         public const string LogoText ="Thera<color=" + UIKit.HexTeal + ">Quest</color>";
         const float LogoMarkSize = 80f;
+        public const float LogoGap = 36f;          // space between the mark and the name (human request: ample spacing)
         RectTransform tabBar;                   // Progress page tabs
         RectTransform badgeGrid;                // Progress page, Badges tab: one card per badge
         const int BadgeCols = 4;
@@ -114,13 +115,15 @@ namespace TheraQuest
                 logoMark = UIKit.Box(t, new Vector2(TitleX, -40), new Vector2(LogoMarkSize, LogoMarkSize), Color.white, "Logo mark");
                 logoMark.sprite = Sprite.Create(markTex, new Rect(0, 0, markTex.width, markTex.height), new Vector2(0.5f, 0.5f), 100f);
                 logoMark.preserveAspect = true;
-                nameX += LogoMarkSize + 22f;
+                nameX += LogoMarkSize + LogoGap;
             }
             // The cartoon display face (LuckiestGuy, with its outline), like the old title (human request 2026-11-19)
             logoName = UIKit.Label(t, new Vector2(nameX, -40), new Vector2(Width - 50 - nameX, LogoMarkSize), LogoNameSize, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
             logoName.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
             logoName.enableAutoSizing = true; logoName.fontSizeMin = UIKit.DisplaySize; logoName.fontSizeMax = LogoNameSize;
             StyleLogoName(logoName);
+            // Centre on the letters themselves, not the font line box (LuckiestGuy sits off-centre in its line)
+            logoName.verticalAlignment = TMPro.VerticalAlignmentOptions.Geometry;
             logoName.text = LogoText;
             badgeGrid = (RectTransform)new GameObject("Badge cards", typeof(RectTransform)).transform;
             badgeGrid.SetParent(t, false);
