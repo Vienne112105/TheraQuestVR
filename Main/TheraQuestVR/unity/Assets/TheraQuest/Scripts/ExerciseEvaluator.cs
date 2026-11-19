@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace TheraQuest
 {
-    public enum LiveState { Idle, Rising, Holding, OnTarget, TooFar, Unsafe, Fault, Resting }
+    /// <summary>Lowering: the target was reached this rep and the limb is on its way back down (added last so stored values keep their meaning).</summary>
+    public enum LiveState { Idle, Rising, Holding, OnTarget, TooFar, Unsafe, Fault, Resting, Lowering }
 
     /// <summary>
     /// Exercise Evaluation Module (Section 3.6.3):
@@ -140,7 +141,9 @@ namespace TheraQuest
             else if (fault != null) State = LiveState.Fault;
             else if (angle > target + tol) State = LiveState.TooFar;
             else if (angle >= target - tol) State = HoldTime < Exercise.holdSeconds ? LiveState.Holding : LiveState.OnTarget;
-            else State = LiveState.Rising;
+            // Coming back down after reaching the target is the second half of a good rep, not "too low"
+            // (human report 2026-11-19: the panel showed a warning instead of guiding the return)
+            else State = peak >= target - tol ? LiveState.Lowering : LiveState.Rising;
 
             if (angle < down)
             {

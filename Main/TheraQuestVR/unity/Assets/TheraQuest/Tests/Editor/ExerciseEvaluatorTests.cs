@@ -29,6 +29,26 @@ namespace TheraQuest.Tests
         }
 
         [Test]
+        public void ComingBackDown_AfterTheTarget_IsLowering_WithGoodGuidance()
+        {
+            var ev = new ExerciseEvaluator(Ex());
+            for (float a = 0; a <= 90; a += 5) ev.Update(a, null, Dt);      // up to the target
+            ev.Update(70f, null, Dt);                                         // on the way back down, below the band
+            Assert.AreEqual(LiveState.Lowering, ev.State);
+            var (text, tone) = FeedbackManager.LiveMessage(ev, null);
+            Assert.AreEqual(Tone.Good, tone);
+            StringAssert.Contains("lower", text);
+        }
+
+        [Test]
+        public void StillShortOfTheTarget_IsRising()
+        {
+            var ev = new ExerciseEvaluator(Ex());
+            for (float a = 0; a <= 70; a += 5) ev.Update(a, null, Dt);
+            Assert.AreEqual(LiveState.Rising, ev.State);
+        }
+
+        [Test]
         public void RepOnTargetIsValidAndAccurate()
         {
             var ev = new ExerciseEvaluator(Ex());
