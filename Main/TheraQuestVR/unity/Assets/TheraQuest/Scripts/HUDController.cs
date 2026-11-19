@@ -395,8 +395,10 @@ namespace TheraQuest
             var f = bubbleFill.transform;
             bubbleIcon = Box(f, new Vector2(18, -26), new Vector2(92, 92), UIKit.Teal, "Icon");
             bubbleIconTxt = Label(bubbleIcon.transform, Vector2.zero, new Vector2(92, 92), 56, UIKit.White, TextAnchor.MiddleCenter, FontStyle.Bold);
-            // Text starts below the strip on top of the card
-            feedbackTxt = Label(f, new Vector2(128, -34), new Vector2(1040, 100), 42, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
+            bubbleIconTxt.verticalAlignment = VerticalAlignmentOptions.Geometry;   // the glyph's own shape centred in the circle
+            feedbackTxt = Label(f, new Vector2(BubbleTextX, -34), new Vector2(BubbleTextW, 100), 42, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
+            feedbackTxt.verticalAlignment = VerticalAlignmentOptions.Geometry;     // centred on the letters, like the menu title
+            LayoutBubble(150f);
 
             popTxt = UIKit.Stroke(Label(c, new Vector2(0, -170), new Vector2(1200, 110), 84, UIKit.Yellow, TextAnchor.MiddleCenter, FontStyle.Bold),
                                  UIKit.Darker(UIKit.Yellow, 0.45f), 4f);
@@ -790,6 +792,20 @@ namespace TheraQuest
             FitBubble();
         }
 
+        // Icon and message share one centre line, with the menu logo's gap between them (human request 2026-11-19)
+        const float BubbleIcon = 92f, BubbleIconX = 18f, BubbleStripBottom = 28f;
+        const float BubbleTextX = BubbleIconX + BubbleIcon + MenuController.LogoGap, BubbleTextW = 1200f - BubbleTextX - 32f;
+
+        /// <summary>Centres the icon and the message on the same line in the space below the header strip.</summary>
+        void LayoutBubble(float h)
+        {
+            float cy = -(BubbleStripBottom + (h - BubbleStripBottom) / 2f);
+            bubbleIcon.rectTransform.anchoredPosition = new Vector2(BubbleIconX, cy + BubbleIcon / 2f);
+            float textH = h - 52f;
+            feedbackTxt.rectTransform.sizeDelta = new Vector2(BubbleTextW, textH);
+            feedbackTxt.rectTransform.anchoredPosition = new Vector2(BubbleTextX, cy + textH / 2f);
+        }
+
         /// <summary>Grows or shrinks the bubble so every line of the message fits inside it.</summary>
         void FitBubble()
         {
@@ -798,8 +814,7 @@ namespace TheraQuest
             if (Mathf.Abs(h - bubbleH) < 1f) return;
             bubbleH = h;
             bubbleCard.Resize(new Vector2(1200, h));
-            feedbackTxt.rectTransform.sizeDelta = new Vector2(1040, h - 52f);
-            bubbleIcon.rectTransform.anchoredPosition = new Vector2(18, -(h - 16f - 92f) / 2f - 6f);
+            LayoutBubble(h);
             popStart = new Vector2(popStart.x, -(h + 20f) - 55f);   // +points pop just below the bubble (its pivot is its centre)
         }
 
