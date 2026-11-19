@@ -323,6 +323,8 @@ namespace TheraQuest
 
         /// <summary>Every floating window's top strip has this one colour (design consistency, human request 2026-11-19).</summary>
         public static Color WindowStrip => Accent;
+        /// <summary>The header strip's distance from the window's left edge; content that lines up with it uses this.</summary>
+        public const float StripInset = 24f;
 
         /// <summary>
         /// A floating window: the same strip, soft outline and faint shadow on every one (menu, HUD cards, coach bubble,
@@ -346,7 +348,7 @@ namespace TheraQuest
                 outline = Box(parent, Vector2.zero, size, Outline, name + " outline", true),
             };
             c.fill = Box(parent, new Vector2(8, -8), size - new Vector2(16, 16), fill, name, true);
-            c.strip = Box(c.fill.transform, new Vector2(24, -14), new Vector2(size.x - 64, 14), strip, "Strip", true);
+            c.strip = Box(c.fill.transform, new Vector2(StripInset, -14), new Vector2(size.x - 64, 14), strip, "Strip", true);
             return c;
         }
 

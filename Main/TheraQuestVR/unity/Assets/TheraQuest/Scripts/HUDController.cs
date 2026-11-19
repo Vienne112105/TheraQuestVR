@@ -393,8 +393,8 @@ namespace TheraQuest
             bubbleFill = bubbleCard.fill;
             bubbleBounce = UIKit.Bouncy(hr);
             var f = bubbleFill.transform;
-            bubbleIcon = Box(f, new Vector2(18, -26), new Vector2(92, 92), UIKit.Teal, "Icon");
-            bubbleIconTxt = Label(bubbleIcon.transform, Vector2.zero, new Vector2(92, 92), 56, UIKit.White, TextAnchor.MiddleCenter, FontStyle.Bold);
+            bubbleIcon = Box(f, new Vector2(BubbleIconX, -26), new Vector2(BubbleIcon, BubbleIcon), UIKit.Teal, "Icon");
+            bubbleIconTxt = Label(bubbleIcon.transform, Vector2.zero, new Vector2(BubbleIcon, BubbleIcon), 48, UIKit.White, TextAnchor.MiddleCenter, FontStyle.Bold);
             bubbleIconTxt.verticalAlignment = VerticalAlignmentOptions.Geometry;   // the glyph's own shape centred in the circle
             feedbackTxt = Label(f, new Vector2(BubbleTextX, -34), new Vector2(BubbleTextW, 100), 42, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
             feedbackTxt.verticalAlignment = VerticalAlignmentOptions.Geometry;     // centred on the letters, like the menu title
@@ -779,7 +779,8 @@ namespace TheraQuest
         {
             feedbackTxt.text = text;
             var c = FeedbackManager.ToneColor(tone);
-            var fillColor = tone == Tone.Neutral ? UIKit.Cream : Color.Lerp(UIKit.Cream, c, 0.28f);
+            // Same cream glass as every other window: only the icon carries the tone (consistency, human request 2026-11-19)
+            var fillColor = UIKit.Cream;
             fillColor.a = GlassAlpha + 0.1f;
             bubbleFill.color = fillColor;
             bubbleIcon.color = tone == Tone.Neutral ? UIKit.Teal : c;
@@ -793,13 +794,16 @@ namespace TheraQuest
         }
 
         // Icon and message share one centre line, with the menu logo's gap between them (human request 2026-11-19)
-        const float BubbleIcon = 92f, BubbleIconX = 18f, BubbleStripBottom = 28f;
-        const float BubbleTextX = BubbleIconX + BubbleIcon + MenuController.LogoGap, BubbleTextW = 1200f - BubbleTextX - 32f;
+        // Icon: the menu logo mark's size, lined up with the strip's left end; text ends where the strip ends.
+        // The card's fill is 8 units inside the card on every side, so the fill is (card - 16) tall.
+        const float BubbleIcon = 80f, BubbleIconX = UIKit.StripInset, BubbleStripBottom = 28f, BubbleFillInset = 16f;
+        const float BubbleTextX = BubbleIconX + BubbleIcon + MenuController.LogoGap,
+                    BubbleTextW = 1200f - BubbleFillInset - BubbleTextX - UIKit.StripInset;
 
         /// <summary>Centres the icon and the message on the same line in the space below the header strip.</summary>
         void LayoutBubble(float h)
         {
-            float cy = -(BubbleStripBottom + (h - BubbleStripBottom) / 2f);
+            float cy = -(BubbleStripBottom + (h - BubbleFillInset - BubbleStripBottom) / 2f);   // equal space above and below
             bubbleIcon.rectTransform.anchoredPosition = new Vector2(BubbleIconX, cy + BubbleIcon / 2f);
             float textH = h - 52f;
             feedbackTxt.rectTransform.sizeDelta = new Vector2(BubbleTextW, textH);
