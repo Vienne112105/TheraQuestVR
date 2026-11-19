@@ -17,6 +17,7 @@ VR API (Unity; header X-Patient-Code: P-001; accepted from this machine only)
 Therapist API (header Authorization: Bearer <token> from /api/auth/login; 401 without it)
   GET  /api/auth/setup                       {"needsSetup": true} until the first clinician login exists (open)
   POST /api/auth/setup                       first run only, from this machine: create that login (open)
+  POST /api/auth/signup                      add a clinician login; needs an existing clinician's username+password (open)
   POST /api/auth/login | /api/auth/logout    sign in (open) / sign out
   GET  /api/auth/me                          the signed-in clinician
   POST /api/auth/password                    change password {"current_password", "new_password"}
@@ -855,6 +856,40 @@ def auth_setup(con, body):
     token, expires_at = create_session(con, tid)
     row = con.execute("SELECT * FROM physical_therapist WHERE therapist_id=?", (tid,)).fetchone()
     return {"token": token, "expiresAt": expires_at, "therapist": _therapist_json(row), "mustChangePassword": False}
+
+
+def auth_signup(con, body):
+    """Create an additional clinician login. An existing clinician must approve it by giving their own
+    username and password, so strangers cannot register themselves. Wrong approver details count as
+    failed sign-ins (same lockout as the sign-in form)."""
+    approver = (body.get("approver_username") or "").strip()
+    approver_pw = body.get("approver_password") or ""
+    if not approver or not approver_pw:
+        raise BadRequest("An existing clinician must approve: enter their username and password")
+    key = approver.lower()
+    if _login_blocked(key):
+        return {"error": f"Too many failed attempts. Try again in {LOGIN_WINDOW_SECONDS // 60} minutes."}, 429
+    arow = con.execute("SELECT * FROM physical_therapist WHERE username = ? COLLATE NOCASE", (approver,)).fetchone()
+    if not arow or not arow["password_hash"] or not arow["salt"] \
+            or not verify_password(approver_pw, arow["password_hash"], arow["salt"]):
+        _record_login_failure(key)
+        return {"error": "The approving clinician's username or password is incorrect"}, 401
+    with _login_lock:
+        _login_failures.pop(key, None)
+    username = (body.get("username") or "").strip()
+    if not username:
+        raise BadRequest("Choose a username")
+    _check_new_password(body.get("password") or "")
+    if con.execute("SELECT 1 FROM physical_therapist WHERE username = ? COLLATE NOCASE", (username,)).fetchone():
+        raise Conflict("That username is already taken")
+    name = (body.get("name") or "").strip() or "Physical Therapist"
+    h, s = hash_password(body["password"])
+    tid = con.execute("INSERT INTO physical_therapist(name, username, password_hash, salt) VALUES (?,?,?,?)",
+                      (name, username, h, s)).lastrowid
+    con.commit()
+    token, expires_at = create_session(con, tid)
+    row = con.execute("SELECT * FROM physical_therapist WHERE therapist_id=?", (tid,)).fetchone()
+    return {"token": token, "expiresAt": expires_at, "therapist": _therapist_json(row), "mustChangePassword": False}, 201
 
 
 def change_password(con, therapist_id, body):
@@ -2308,6 +2343,9 @@ class Handler(BaseHTTPRequestHandler):
             if not self._client_is_loopback():
                 return self._send(403, {"error": "First-run setup must be done on the clinic computer itself"})
             return self._send(201, auth_setup(con, self._body()))
+        if method == "POST" and parts == ["api", "auth", "signup"]:
+            res, code = auth_signup(con, self._body())
+            return self._send(code, res)
         if method == "POST" and parts == ["api", "auth", "login"]:
             res, code = auth_login(con, self._body())
             return self._send(code, res)
