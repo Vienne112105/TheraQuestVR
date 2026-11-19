@@ -49,7 +49,8 @@ namespace TheraQuest
         TextMeshProUGUI logoName;               // the logo's name beside it
 
         public const string LogoMarkResource = "Logo/TheraQuestMark";
-        public const string LogoText = "Thera<color=" + UIKit.HexTeal + ">Quest</color>";
+        public const int LogoNameSize = 66;      // at or above UIKit.DisplaySize: the cartoon display font
+        public const string LogoText ="Thera<color=" + UIKit.HexTeal + ">Quest</color>";
         const float LogoMarkSize = 80f;
         RectTransform tabBar;                   // Progress page tabs
         RectTransform badgeGrid;                // Progress page, Badges tab: one card per badge
@@ -93,9 +94,10 @@ namespace TheraQuest
                 logoMark.preserveAspect = true;
                 nameX += LogoMarkSize + 22f;
             }
-            logoName = UIKit.Label(t, new Vector2(nameX, -40), new Vector2(Width - 50 - nameX, LogoMarkSize), 40, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
-            logoName.fontSize = 66;   // the plain bold face, made big (a 66 label would get the display font and its outline)
+            // The cartoon display face (LuckiestGuy, with its outline), like the old title (human request 2026-11-19)
+            logoName = UIKit.Label(t, new Vector2(nameX, -40), new Vector2(Width - 50 - nameX, LogoMarkSize), LogoNameSize, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
             logoName.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
+            logoName.enableAutoSizing = true; logoName.fontSizeMin = UIKit.DisplaySize; logoName.fontSizeMax = LogoNameSize;
             logoName.text = LogoText;
             badgeGrid = (RectTransform)new GameObject("Badge cards", typeof(RectTransform)).transform;
             badgeGrid.SetParent(t, false);

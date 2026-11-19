@@ -23,6 +23,13 @@ namespace TheraQuest.Tests
         }
 
         [Test]
+        public void LogoName_UsesTheCartoonDisplayFont()
+        {
+            Assert.GreaterOrEqual(MenuController.LogoNameSize, UIKit.DisplaySize);
+            Assert.AreEqual(UIKit.DisplayFont, UIKit.FontFor(MenuController.LogoNameSize, FontStyle.Bold));
+        }
+
+        [Test]
         public void AppIcon_IsTheLogo()
         {
             var icons = UnityEditor.PlayerSettings.GetIcons(UnityEditor.Build.NamedBuildTarget.Unknown, UnityEditor.IconKind.Any);
