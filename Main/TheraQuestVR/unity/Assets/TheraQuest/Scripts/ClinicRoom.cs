@@ -21,6 +21,8 @@ namespace TheraQuest
 
         static readonly Color Wall = new Color(0.82f, 0.88f, 0.86f);
         static readonly Color Trim = new Color(0.04f, 0.54f, 0.49f);
+        /// <summary>Diameter of the round rug on the exercise spot, in metres.</summary>
+        public const float RugSize = 1.5f;
         static readonly Color Dark = new Color(0.20f, 0.26f, 0.28f);
         static readonly Color Sky = new Color(0.62f, 0.82f, 0.95f);
 
@@ -73,9 +75,13 @@ namespace TheraQuest
             }
 
             // Exercise spot: where the patient stands, faces the coach, and the session starts
-            Decor("Rug", new Vector3(0, 0.003f, 0.1f), new Vector3(2.4f, 0.004f, 2.4f), new Color(0.10f, 0.28f, 0.29f), PrimitiveType.Cylinder);
-            Decor("Exercise spot", new Vector3(0, 0.006f, 0f), new Vector3(0.9f, 0.004f, 0.9f), Trim, PrimitiveType.Cylinder);
-            Sign(new Vector3(0, 0.02f, 0.62f), Quaternion.Euler(90, 0, 0), new Vector2(700, 120), "EXERCISE SPOT", 64);
+            // A smaller woven rug (1.5 m, was a plain 2.4 m disc; human request 2026-11-19) whose centre medallion
+            // marks the spot; without the texture file the old plain spot disc is drawn on it instead
+            var rug = Decor("Rug", new Vector3(0, 0.003f, 0f), new Vector3(RugSize, 0.004f, RugSize), new Color(0.10f, 0.28f, 0.29f), PrimitiveType.Cylinder);
+            var rugR = rug.GetComponent<Renderer>();
+            if (!RoomLook.ApplyTexture(rugR.material, "Room/Textures/rug", null, 0.6f))   // .material: its own copy, not the shared colour
+                Decor("Exercise spot", new Vector3(0, 0.006f, 0f), new Vector3(0.9f, 0.004f, 0.9f), Trim, PrimitiveType.Cylinder);
+            Sign(new Vector3(0, 0.02f, RugSize / 2f + 0.12f), Quaternion.Euler(90, 0, 0), new Vector2(700, 120), "EXERCISE SPOT", 64);
 
             // Room decorations are 3D models (human request 2026-10-27, TASK-014): gym equipment from the Low Poly Gym
             // Pack (reodesuxz) and furniture from Kenney's Furniture Kit (CC0); see CREDITS.md. The coach's area in front

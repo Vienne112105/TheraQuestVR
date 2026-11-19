@@ -86,6 +86,7 @@ Chosen by the human from previews on 2026-10-27; built into the room by `ClinicR
 |-------|--------|---------|
 | `Gym/`: `treadmill`, `rowing_machine`, `wall_mirror`, `exercise_ball`, `medicine_ball`, `yoga_mat_rolled`, `foam_roller`, `dumbbell_rack`, `weight_tree`, `weight_plate_stack`, `dumbbell`, `gym_towel_bench`, `resistance_band`, `water_bottle` (FBX) | "Low Poly Gym Pack" v1.0 by reodesuxz, reodesuxz.itch.io/low-poly-gym-pack (free download, `LowPolyGymPack_v1.0.zip`, downloaded by the human 2026-10-27) | Pack licence (`Gym/LowPolyGymPack-LICENSE.txt`): free for personal and commercial projects, no attribution required; the files must not be resold or redistributed as standalone assets, so keep this repository private or strip them before sharing it |
 | `Furniture/`: `chairCushion` (the seated-exercise chair), `loungeSofa`, `pottedPlant`, `plantSmall2`, `lampRoundFloor`, `lampSquareCeiling`, `bookcaseOpen`, `books`, `sideTable`, `coatRackStanding`, `trashcan`, `radio` (FBX) | Kenney "Furniture Kit" 2.0, kenney.nl/assets/furniture-kit (`kenney_furniture-kit.zip`, downloaded 2026-10-27) | CC0 1.0 (`Furniture/Kenney-FurnitureKit-License.txt`) |
+| `Textures/rug.png`, `Textures/rug_normal.png` (the round woven rug on the exercise spot) | Drawn procedurally by Claude with a Python/NumPy script on 2026-11-19 (M8.2, human request: smaller user area with a rug texture); teal, cream and terracotta to match the room, centre medallion marks where to stand | Made for this project, no third-party content |
 
 ## Coach animation (`Resources/CoachAnimations`)
 
