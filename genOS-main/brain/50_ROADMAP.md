@@ -67,7 +67,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M7.4 | M7 | done | Unity Company Name |
 | M8 | — | active | Visual & UX Polish |
 | M8.1 | M8 | done | URP Migration |
-| M8.2 | M8 | TBF | Clinic Room Look |
+| M8.2 | M8 | done | Clinic Room Look |
 | M8.3 | M8 | planned | Feedback Motion |
 | M8.4 | M8 | planned | Hologram & Coach Window |
 | M8.5 | M8 | planned | Menus & Summary Polish |
@@ -96,7 +96,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 
 `M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience, first-person view and tracking safeguards; their human checks moved to HW) ➔ `M6` (done: camera tracking mechanics, webcam only, no headset) ➔ `M7` (done: pre-study data readiness, backlog TASK-003..TASK-006)
 
-In progress: `M8` (active: visual and UX polish; M8.2 and M8.6 are TBF, the other children wait) and `M9` (active since 2026-11-16: manuscript finalization; the progress pointer is on M9).
+In progress: `M8` (active: visual and UX polish; M8.2 done 2026-11-24, M8.6 is TBF, the other children wait) and `M9` (active since 2026-11-16: manuscript finalization; the progress pointer is on M9).
 
 Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided (it takes the next free `M` number when scheduled).
 
@@ -546,7 +546,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience, AvatarCoach
 
 ### M8.2 — Clinic Room Look
-- **Status:** TBF (closed temporarily by the human on 2026-11-16: all code and tests done, 137 EditMode tests pass; still open: frame-time check vs the 4.32 ms M8.1 reference, standing/seated/lying before-and-after screenshots, human approval. Remind the human of this whenever another milestone is started.)
+- **Status:** done (2026-11-24, approved by the human). Frame time 4.16 ms in Editor Play mode vs the 4.32 ms M8.1 reference (budget 4.75 ms). Standing, seated and lying "after" screenshots taken (Assets/Screenshots/M8.2, the human folder); no "before" exists, it was never captured. Later polish asked by the human 2026-11-19 to 2026-11-23: coach 1.2 m back, panels 1.65 m away in the headset, smaller exercise area with a rug texture, arm hologram guide 1.5 in forward, one window design (UIKit.Window), Joint Angle logo and app icon, cartoon title with outline and shadow, round-ended strips, status bubble aligned and cream for every tone, return-phase guidance (Lowering state), wrapping menu subtitle. Not adopted: the gritty/flat look trial (smoother wall, brighter lights), which was never built in. Not done: the free-look test during an exercise; the human closed the milestone without it.
 - **Objective:** A calm, bright clinic whose lighting draws the eye to the exercise spot and coach window.
 - **Deliverables:** soft directional sunlight with soft shadows, warm lamps, ambient light and a reflection probe rendered after the runtime room build; floor, wall and ceiling textures chosen by the human (current colours as fallback); one Volume with neutral tonemapping, gentle grading, light bloom and SSAO; exercise spot and mat readable on the new floor.
 - **Completion criteria:** human approves before and after screenshots from the standing, seated and lying viewpoints; frame time within 10% of M8.1; room builds with every texture missing; full suite green.
