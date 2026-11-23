@@ -554,7 +554,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience
 
 ### M8.3 — Feedback Motion
-- **Status:** active (started 2026-11-24, in parallel with M8.4 and M8.5 by the human request; the UIKit helper was committed first so M8.5 could go ahead)
+- **Status:** active (started 2026-11-24, in parallel with M8.4 and M8.5 by the human request; the UIKit helper was committed first so M8.5 could go ahead). Built 2026-11-24 (5bdba6c, 8240ae3, f6d75bf; effect sprites Set A soft glow chosen by the human); EditMode 212 passed; waiting for the human Play-mode check of each moment.
 - **Objective:** Make important moments feel responsive without hurting comfort.
 - **Deliverables:** one `UIKit` panel fade/scale helper (0.15 to 0.25 s, unscaled time) used by menus, HUD cards, pop-ups, summary and Progress page; small effects for a good rep, hold progress and hold complete, combo pulse, level-up and badge reveal (assets chosen by the human, static fallback); STOP and posture faults keep their instant red warning with no celebration.
 - **Completion criteria:** EditMode tests (transition limits and skip-to-end, no reward effect on STOP or unsafe reps, effects only for counted events) pass; full suite green; human checks each moment in Play mode.
