@@ -105,6 +105,40 @@ unsafe rep never triggers a reward effect; effects are created only for counted 
 **Completion criteria:** tests pass; the full suite is green; Play-mode recording or screenshots of each moment checked
 by the human.
 
+**Steps (detailed at M8.3 start, 2026-11-24):**
+
+Owners today: `UIKit` (panels; `Bounce` already punches the rep dots, points tile, pop text, summary stars, level pill
+and badge row), `HUDController` (HUD cards, hold bar and target star, combo tile, summary and its reward animation),
+`MenuController` (menu canvas and pages, including Progress), `SessionManager` (rep, hold, badge and STOP events),
+`GamificationManager` (combo). M8.4 owns the coach window, side mirror and hologram; M8.5 owns the type and spacing
+scale and button states: M8.3 stays out of those.
+
+1. **`UIKit.Show` / `PanelFade` (committed first, 5bdba6c and 8240ae3, so M8.5 can go ahead):** fade through a
+   `CanvasGroup` plus a 0.96 to 1 scale about the panel's centre, 0.15 to 0.25 s (default 0.2), unscaled time,
+   ease-out. Hiding deactivates at the end; `SkipToEnd` jumps to the final state; reversing mid-way continues from
+   the current look; a root canvas only fades (its scale belongs to the laptop/headset layout). No clicks while
+   fading out. `Replay` fades a shown panel in again for a new page.
+2. **Tests first (EditMode, `FeedbackMotionTests`):** transition length always clamped to 0.15 to 0.25 s; `Step`
+   past the end and `SkipToEnd` both end fully shown (alpha 1, scale 1, active) or hidden (inactive, full look kept
+   for a plain `SetActive`); a STOP (`Unsafe`), fault or too-far state and an unsafe, faulty or invalid rep never
+   give a reward effect; the combo pulses only when a counted (valid) rep raises it past 1; the hold ring fills only
+   while holding inside the band and the hold-complete pop only follows the evaluator's `HoldCompleted`; level-up and
+   badge reveals only for a real level change or new badges from a counted session.
+3. **Pure rules (`FeedbackMotion.cs`):** one static class decides each moment from the evaluator's result
+   (`RepEffects`, `ComboPulse`, `HoldFill`, `RewardAllowed`), so `SessionManager` and `HUDController` only call it.
+   Unsafe and faulty reps also stop the points-tile and pop-text punch they get today.
+4. **Effects (`FeedbackMotion.cs`, `EffectSprite`):** a small burst at the live limb's target point on a good rep
+   (world space, about 0.2 m, 0.4 s, fades and grows, never near the eyes); a ring round the target star that fills
+   during a hold and pops on hold complete; a subtle combo-tile pulse; a sparkle behind the level pill on level-up
+   and behind the badge row on each badge reveal. Sprites from `Resources/Effects/` (`burst`, `ring`, `sparkle`):
+   2 to 3 generated candidate sets made for the human to choose from previews, credited in `CREDITS.md`. A missing
+   sprite keeps today's static look (punches only).
+5. **Wiring:** menu open, close and page change (`MenuController`), summary show and hide, the pop text, the hold
+   block and the cadence pill (`HUDController`) go through `UIKit.Show`. STOP and posture faults keep their red,
+   instant warning (no fade on the feedback bubble, no effect).
+6. **Checks:** full EditMode suite green; Play mode with no new console errors; the human checks each moment in Play
+   mode (listed in `pending_human_tests`). M8.3 stays active until the human approves.
+
 ## M8.4 — Hologram & Coach Window
 
 **Objective:** The target limb, live limb and coach window are the clearest things in view.
