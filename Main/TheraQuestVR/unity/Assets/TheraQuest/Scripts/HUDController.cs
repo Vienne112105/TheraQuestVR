@@ -81,7 +81,8 @@ namespace TheraQuest
         const float CoachW = 640f, CoachH = 740f, FrameInset = 16f, FrameWidth = 6f, CoachFrame = 592f,
                     CoachPicture = CoachFrame - 2f * FrameWidth, CoachGap = 18f, MirrorSize = 520f;
         /// <summary>The quest card's height while minimised during a session (when the coach window shows under it).</summary>
-        public const float QuestMinimisedH = 110f + 72f + 8f + NextRowH + 70f;
+        // Rows, the hint under them and the same bottom margin as the open card
+        public const float QuestMinimisedH = 110f + 72f + 8f + NextRowH + UIKit.Gap.Medium + UIKit.TypeSize.Caption + UIKit.Gap.Large + 8f;
         RawImage coachPicture, mirrorPicture;
         TextMeshProUGUI coachWord, coachCaption;
         RectTransform coachWordChip;
@@ -91,7 +92,8 @@ namespace TheraQuest
         /// <summary>Keeps a calm message on screen instead of letting it fade (the tutorial's steps).</summary>
         [HideInInspector] public bool holdBubble;
 
-        const float GlassAlpha = 0.55f;      // see-through cards
+        // Nearly solid cards: at 0.55 the floor showed through and small grey text washed out (human request 2026-11-24)
+        public const float GlassAlpha = 0.9f, BubbleAlpha = 0.95f;
         const float BubbleShowSeconds = 6f;  // calm messages fade after this long
         CanvasGroup bubbleGroup;
         float bubbleChangedAt;
@@ -397,7 +399,7 @@ namespace TheraQuest
             nextTag = UIKit.Pill(nextBg.transform, new Vector2(12, -10), new Vector2(104, 36), UIKit.Orange, "NEXT", 20, UIKit.White);
             nextName = Label(nextBg.transform, new Vector2(132, -4), new Vector2(440, NextRowH - 8), 26, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
             nextName.enableAutoSizing = true;   // long names shrink to fit
-            nextName.fontSizeMin = 16;
+            nextName.fontSizeMin = UIKit.TypeSize.Caption - 2;
             nextName.overflowMode = TextOverflowModes.Ellipsis;
             nextBg.gameObject.SetActive(false);
 
@@ -429,7 +431,7 @@ namespace TheraQuest
                 badgeChips.Add(chip);
                 badgeIcons.Add(icon);
             }
-            questHint = Label(card, new Vector2(28, -838), new Vector2(568, 40), 22, UIKit.Muted);
+            questHint = Label(card, new Vector2(28, -838), new Vector2(568, 40), UIKit.TypeSize.Caption, UIKit.Muted);
         }
 
         void BuildBanner()
@@ -442,7 +444,7 @@ namespace TheraQuest
             var hr = (RectTransform)holder;
             hr.anchorMin = hr.anchorMax = hr.pivot = new Vector2(0, 1);
             hr.sizeDelta = new Vector2(1200, 150);
-            bubbleCard = UIKit.Window(holder, new Vector2(1200, 150), GlassAlpha + 0.1f);
+            bubbleCard = UIKit.Window(holder, new Vector2(1200, 150), BubbleAlpha);
             bubbleFill = bubbleCard.fill;
             bubbleBounce = UIKit.Bouncy(hr);
             var f = bubbleFill.transform;
@@ -820,7 +822,7 @@ namespace TheraQuest
                 row.mark.color = finished || current ? UIKit.White : UIKit.Ink;
                 row.mark.fontSize = Mathf.RoundToInt(cs * 0.55f);
                 row.name.text = ex.name;
-                row.name.fontSizeMax = rowH < 60 ? 23 : 27;
+                row.name.fontSizeMax = rowH < 60 ? UIKit.TypeSize.Caption : UIKit.TypeSize.Label;
                 row.name.rectTransform.anchoredPosition = new Vector2(cs + 26, -6);
                 row.name.rectTransform.sizeDelta = new Vector2(420 - cs, rowH - 22);
                 row.count.text = $"{v}/{ex.TotalReps}";
@@ -850,9 +852,9 @@ namespace TheraQuest
             // Open: badges right below the last exercise and the card just tall enough (no empty space)
             float rowsEnd = 110f + exs.Count * (rowH + gap) - gap;
             badgesBlock.anchoredPosition = new Vector2(0, -(rowsEnd + 26f));
-            float hintY = open ? rowsEnd + 26f + 46f + 64f + 22f : 110f + rowH + 8f + NextRowH + 14f;
+            float hintY = open ? rowsEnd + 26f + 46f + 64f + UIKit.Gap.Medium : 110f + rowH + 8f + NextRowH + UIKit.Gap.Medium;
             questHint.rectTransform.anchoredPosition = new Vector2(28, -hintY);
-            questOpenH = rowsEnd + 26f + 46f + 64f + 22f + 30f + 34f;
+            questOpenH = rowsEnd + 26f + 46f + 64f + UIKit.Gap.Medium + UIKit.TypeSize.Caption + UIKit.Gap.Large + 8f;
         }
 
         static int FirstUnfinished(IList<ExerciseDef> exs, IList<ExerciseEvaluator> evs)
@@ -891,7 +893,7 @@ namespace TheraQuest
             r.mark = Label(r.circle.transform, Vector2.zero, new Vector2(52, 52), 28, UIKit.White, TextAnchor.MiddleCenter, FontStyle.Bold);
             r.name = Label(r.bg.transform, new Vector2(78, -6), new Vector2(380, 50), 27, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
             r.name.enableAutoSizing = true;   // shrink long names to fit the row
-            r.name.fontSizeMin = 16;
+            r.name.fontSizeMin = UIKit.TypeSize.Caption - 2;
             r.name.overflowMode = TextOverflowModes.Ellipsis;
             r.count = Label(r.bg.transform, new Vector2(450, -8), new Vector2(120, 50), 24, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
             var track = Box(r.bg.transform, new Vector2(78, -54), new Vector2(420, 10), UIKit.Track, "Bar");
@@ -907,7 +909,7 @@ namespace TheraQuest
             var c = FeedbackManager.ToneColor(tone);
             // Same cream glass as every other window: only the icon carries the tone (consistency, human request 2026-11-19)
             var fillColor = UIKit.Cream;
-            fillColor.a = GlassAlpha + 0.1f;
+            fillColor.a = BubbleAlpha;
             bubbleFill.color = fillColor;
             bubbleIcon.color = tone == Tone.Neutral ? UIKit.Teal : c;
             bubbleIconTxt.text = tone == Tone.Good ? "✓" : tone == Tone.Neutral ? "☺" : "!";
@@ -951,8 +953,10 @@ namespace TheraQuest
         public void Pop(string text, bool good)
         {
             popTxt.text = text;
-            popTxt.color = good ? UIKit.Yellow : UIKit.Lighter(UIKit.Navy, 0.35f);
-            UIKit.Stroke(popTxt, UIKit.Darker(popTxt.color, 0.45f), 4f);   // pop-ups: a darker outline that follows the colour
+            // Pop-ups float over the room: gold with a darker outline, or navy with a white outline (never pale text
+            // that melts into the light floor, human request 2026-11-24)
+            popTxt.color = good ? UIKit.Yellow : UIKit.Navy;
+            UIKit.Stroke(popTxt, good ? UIKit.Darker(popTxt.color, 0.45f) : UIKit.White, 4f);
             popTimer = 1f;
             if (good) UIKit.Bouncy(popTxt).Punch(0.35f);   // no bounce for a missed or unsafe rep (M8.3)
         }

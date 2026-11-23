@@ -86,6 +86,7 @@ namespace TheraQuest
                 rays.Build(origin != null ? origin.CameraFloorOffsetObject.transform : rig.transform);
                 rays.menuOpen = () => menu != null && menu.IsOpen;
             }
+            Subtitles.Hidden = () => menu != null && menu.IsOpen;   // captions never sit over an open menu
             if (focus == null && mover != null)
             {
                 focus = mover.GetComponent<ViewFocus>();
