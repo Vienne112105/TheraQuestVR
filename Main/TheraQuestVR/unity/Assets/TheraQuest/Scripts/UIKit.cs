@@ -489,7 +489,8 @@ namespace TheraQuest
 
         CanvasGroup group;
         Vector3 baseScale = Vector3.one;
-        Vector2 lastShift;
+        Vector2 lastShift, lastWritten;
+        bool written;
         float t, duration = UIKit.TransitionDefault;
         bool showing = true, running;
 
@@ -529,7 +530,8 @@ namespace TheraQuest
             float from = running ? Group.alpha : (active ? 1f : 0f);
             showing = visible;
             duration = UIKit.TransitionSeconds(seconds);
-            t = (showing ? from : 1f - from) * duration;
+            // The time at which the eased look equals the current one (inverse of the ease-out in Progress)
+            t = (1f - Mathf.Sqrt(1f - Mathf.Clamp01(showing ? from : 1f - from))) * duration;
             if (visible) gameObject.SetActive(true);
             // Snap when asked, or when nothing would drive it (a parent is hidden, so Update never runs)
             if (!animate || !gameObject.activeInHierarchy) { SkipToEnd(); return; }
@@ -588,12 +590,15 @@ namespace TheraQuest
             {
                 float s = Mathf.Lerp(StartScale, 1f, p);
                 transform.localScale = baseScale * s;
-                // Scale about the centre whatever the pivot (panels here are anchored top-left). Added as a delta, so
-                // a layout that moves the panel during the fade is kept.
+                // Scale about the centre whatever the pivot (panels here are anchored top-left). A layout that moved
+                // the panel since the last frame wrote an unshifted position, so that one is the base.
                 var shift = Vector2.Scale(rt.rect.size * (1f - s), new Vector2(0.5f, 0.5f) - rt.pivot);
                 shift = Vector2.Scale(shift, new Vector2(baseScale.x, baseScale.y));
-                rt.anchoredPosition += shift - lastShift;
+                var at = rt.anchoredPosition;
+                var basePos = written && at == lastWritten ? at - lastShift : at;
+                rt.anchoredPosition = lastWritten = basePos + shift;
                 lastShift = shift;
+                written = true;
             }
         }
     }

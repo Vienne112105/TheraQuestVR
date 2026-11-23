@@ -25,7 +25,8 @@ namespace TheraQuest
 
         public SessionManager session;
 
-        public bool IsOpen => canvas != null && canvas.gameObject.activeSelf;
+        // A menu fading out (M8.3) already counts as closed
+        public bool IsOpen => canvas != null && canvas.gameObject.activeSelf && (!canvas.TryGetComponent<PanelFade>(out var f) || f.Showing);
         public Page Current { get; private set; }
 
         sealed class Item
@@ -186,6 +187,7 @@ namespace TheraQuest
         {
             if (page == Page.Settings && Current != Page.Settings) back = IsOpen ? Current : Page.Main;
             if (page == Page.Progress && Current != Page.Progress) progressTab = ProgressViews.ProgressTab.Profile;
+            bool newPage = IsOpen && page != Current;
             Current = page;
             items.Clear();
             switch (page)
@@ -207,13 +209,15 @@ namespace TheraQuest
             tabBar.gameObject.SetActive(page == Page.Progress);
             Layout();
             if (!IsOpen) PlaceInFront();
-            canvas.gameObject.SetActive(true);
+            // Short fade in (M8.3); a new page while open fades its content in again
+            var fade = UIKit.Show(canvas, true);
+            if (newPage) fade.Replay();
             canvas.worldCamera = Camera.main;
             sel = FirstEnabled(0, 1);
             Refresh();
         }
 
-        public void Close() => canvas.gameObject.SetActive(false);
+        public void Close() => UIKit.Show(canvas, false);
 
         void BuildMain()
         {

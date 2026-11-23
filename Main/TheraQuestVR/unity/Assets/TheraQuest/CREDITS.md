@@ -98,6 +98,12 @@ Chosen by the human from previews on 2026-10-27; built into the room by `ClinicR
 
 Imported as a Humanoid clip (loop on, root baked in place) and saved on its own; the rest of the library is not in the project.
 
+## Feedback effects (`Resources/Effects`)
+
+| Files | Source | Licence |
+|-------|--------|---------|
+| `burst.png`, `ring.png`, `sparkle.png` (good-rep burst at the limb, hold ring, sparkle for hold complete, level-up and badge) | Drawn procedurally by Claude with a Python/Pillow script on 2026-11-24 (M8.3); white shapes tinted in game. The human chose "Set A soft glow" from three candidate sets on 2026-11-24 | Made for this project, no third-party content |
+
 ## Not yet recorded
 
 Assets that were in the project before M5.6 and whose source the human still has to confirm:

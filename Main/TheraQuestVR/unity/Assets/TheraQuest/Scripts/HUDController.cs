@@ -33,7 +33,7 @@ namespace TheraQuest
         RectTransform pillsBlock, meterBlock, holdBlock, repsBlock, tilesBlock;
         float leftH = 900f;
         string leftLayoutKey;
-        int dotsShown = -1, filledShown, lastScore;
+        int dotsShown = -1, filledShown;
 
         // right card
         TextMeshProUGUI questCount;
@@ -66,6 +66,8 @@ namespace TheraQuest
         System.Action sumOnLevelUp, sumOnBadge;
         string lastFeedback = "";
         float popTimer;
+        // Feedback motion (M8.3): the hold ring round the target star (null when its sprite is missing), the combo tile
+        Image holdRing, comboTile;
         Vector2 popStart;
 
         sealed class QuestRow { public Image bg, circle, barFill; public TextMeshProUGUI mark, name, count; }
@@ -290,6 +292,8 @@ namespace TheraQuest
             stopTxt = Label(meterBlock, new Vector2(0, -MeterTop - MeterH - 6), new Vector2(90, 26), 20, UIKit.Red, TextAnchor.UpperCenter, FontStyle.Bold);
             stopTxt.text = "STOP";
             starTxt = UIKit.Stroke(Label(meterBlock, new Vector2(0, 6), new Vector2(80, 70), 60, UIKit.Yellow, TextAnchor.MiddleCenter, FontStyle.Bold), 3f);
+            holdRing = FeedbackMotion.HoldRing(meterBlock, new Vector2(HoldRingSize, HoldRingSize));
+            if (holdRing != null) { holdRing.transform.SetSiblingIndex(starTxt.transform.GetSiblingIndex()); holdRing.enabled = false; }
             starTxt.text = "★";
 
             // Hold / rest bar (only shown for hold exercises and rests)
@@ -313,7 +317,8 @@ namespace TheraQuest
             scoreTxt = UIKit.Stroke(Label(pointsTile.transform, new Vector2(20, -46), new Vector2(240, 80), 62, UIKit.White, TextAnchor.UpperLeft, FontStyle.Bold),
                                     UIKit.Darker(UIKit.Yellow), 3f);
             UIKit.Bouncy(pointsTile);
-            var comboTile = Box(tilesBlock, new Vector2(320, 0), new Vector2(276, 140), UIKit.Pink, "Combo tile");
+            comboTile = Box(tilesBlock, new Vector2(320, 0), new Vector2(276, 140), UIKit.Pink, "Combo tile");
+            UIKit.Bouncy(comboTile);
             Label(comboTile.transform, new Vector2(20, -14), new Vector2(240, 30), 24, UIKit.White, TextAnchor.UpperLeft, FontStyle.Bold).text = "COMBO";
             comboTxt = UIKit.Stroke(Label(comboTile.transform, new Vector2(20, -46), new Vector2(240, 80), 62, UIKit.White, TextAnchor.UpperLeft, FontStyle.Bold),
                                     UIKit.Darker(UIKit.Pink), 3f);
@@ -715,7 +720,7 @@ namespace TheraQuest
 
             // Hold or rest bar
             bool resting = ev != null && ev.Resting, hold = ex.holdSeconds > 0f;
-            holdBlock.gameObject.SetActive(resting || hold);
+            UIKit.Show(holdBlock, resting || hold);
             if (resting)
             {
                 holdLabel.text = $"REST {Mathf.CeilToInt(ev.RestRemaining)}s";
@@ -734,7 +739,7 @@ namespace TheraQuest
             // Cadence / tempo indicator
             if (ev != null && (state == LiveState.Rising || state == LiveState.OnTarget || state == LiveState.Holding))
             {
-                cadencePill.gameObject.SetActive(true);
+                UIKit.Show(cadencePill, true);
                 if (ev.RepDuration > 0f && ev.RepDuration < 0.85f && ex.targetAngle >= 30f)
                 {
                     UIKit.PillColor(cadenceTxt, UIKit.Orange);
@@ -748,7 +753,17 @@ namespace TheraQuest
             }
             else
             {
-                cadencePill.gameObject.SetActive(false);
+                UIKit.Show(cadencePill, false);
+            }
+
+            // Hold ring round the target star: fills while holding in the band (M8.3)
+            if (holdRing != null)
+            {
+                float fill = FeedbackMotion.HoldFill(state, ev != null ? ev.HoldTime : 0f, ex.holdSeconds);
+                holdRing.enabled = fill > 0f;
+                holdRing.fillAmount = fill;
+                var star = starTxt.rectTransform;
+                holdRing.rectTransform.anchoredPosition = star.anchoredPosition + new Vector2(star.sizeDelta.x - HoldRingSize, HoldRingSize - star.sizeDelta.y) / 2f;
             }
 
             // Rep dots for this set
@@ -759,8 +774,6 @@ namespace TheraQuest
             filledShown = filled;
             repsCount.text = $"{filled} / {ex.reps}";
 
-            if (score > lastScore) UIKit.Bouncy(pointsTile).Punch(0.08f);
-            lastScore = score;
             scoreTxt.text = score.ToString();
             comboTxt.text = $"×{mult:0.0}";
             LayoutLeft();
@@ -822,7 +835,7 @@ namespace TheraQuest
             // The exercise after this one (or a note that this is the last)
             int next = focus + 1;
             bool hasNext = next < exs.Count;
-            nextBg.gameObject.SetActive(!open && exs.Count > 0);
+            UIKit.Show(nextBg, !open && exs.Count > 0);
             if (!open && exs.Count > 0)
             {
                 nextBg.rectTransform.anchoredPosition = new Vector2(0, -(rowH + gap));
@@ -941,8 +954,23 @@ namespace TheraQuest
             popTxt.color = good ? UIKit.Yellow : UIKit.Lighter(UIKit.Navy, 0.35f);
             UIKit.Stroke(popTxt, UIKit.Darker(popTxt.color, 0.45f), 4f);   // pop-ups: a darker outline that follows the colour
             popTimer = 1f;
-            UIKit.Bouncy(popTxt).Punch(0.35f);
+            if (good) UIKit.Bouncy(popTxt).Punch(0.35f);   // no bounce for a missed or unsafe rep (M8.3)
         }
+
+        const float HoldRingSize = 104f;
+
+        /// <summary>
+        /// A rep's feedback motion (M8.3): the points tile punches for a good rep and the combo tile pulses when the
+        /// streak grows. A missed, faulty or unsafe rep gets neither (see FeedbackMotion.ForRep).
+        /// </summary>
+        public void RepMoment(FeedbackMotion.RepEffects fx)
+        {
+            if (fx.reward) UIKit.Bouncy(pointsTile).Punch(0.08f);
+            if (fx.comboPulse && comboTile != null) UIKit.Bouncy(comboTile).Punch(0.06f);
+        }
+
+        /// <summary>Hold complete (M8.3): a sparkle pops round the target star (none when its sprite is missing).</summary>
+        public void HoldComplete() => FeedbackMotion.UiSparkle(starTxt.rectTransform, HoldRingSize * 1.6f, UIKit.Yellow);
 
         /// <summary>Shows the summary: title, stars, the one headline number, the details and a small caption line.</summary>
         public void ShowSummary(string title, int stars, string headline, string body, string caption)
@@ -955,7 +983,7 @@ namespace TheraQuest
             sumBadgeCodes.Clear();
             sumBadges.text = "";
             LayoutSummary();
-            summary.SetActive(true);
+            UIKit.Show(summary, true);
             UIKit.Bouncy(sumStars).Punch(0.3f);
         }
 
@@ -1024,6 +1052,7 @@ namespace TheraQuest
                         sumLevelShown = true;
                         sumLevel.text = $"LEVEL {sumXp.toLevel}";
                         UIKit.Bouncy(sumLevel.transform.parent as RectTransform).Punch(0.35f);
+                        if (FeedbackMotion.LevelUpReveal(sumXp)) FeedbackMotion.UiSparkle(sumLevel.transform.parent as RectTransform, 300f, UIKit.Yellow);
                         Pop($"LEVEL UP!  {sumXp.toLevel}", true);
                         sumOnLevelUp?.Invoke();
                     }
@@ -1038,12 +1067,13 @@ namespace TheraQuest
                 sumBadgeT = 0.7f;
                 sumBadges.text = ProgressViews.NewBadgesLine(sumBadgeCodes.GetRange(0, sumBadgesShown), sumBadgeCodes.Count);
                 UIKit.Bouncy(sumBadges).Punch(0.25f);
+                if (FeedbackMotion.BadgeReveal(sumBadgesShown, sumBadgeCodes.Count)) FeedbackMotion.UiSparkle(sumBadges.rectTransform, 260f, UIKit.Yellow);
                 sumOnBadge?.Invoke();
             }
         }
 
-        public void HideSummary() { summary.SetActive(false); sumXpT = -1f; }
-        public bool SummaryVisible => summary.activeSelf;
+        public void HideSummary() { UIKit.Show(summary, false); sumXpT = -1f; }
+        public bool SummaryVisible => summary.activeSelf && (!summary.TryGetComponent<PanelFade>(out var f) || f.Showing);
 
         void Update()
         {

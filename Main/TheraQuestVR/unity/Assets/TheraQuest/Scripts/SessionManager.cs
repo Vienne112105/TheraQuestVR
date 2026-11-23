@@ -621,10 +621,15 @@ namespace TheraQuest
         void OnRep(RepResult r)
         {
             var ev = CurrentEval;
+            int comboBefore = game.Combo;
             int pts = game.ScoreRep(r);
             feedback.PlayRep(r);
+            // Feedback motion (M8.3): only a good, counted rep celebrates; STOP and faults keep their still red warning
+            var fx = FeedbackMotion.ForRep(r, ev.State, comboBefore, game.Combo);
             string extra = r.valid && game.Combo > 1 ? $"  ×{game.Multiplier:0.0}" : "";
-            hud.Pop($"+{pts}{extra}", r.valid);
+            hud.Pop($"+{pts}{extra}", fx.reward);
+            hud.RepMoment(fx);
+            if (fx.reward) RepBurst(ev.Exercise);
             string line;
             switch (FeedbackManager.Grade(r))
             {
@@ -646,9 +651,19 @@ namespace TheraQuest
             hud.SetQuest(program.exercises, evaluators, index, phase == Phase.Running);
         }
 
+        /// <summary>A small burst where the live limb reached the target (not for limbs behind the patient, out of view).</summary>
+        void RepBurst(ExerciseDef ex)
+        {
+            var cam = Camera.main;
+            if (ex == null || cam == null || guide == null || FirstPersonMath.BehindBody(FigureVisualizer.PoseOf(ex))) return;
+            guide.AimPoints(ex, out _, out var goal);
+            FeedbackMotion.WorldBurst(goal, cam.transform, UIKit.Yellow);
+        }
+
         void OnHoldDone(float holdTime)
         {
             feedback.PlayHoldComplete();
+            if (FeedbackMotion.HoldComplete(CurrentEval.State)) hud.HoldComplete();
             hud.Pop("★ HOLD COMPLETE! ★", true);
             Subtitles.Say("Hold complete! Return to start position.", 2f, "Chime");
         }
