@@ -712,8 +712,10 @@ namespace TheraQuest
             {
                 // Summary (M5.5): kept short for the patient (human request 2026-10-26): totals, a safety line when
                 // needed, then the XP bar and new badges animate below. Details stay on the therapist's dashboard.
+                // M8.5 hierarchy: the points are the one headline number; the rest are details below it
+                string headline = $"<color={UIKit.HexGold}>★</color> {game.Points} points";
                 var sb = new StringBuilder();
-                sb.AppendLine($"<color={UIKit.HexGood}>✓</color>  <b>{valid}</b> good reps   ·   <color={UIKit.HexGold}>★</color>  <b>{game.Points}</b> points");
+                sb.AppendLine($"<color={UIKit.HexGood}>✓</color>  <b>{valid}</b> good reps");
                 if (unsafeReps > 0) sb.AppendLine($"<color={UIKit.HexBad}>!</color>  {unsafeReps} {(unsafeReps == 1 ? "rep" : "reps")} went past the STOP line");
                 string practice = ProgressViews.PracticeLine(sessionSource);
                 if (practice != "") sb.AppendLine($"<color={UIKit.HexMuted}>{practice}</color>");
@@ -735,14 +737,14 @@ namespace TheraQuest
                     xpAfter = xpBefore + (ProgressViews.IsCounted(sessionSource) ? game.Points : 0);   // what the server will add once sent
                     newBadges = ProgressViews.IsCounted(sessionSource) ? ProgressViews.BadgeCodes(game.EarnedThisSession) : new List<string>();
                 }
-                sb.Append($"<color={UIKit.HexMuted}>{(resp != null ? "Saved" : "Saved, sent later")}  ·  Press {Keys.Start} to continue</color>");
+                string caption = $"{(resp != null ? "Saved" : "Saved, sent later")}  ·  Press {Keys.Start} to continue";
                 if (completed)
                 {
                     feedback.PlayVictory();
                     Subtitles.Say("Quest cleared! Great work today.", 3f, "Victory fanfare");
                 }
                 else Subtitles.Say("Session ended. Your progress is saved.", 3f);
-                hud.ShowSummary(completed ? "Quest cleared!" : "Good effort!", upload.stars, sb.ToString());
+                hud.ShowSummary(completed ? "Quest cleared!" : "Good effort!", upload.stars, headline, sb.ToString().TrimEnd('\r', '\n'), caption);
                 var xp = ProgressViews.Xp(xpBefore, xpAfter);
                 hud.ShowRewards(xp, xpAfter - xpBefore, newBadges, resp == null,
                     onLevelUp: () => { feedback.PlayLevelUp(); Subtitles.Say($"Level up! You reached level {xp.toLevel}.", 2.5f, "Level-up jingle"); },

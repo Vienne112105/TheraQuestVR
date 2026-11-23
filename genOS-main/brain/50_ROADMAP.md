@@ -70,7 +70,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M8.2 | M8 | done | Clinic Room Look |
 | M8.3 | M8 | active | Feedback Motion |
 | M8.4 | M8 | planned | Hologram & Coach Window |
-| M8.5 | M8 | planned | Menus & Summary Polish |
+| M8.5 | M8 | active | Menus & Summary Polish |
 | M8.6 | M8 | done | Dashboard Visual Refresh |
 | M8.7 | M8 | active | Dashboard Hidden Data |
 | M9 | — | active | Manuscript Finalization & Polish |
@@ -570,7 +570,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience, AvatarCoach
 
 ### M8.5 — Menus & Summary Polish
-- **Status:** planned
+- **Status:** active (started 2026-11-24, in parallel with M8.3 by the human request; UIKit edits kept to a separate file, see the M8 plan)
 - **Objective:** Consistent, tidy menus that stay short.
 - **Deliverables:** named type-size and spacing scale in `UIKit` used by the main menu, Settings, Progress tabs and summary; one card and button style with distinct hover, focus and pressed states for mouse, keyboard and controller; clearer summary and Progress hierarchy with no added content; menu and HUD distances re-checked against the `VRClinicExperience` invariants.
 - **Completion criteria:** EditMode tests (button state colours distinct; menu pages fit at the smallest text preset) pass; full suite green; human Play-mode check of every menu page and the summary.

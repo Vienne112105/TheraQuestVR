@@ -37,10 +37,16 @@ namespace TheraQuest
             public Func<bool> enabled = () => true;
         }
 
-        sealed class Row { public Image bg; public TextMeshProUGUI label, value; }
+        sealed class Row { public Image bg; public ButtonLook look; public TextMeshProUGUI label, value; }
 
-        const float Width = 1000f, RowH = 84f, RowGap = 12f;
-        const float BaseScale = 0.00115f, MaxHeight = 1000f;   // taller pages (Progress) shrink to stay in view
+        // Sizes and gaps come from the UIKit scale (M8.5); these are the page's own measures in canvas units
+        public const float Width = 1000f, ContentWidth = Width - 2f * UIKit.Gap.Margin;
+        const float RowH = 68f, RowGap = UIKit.Gap.Small, HeaderH = 124f, FooterH = 76f;
+        public const float RowLabelWidth = 560f;
+        /// <summary>Taller pages shrink to stay in view, so every page is kept within this (M8.5 EditMode test).</summary>
+        public const float BaseScale = 0.00115f, MaxHeight = 1000f;
+        /// <summary>The menu opens this far in front of the eyes and this far below them, in metres.</summary>
+        public const float Distance = 1.35f, DropBelowEye = 0.10f;
 
         Canvas canvas;
         UIKit.CardRef card;
@@ -79,8 +85,8 @@ namespace TheraQuest
         RectTransform badgeGrid;                // Progress page, Badges tab: one card per badge
         const int BadgeCols = 4;
         Vector3 placedAt;                       // where PlaceInFront put the menu's centre
-        const float BadgeCardH = 262f, BadgeGap = 18f;
-        readonly List<(Image bg, TextMeshProUGUI text)> tabs = new List<(Image, TextMeshProUGUI)>();
+        const float BadgeCardH = 226f, BadgeGap = UIKit.Gap.Medium;
+        readonly List<ButtonLook> tabs = new List<ButtonLook>();
         ProgressViews.ProgressTab progressTab;
         const float TitleX = 50f, TabsY = 172f, TabH = 56f;
         readonly List<Item> items = new List<Item>();
@@ -106,7 +112,7 @@ namespace TheraQuest
             canvas.gameObject.AddComponent<UnityEngine.XR.Interaction.Toolkit.UI.TrackedDeviceGraphicRaycaster>();   // controller rays (M10.2)
             var t = canvas.transform;
             card = UIKit.Window(t, new Vector2(Width, 900), 0.97f, "Card");   // same frame as the HUD cards, nearly solid
-            title = UIKit.Stroke(UIKit.Label(t, new Vector2(TitleX, -52), new Vector2(Width - 100, 80), 70, UIKit.Orange, TextAnchor.UpperLeft, FontStyle.Bold), 3f);
+            title = UIKit.Stroke(UIKit.Label(t, new Vector2(TitleX, -52), new Vector2(ContentWidth, 80), UIKit.TypeSize.Title, UIKit.Orange, TextAnchor.UpperLeft, FontStyle.Bold), 3f);
             // Logo (human choice "B Joint Angle", 2026-11-19): the mark, then the name in Nunito ExtraBold, "Thera" navy
             // and "Quest" blue. It replaces the cartoon title and the tilted headset icon on the main page.
             var markTex = Resources.Load<Texture2D>(LogoMarkResource);
@@ -139,24 +145,23 @@ namespace TheraQuest
                 int index = i;
                 float w = ProgressViews.ProgressTabNames[i].Length * 16f + 70f;
                 var bg = UIKit.Box(tabBar, new Vector2(tx, 0), new Vector2(w, TabH), UIKit.Row, "Tab " + i, true);
-                bg.raycastTarget = true;
                 var button = bg.gameObject.AddComponent<Button>();
                 button.transition = Selectable.Transition.None;
                 button.navigation = new Navigation { mode = Navigation.Mode.None };
                 button.onClick.AddListener(() => ShowTab((ProgressViews.ProgressTab)index));
-                var label = UIKit.Label(bg.transform, Vector2.zero, new Vector2(w, TabH), 28, UIKit.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
+                var label = UIKit.Label(bg.transform, Vector2.zero, new Vector2(w, TabH), UIKit.TypeSize.Label, UIKit.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
                 label.text = ProgressViews.ProgressTabNames[i];
-                tabs.Add((bg, label));
-                tx += w + 12f;
+                tabs.Add(UIKit.Look(bg, label));
+                tx += w + UIKit.Gap.Small;
             }
-            subtitle = UIKit.Label(t, new Vector2(52, -124), new Vector2(Width - 100, 40), 30, UIKit.Muted);
-            info = UIKit.Label(t, new Vector2(52, -170), new Vector2(Width - 100, 120), 28, UIKit.Ink);
+            subtitle = UIKit.Label(t, new Vector2(52, -HeaderH), new Vector2(ContentWidth, 40), UIKit.TypeSize.Body, UIKit.Muted);
+            info = UIKit.Label(t, new Vector2(52, -170), new Vector2(ContentWidth, 120), UIKit.TypeSize.Body, UIKit.Ink);
             rowRoot = new GameObject("Rows", typeof(RectTransform)).transform;
             rowRoot.SetParent(t, false);
             var rr = (RectTransform)rowRoot;
             rr.anchorMin = rr.anchorMax = new Vector2(0, 1);
             rr.pivot = new Vector2(0, 1);
-            footer = UIKit.Label(t, Vector2.zero, new Vector2(Width - 100, 40), 24, UIKit.Muted, TextAnchor.MiddleCenter);
+            footer = UIKit.Label(t, Vector2.zero, new Vector2(ContentWidth, 40), UIKit.TypeSize.Caption, UIKit.Muted, TextAnchor.MiddleCenter);
             UIKit.MakeOnTop(canvas, 40);
             canvas.gameObject.SetActive(false);
             EnsureEventSystem();
@@ -400,45 +405,67 @@ namespace TheraQuest
             // The info text is as tall as its content (no empty space); rows start right below it
             // A long subtitle (e.g. a protocol name) wraps: the info starts below its real height, never on top of it
             float subH = string.IsNullOrEmpty(subtitle.text) ? 40f : Mathf.Max(40f, subtitle.preferredHeight);
-            subtitle.rectTransform.sizeDelta = new Vector2(Width - 100, subH);
-            float infoTop = tabbed ? TabsY + TabH + 22f : 124f + subH + 6f;
+            subtitle.rectTransform.sizeDelta = new Vector2(ContentWidth, subH);
+            float infoTop = InfoTop(subH, tabbed);
             float infoH = hasInfo ? info.preferredHeight : 0f;
             info.rectTransform.anchoredPosition = new Vector2(52, -infoTop);
-            info.rectTransform.sizeDelta = new Vector2(Width - 100, infoH);
-            float top = hasInfo || tabbed ? infoTop + infoH + 28f : infoTop + 20f;
+            info.rectTransform.sizeDelta = new Vector2(ContentWidth, infoH);
             foreach (Transform c in badgeGrid) Destroy(c.gameObject);
+            float gridH = 0f;
             if (tabbed && progressTab == ProgressViews.ProgressTab.Badges)
             {
-                float gridTop = infoTop + infoH + 20f;
-                badgeGrid.anchoredPosition = new Vector2(50, -gridTop);
-                top = gridTop + BuildBadgeCards(session.ProgressBadges) + 34f;
+                badgeGrid.anchoredPosition = new Vector2(UIKit.Gap.Margin, -(infoTop + infoH + UIKit.Gap.Medium));
+                gridH = BuildBadgeCards(session.ProgressBadges);
             }
-            ((RectTransform)rowRoot).anchoredPosition = new Vector2(50, -top);
+            float top = RowsTop(infoTop, infoH, gridH, tabbed);
+            ((RectTransform)rowRoot).anchoredPosition = new Vector2(UIKit.Gap.Margin, -top);
             for (int i = 0; i < items.Count; i++)
             {
                 int index = i;
-                var bg = UIKit.Box(rowRoot, new Vector2(0, -i * (RowH + RowGap)), new Vector2(Width - 100, RowH), UIKit.Row, "Row " + i, true);
-                bg.raycastTarget = true;
+                var bg = UIKit.Box(rowRoot, new Vector2(0, -i * (RowH + RowGap)), new Vector2(ContentWidth, RowH), UIKit.Row, "Row " + i, true);
                 var button = bg.gameObject.AddComponent<Button>();
                 button.transition = Selectable.Transition.None;
                 button.navigation = new Navigation { mode = Navigation.Mode.None };
                 button.onClick.AddListener(() => Click(index));
-                var hover = bg.gameObject.AddComponent<EventTrigger>();
-                var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-                enter.callback.AddListener(_ => { if (items[index].enabled()) { sel = index; Refresh(); } });
-                hover.triggers.Add(enter);
+                // Pointing (mouse or controller ray) highlights a row; it no longer moves the keyboard choice (M8.5)
+                var label = UIKit.Label(bg.transform, new Vector2(34, -10), new Vector2(RowLabelWidth, RowH - 20), UIKit.TypeSize.Item, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
                 rows.Add(new Row
                 {
                     bg = bg,
-                    label = UIKit.Label(bg.transform, new Vector2(34, -14), new Vector2(560, RowH - 20), 36, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold),
-                    value = UIKit.Label(bg.transform, new Vector2(500, -14), new Vector2(Width - 100 - 534, RowH - 20), 34, UIKit.Orange, TextAnchor.MiddleRight, FontStyle.Bold),
+                    label = label,
+                    look = UIKit.Look(bg, label),
+                    value = UIKit.Label(bg.transform, new Vector2(500, -10), new Vector2(ContentWidth - 534, RowH - 20), UIKit.TypeSize.Item, UIKit.Orange, TextAnchor.MiddleRight, FontStyle.Bold),
                 });
             }
-            float h = top + items.Count * (RowH + RowGap) + 90f;
+            float h = top + RowsHeight(items.Count) + FooterH;
             ((RectTransform)canvas.transform).sizeDelta = new Vector2(Width, h);
             canvas.transform.localScale = Vector3.one * BaseScale * Mathf.Min(1f, MaxHeight / h);
             card.Resize(new Vector2(Width, h));
-            ((RectTransform)footer.transform).anchoredPosition = new Vector2(50, -(h - 66f));
+            ((RectTransform)footer.transform).anchoredPosition = new Vector2(UIKit.Gap.Margin, -(h - 60f));
+        }
+
+        // Page height math, shared by Layout and the EditMode test that keeps every page from shrinking (M8.5)
+        static float InfoTop(float subtitleH, bool tabbed) =>
+            tabbed ? TabsY + TabH + UIKit.Gap.Medium : HeaderH + subtitleH + UIKit.Gap.Tight;
+
+        static float RowsTop(float infoTop, float infoH, float gridH, bool tabbed) =>
+            gridH > 0f ? infoTop + infoH + UIKit.Gap.Medium + gridH + UIKit.Gap.Large
+            : infoH > 0f || tabbed ? infoTop + infoH + UIKit.Gap.Large : infoTop + UIKit.Gap.Medium;
+
+        static float RowsHeight(int rows) => rows * (RowH + RowGap);
+
+        /// <summary>How tall a page is for this content (canvas units); see <see cref="MaxHeight"/>.</summary>
+        public static float PageHeight(float subtitleH, float infoH, int rows, float badgeGridH, bool tabbed)
+        {
+            float infoTop = InfoTop(Mathf.Max(40f, subtitleH), tabbed);
+            return RowsTop(infoTop, infoH, badgeGridH, tabbed) + RowsHeight(rows) + FooterH;
+        }
+
+        /// <summary>Height of the Badges tab's card grid for this many badges.</summary>
+        public static float BadgeGridHeight(int badges)
+        {
+            int rowsN = (badges + BadgeCols - 1) / BadgeCols;
+            return rowsN == 0 ? 0f : rowsN * BadgeCardH + (rowsN - 1) * BadgeGap;
         }
 
         /// <summary>
@@ -447,7 +474,8 @@ namespace TheraQuest
         /// </summary>
         float BuildBadgeCards(List<BadgeInfo> badges)
         {
-            float w = (Width - 100f - (BadgeCols - 1) * BadgeGap) / BadgeCols;
+            float w = (ContentWidth - (BadgeCols - 1) * BadgeGap) / BadgeCols;
+            const float ChipSize = 76f;
             for (int i = 0; i < badges.Count; i++)
             {
                 var b = badges[i];
@@ -455,35 +483,33 @@ namespace TheraQuest
                 holder.SetParent(badgeGrid, false);
                 holder.anchorMin = holder.anchorMax = holder.pivot = new Vector2(0, 1);
                 holder.anchoredPosition = new Vector2(i % BadgeCols * (w + BadgeGap), -(i / BadgeCols) * (BadgeCardH + BadgeGap));
-                var card = UIKit.Card(holder, new Vector2(w, BadgeCardH), b.earned ? UIKit.White : UIKit.Lighter(UIKit.Muted, 0.85f),
-                                      b.earned ? UIKit.Orange : UIKit.Track, "Badge card");
-                card.strip.gameObject.SetActive(false);   // plain cards, no coloured bar on top (human request 2026-10-26)
-                if (!b.earned) card.outline.color = new Color(UIKit.Outline.r, UIKit.Outline.g, UIKit.Outline.b, 0.35f);
-                card.shadow.color = new Color(0f, 0f, 0f, b.earned ? 0.18f : 0.06f);
+                // Plain cards, no coloured bar on top (human request 2026-10-26); greyed while locked
+                var card = UIKit.Tile(holder, new Vector2(w, BadgeCardH), b.earned, "Badge card");
                 var f = card.fill.transform;
                 float inner = w - 16f;
 
-                var chip = UIKit.Box(f, new Vector2((inner - 80f) / 2f, -30f), new Vector2(80, 80), b.earned ? UIKit.Orange : UIKit.Track, "Chip", true);
+                var chip = UIKit.Box(f, new Vector2((inner - ChipSize) / 2f, -UIKit.Gap.Medium), new Vector2(ChipSize, ChipSize), b.earned ? UIKit.Orange : UIKit.Track, "Chip", true);
                 var sprite = UIKit.BadgeIcon(b.code);
                 if (sprite != null)
                 {
-                    var icon = UIKit.Box(chip.transform, new Vector2(14, -14), new Vector2(52, 52), b.earned ? UIKit.White : UIKit.Muted, "Icon", false);
+                    var icon = UIKit.Box(chip.transform, new Vector2(13, -13), new Vector2(50, 50), b.earned ? UIKit.White : UIKit.Muted, "Icon", false);
                     icon.sprite = sprite;
                     icon.preserveAspect = true;
                 }
-                else UIKit.Label(chip.transform, Vector2.zero, new Vector2(80, 80), 44, b.earned ? UIKit.White : UIKit.Muted,
+                else UIKit.Label(chip.transform, Vector2.zero, new Vector2(ChipSize, ChipSize), UIKit.DisplaySize, b.earned ? UIKit.White : UIKit.Muted,
                                  TextAnchor.MiddleCenter, FontStyle.Bold).text = "★";
 
-                var name = UIKit.Label(f, new Vector2(10, -120), new Vector2(inner - 20f, 34), 27, b.earned ? UIKit.Ink : UIKit.Muted,
+                var name = UIKit.Label(f, new Vector2(10, -106), new Vector2(inner - 20f, 34), UIKit.TypeSize.Label, b.earned ? UIKit.Ink : UIKit.Muted,
                                        TextAnchor.UpperCenter, FontStyle.Bold);
                 name.text = b.name;
                 name.enableAutoSizing = true;
-                name.fontSizeMin = 18;
-                var desc = UIKit.Label(f, new Vector2(10, -160), new Vector2(inner - 20f, 70), 20, UIKit.Muted, TextAnchor.UpperCenter);
+                name.fontSizeMin = UIKit.TypeSize.Caption;
+                name.fontSizeMax = UIKit.TypeSize.Label;
+                var desc = UIKit.Label(f, new Vector2(10, -144), new Vector2(inner - 20f, 64), UIKit.TypeSize.Caption, UIKit.Muted, TextAnchor.UpperCenter);
+                desc.lineSpacing = -8f;
                 desc.text = ProgressViews.BadgeHint(b.code);
             }
-            int rowsN = (badges.Count + BadgeCols - 1) / BadgeCols;
-            return rowsN == 0 ? 0f : rowsN * BadgeCardH + (rowsN - 1) * BadgeGap;
+            return BadgeGridHeight(badges.Count);
         }
 
         void PlaceInFront()
@@ -492,7 +518,7 @@ namespace TheraQuest
             var fwd = cam.forward; fwd.y = 0f;
             if (fwd.sqrMagnitude < 1e-4f) fwd = Vector3.forward;
             fwd.Normalize();
-            canvas.transform.position = placedAt = cam.position + fwd * 1.35f + Vector3.down * 0.10f;
+            canvas.transform.position = placedAt = cam.position + fwd * Distance + Vector3.down * DropBelowEye;
             canvas.transform.rotation = Quaternion.LookRotation(fwd, Vector3.up);
         }
 
@@ -500,18 +526,21 @@ namespace TheraQuest
         {
             for (int i = 0; i < tabs.Count; i++)
             {
-                bool on = (int)progressTab == i;
-                tabs[i].bg.color = on ? UIKit.Teal : UIKit.Row;
-                tabs[i].text.color = on ? UIKit.White : UIKit.Ink;
+                tabs[i].selected = (int)progressTab == i;
+                tabs[i].Apply();
             }
             for (int i = 0; i < rows.Count; i++)
             {
                 var it = items[i];
-                bool on = it.enabled(), chosen = i == sel;
-                rows[i].bg.color = chosen ? UIKit.Teal : UIKit.Row;
+                bool chosen = i == sel;
+                var look = rows[i].look;
+                look.selected = chosen;
+                look.interactable = it.enabled();
+                look.Apply();
                 rows[i].label.text = (chosen ? "▶  " : "     ") + it.label();
-                rows[i].label.color = !on ? new Color(UIKit.Muted.r, UIKit.Muted.g, UIKit.Muted.b, 0.6f) : chosen ? UIKit.White : UIKit.Ink;
-                rows[i].value.color = chosen ? UIKit.White : UIKit.Orange;
+                var state = look.State;
+                rows[i].value.color = state == UIKit.ButtonState.Selected || state == UIKit.ButtonState.Pressed ? UIKit.White
+                    : state == UIKit.ButtonState.Disabled ? UIKit.Buttons.disabledText : UIKit.Orange;
                 string v = it.value != null ? it.value() : "";
                 rows[i].value.text = it.value != null ? (it.adjust != null ? (chosen ? $"◀   {v}   ▶" : $"‹  {v}  ›") : v) : "";
                 if (chosen && i != lastSel) UIKit.Bouncy(rows[i].bg).Punch(0.05f);
@@ -557,6 +586,7 @@ namespace TheraQuest
         void Activate(int i)
         {
             if (i >= items.Count || !items[i].enabled()) return;
+            if (i < rows.Count) rows[i].look.Flash();   // the pressed colour, for Enter / Space / A too
             session.feedback.PlayClick();
             if (items[i].select != null) items[i].select();
             else items[i].adjust?.Invoke(1);

@@ -697,7 +697,8 @@ namespace TheraQuest.Tests
             StringAssert.Contains("2026-10-20", ProgressViews.ProgressPage(p, true, ProgressViews.ProgressTab.Sessions));
             // Tab 3: badges are cards drawn by the menu; the text is the count above them, and each card says how to earn it
             string badges = ProgressViews.ProgressPage(p, true, ProgressViews.ProgressTab.Badges);
-            StringAssert.Contains("1</b> of 7 badges earned", badges);
+            StringAssert.Contains(ProgressViews.Headline("1") + " of 7 badges earned", badges);   // the count is the headline (M8.5)
+            StringAssert.StartsWith(ProgressViews.Headline("Level 2"), profile);
             StringAssert.DoesNotContain("2026-10-20", badges);
             foreach (var code in GamificationManager.BadgeNames.Keys) Assert.IsNotEmpty(ProgressViews.BadgeHint(code), code);
             Assert.AreEqual("", ProgressViews.BadgeHint("mystery"));

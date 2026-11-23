@@ -171,6 +171,49 @@ panel at the smallest text preset.
 
 **Completion criteria:** tests pass; the full suite is green; human Play-mode check of every menu page and the summary.
 
+### M8.5 steps (detailed at kickoff, 2026-11-24)
+
+Started in parallel with M8.3 at the human's request. To keep the two sets of `UIKit` edits apart, M8.5 puts its
+additions in a new file `Scripts/UIKit.Style.cs` (`public static partial class UIKit`); the only change to
+`UIKit.cs` itself is the word `partial`, made after M8.3 has committed its fade helper. M8.5 also stays out of the M8.4
+files (hologram, coach window, side mirror) and, in `MenuController` and `HUDController`, out of M8.3's
+`Open`/`Close` and `ShowSummary`/`HideSummary`/`AnimateRewards` fade and effect code.
+
+Persona rules applied: `xr-interface-architect` (comfort first: menus and HUD inside the comfortable field of view,
+every input path, here mouse, keyboard and controller ray, gets its own visible state), `unity-architect` / `ponytail`
+(one owner per concern: sizes, gaps and button colours live in `UIKit` only; no new packages, no new screens, no new
+content on patient screens).
+
+1. **Type and spacing scale** (`UIKit.Style.cs`): named sizes in canvas units (1000 = 1 m): `Hero` (summary stars),
+   `Title` (page and summary titles), `Heading` (one headline number, the display font), `Item` (menu rows and their
+   values), `Body` (subtitle, info, summary details), `Caption` (footer, tabs' small text, hints, the smallest size
+   anywhere on a menu or the summary). Named gaps: `Tight`, `Small`, `Medium`, `Large` and the page `Margin`. The
+   main menu, Settings, Pause, Therapist pages, Progress tabs, badge cards and the summary take every size and gap from
+   these names (no loose numbers left for text sizes).
+2. **One button style**: `UIKit.ButtonColors` (normal, highlighted, pressed, selected, disabled; fill and text colour
+   for each) and a small `ButtonLook` component that tracks pointer enter/exit/down/up and is told when its row is the
+   selected one. Highlighted = a mouse pointer or controller ray is over it; Selected = the keyboard / thumbstick
+   choice (keeps the ▶ marker, so the state is not shown by colour alone); Pressed = mouse button or trigger held,
+   and a short flash when Enter / Space / A activates the selected row; Disabled = greyed. Precedence: disabled,
+   pressed, selected, highlighted, normal. Pointing no longer moves the keyboard selection; a click selects and
+   activates that row (the M10.2 rule holds: the trigger clicks the row it points at and does not also select the
+   highlighted row). Used by menu rows and the Progress tabs.
+3. **One card style**: `UIKit.Tile` for small content cards (the badge cards today), alongside the existing
+   `UIKit.Window` for floating windows.
+4. **Hierarchy, no new content**: summary = title, stars, one headline number (points), then the details (good reps,
+   the STOP-line safety line, practice line), XP row, new badges, and the saved / continue line as a caption.
+   Progress Profile tab = the level as the headline, then the details; Badges tab = the earned count as the headline.
+5. **Distances**: menu 1.35 m at 0.00115; HUD 1.65 m in the headset (human request 2026-11-19) and 1.35 m on the
+   laptop; the summary at 0.95 of the HUD distance. Fix the out-of-date 1.45 m invariant in `VRClinicExperience.md`
+   and test that the menu at its tallest page and the summary stay inside comfortable view limits (half-width 30°,
+   up 20°, down 40° from straight ahead) in the headset.
+
+Tests first (EditMode, `MenuStyleTests`): button state fills are pairwise distinct and each state's text has at least
+4.5:1 contrast on its fill; every menu page, at its worst-case content (most rows, a wrapped subtitle, two badge rows),
+fits `MaxHeight` so it is never shrunk, i.e. no text is drawn smaller than `Caption`; the longest row labels fit their
+row at `Item` size; the type scale is ordered and `Heading` uses the display font; menu and summary are inside the
+comfort limits.
+
 ---
 
 ## M8.6 — Dashboard Visual Refresh

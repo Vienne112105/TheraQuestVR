@@ -12,7 +12,7 @@ namespace TheraQuest
     /// The rounded-corner sprite is generated at runtime (no image assets needed).
     /// World-space canvases use 1000 canvas units = 1 metre.
     /// </summary>
-    public static class UIKit
+    public static partial class UIKit
     {
         // Palette (human choice 2026-10-26): every panel and text colour is one of these five, or a tint of one.
         //   Navy #1D3557, Blue #277DA1, Orange #F3722C, Green #43AA8B, Off-white #F8F9FA.

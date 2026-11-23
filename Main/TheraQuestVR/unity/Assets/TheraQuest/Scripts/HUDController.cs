@@ -50,7 +50,7 @@ namespace TheraQuest
         UIKit.CardRef bubbleCard;
         Bounce bubbleBounce;
         float bubbleH = -1f;
-        TextMeshProUGUI bubbleIconTxt, feedbackTxt, popTxt, sumTitle, sumBody, sumStars;
+        TextMeshProUGUI bubbleIconTxt, feedbackTxt, popTxt, sumTitle, sumBody, sumStars, sumHeadline, sumCaption;
         GameObject summary;
         UIKit.CardRef sumCard;
         RectTransform sumXpRow, sumBadgeRow;
@@ -196,7 +196,10 @@ namespace TheraQuest
 
         [Header("Readability & Scale")]
         [Tooltip("Scale factor for HUD floating cards in world metres (increased from 0.00055 to 0.00092 for clear readability).")]
-        [SerializeField, Range(0.0006f, 0.0016f)] public float hudScale = 0.00092f;
+        [SerializeField, Range(0.0006f, 0.0016f)] public float hudScale = DefaultHudScale;
+        /// <summary>HUD distance and scale, and where the summary sits relative to them (VRClinicExperience invariants).</summary>
+        public const float DefaultHudScale = 0.00092f, HeadsetDistance = 1.65f,
+                           SummaryDepth = 0.95f, SummaryScale = 1.1f, SummaryHeadsetLift = 0.1f;
 
         /// <summary>Places the panels at the edges of the view, leaving the centre (the coach) clear.</summary>
         void LayoutView(Camera cam, bool headset)
@@ -207,7 +210,7 @@ namespace TheraQuest
             if (headset)
             {
                 // Pushed out from 1.45 m (human request 2026-11-19); the offsets scale with it to keep the same directions
-                d = 1.65f;
+                d = HeadsetDistance;
                 float k = d / 1.45f;
                 x = 0.90f * k;
                 y = 0.06f * k;
@@ -230,7 +233,7 @@ namespace TheraQuest
             float rightY = top - questH * scale / 2f;
             Place(rightCanvas, new Vector3(x, rightY, d), yaw, scale);
             Place(bubbleCanvas, new Vector3(0f, bubbleY, d), 0f, scale);
-            Place(summaryCanvas, new Vector3(0f, headset ? 0.1f : 0f, d * 0.95f), 0f, scale * 1.1f);
+            Place(summaryCanvas, new Vector3(0f, headset ? SummaryHeadsetLift : 0f, d * SummaryDepth), 0f, scale * SummaryScale);
             Place(coachCanvas, new Vector3(x, top - (questH + CoachGap + CoachH / 2f) * scale, d), yaw, scale);
             float mirrorY = headset ? -0.3f : -d * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) + (MirrorSize * 0.5f + 40f) * scale;
             Place(mirrorCanvas, new Vector3(0f, mirrorY, d), 0f, scale);
@@ -448,28 +451,44 @@ namespace TheraQuest
             popTxt.text = "";
         }
 
+        // Summary card (M8.5 hierarchy): title, stars, one headline number, then the details, XP row, new badges and a
+        // caption. Sizes and gaps from the UIKit scale; SummaryHeight is shared with the comfort-view EditMode test.
+        public const float SummaryWidth = 900f;
+        const float SumTextW = 764f, SumTitleY = 40f, SumStarsY = 112f, SumHeadlineY = 244f, SumHeadlineH = 64f,
+                    SumDetailsY = SumHeadlineY + SumHeadlineH + UIKit.Gap.Small, SumXpRowH = 52f, SumBadgesH = 44f, SumCaptionH = 34f;
+
         void BuildSummary()
         {
-            var c = summaryCanvas = UIKit.Canvas(transform, "Summary", Vector3.zero, 0f, new Vector2(900, 640));
+            var c = summaryCanvas = UIKit.Canvas(transform, "Summary", Vector3.zero, 0f, new Vector2(SummaryWidth, 640));
             c.sortingOrder = 10;
             summary = c.gameObject;
-            sumCard = UIKit.Window(c.transform, new Vector2(900, 640), 0.97f);
+            sumCard = UIKit.Window(c.transform, new Vector2(SummaryWidth, 640), 0.97f);
             var card = sumCard.fill.transform;
-            sumTitle = UIKit.Stroke(Label(card, new Vector2(0, -50), new Vector2(884, 90), 72, UIKit.Orange, TextAnchor.UpperCenter, FontStyle.Bold), 3f);
-            sumStars = UIKit.Stroke(Label(card, new Vector2(0, -130), new Vector2(884, 140), 124, UIKit.Yellow, TextAnchor.UpperCenter, FontStyle.Bold), 4f);
+            float inner = SummaryWidth - 16f, textX = (inner - SumTextW) / 2f;
+            sumTitle = UIKit.Stroke(Label(card, new Vector2(0, -SumTitleY), new Vector2(inner, 84), UIKit.TypeSize.Title, UIKit.Orange, TextAnchor.UpperCenter, FontStyle.Bold), 3f);
+            sumStars = UIKit.Stroke(Label(card, new Vector2(0, -SumStarsY), new Vector2(inner, 130), UIKit.TypeSize.Hero, UIKit.Yellow, TextAnchor.UpperCenter, FontStyle.Bold), 4f);
             UIKit.Bouncy(sumStars);
-            sumBody = Label(card, new Vector2(60, -280), new Vector2(764, 160), 34, UIKit.Ink, TextAnchor.UpperCenter);
+            sumHeadline = Label(card, new Vector2(0, -SumHeadlineY), new Vector2(inner, SumHeadlineH), UIKit.TypeSize.Heading, UIKit.Ink, TextAnchor.UpperCenter, FontStyle.Bold);
+            sumBody = Label(card, new Vector2(textX, -SumDetailsY), new Vector2(SumTextW, 160), UIKit.TypeSize.Body, UIKit.Ink, TextAnchor.UpperCenter);
             // XP row and badge reveal along the bottom of the card
             sumXpRow = Group(card, "XP row");   // placed below the body text by LayoutSummary
-            sumLevel = UIKit.Pill(sumXpRow, new Vector2(60, 0), new Vector2(170, 52), UIKit.Purple, "LEVEL 1", 28, UIKit.White);
+            sumLevel = UIKit.Pill(sumXpRow, new Vector2(60, 0), new Vector2(170, SumXpRowH), UIKit.Purple, "LEVEL 1", UIKit.TypeSize.Label, UIKit.White);
             Box(sumXpRow, new Vector2(246, -13), new Vector2(SumXpW, 26), UIKit.Track, "Summary XP track");
             sumXpFill = Box(sumXpRow, new Vector2(246, -13), new Vector2(26, 26), UIKit.Yellow, "Summary XP fill");
-            sumXpGain = Label(sumXpRow, new Vector2(246, 26), new Vector2(SumXpW, 34), 24, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
+            sumXpGain = Label(sumXpRow, new Vector2(246, 26), new Vector2(SumXpW, 34), UIKit.TypeSize.Caption, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
             sumBadgeRow = Group(card, "New badges");
-            sumBadges = Label(sumBadgeRow, new Vector2(60, 0), new Vector2(764, 60), 30, UIKit.Ink, TextAnchor.UpperCenter, FontStyle.Bold);
+            sumBadges = Label(sumBadgeRow, new Vector2(textX, 0), new Vector2(SumTextW, 60), UIKit.TypeSize.Body, UIKit.Ink, TextAnchor.UpperCenter, FontStyle.Bold);
             UIKit.Bouncy(sumBadges);
+            sumCaption = Label(card, Vector2.zero, new Vector2(inner, SumCaptionH), UIKit.TypeSize.Caption, UIKit.Muted, TextAnchor.UpperCenter);
             summary.SetActive(false);
         }
+
+        /// <summary>The summary card's height for details this tall, with or without a new-badges row.</summary>
+        public static float SummaryHeight(float detailsH, bool badges) =>
+            SumXpTop(detailsH) + SumXpRowH + (badges ? UIKit.Gap.Large + SumBadgesH : 0f) + UIKit.Gap.Large + SumCaptionH + UIKit.Gap.Large;
+
+        // Room for the "+XP" label above the bar
+        static float SumXpTop(float detailsH) => SumDetailsY + detailsH + 54f;
 
         void BuildCoachWindow()
         {
@@ -872,11 +891,14 @@ namespace TheraQuest
             UIKit.Bouncy(popTxt).Punch(0.35f);
         }
 
-        public void ShowSummary(string title, int stars, string body)
+        /// <summary>Shows the summary: title, stars, the one headline number, the details and a small caption line.</summary>
+        public void ShowSummary(string title, int stars, string headline, string body, string caption)
         {
             sumTitle.text = title;
             sumStars.text = new string('★', stars) + $"<color={UIKit.HexLocked}>{new string('★', 3 - stars)}</color>";
+            sumHeadline.text = headline;
             sumBody.text = body;
+            sumCaption.text = caption;
             sumBadgeCodes.Clear();
             sumBadges.text = "";
             LayoutSummary();
@@ -887,22 +909,24 @@ namespace TheraQuest
         /// <summary>Fits the summary card to its body text, and keeps a badge row only when there are new badges.</summary>
         void LayoutSummary()
         {
-            float bodyH = Mathf.Max(40f, sumBody.preferredHeight);
-            sumBody.rectTransform.sizeDelta = new Vector2(764, bodyH);
-            float y = 280f + bodyH + 54f;   // room for the "+XP" label above the bar
+            float bodyH = string.IsNullOrEmpty(sumBody.text) ? 0f : sumBody.preferredHeight;
+            sumBody.rectTransform.sizeDelta = new Vector2(SumTextW, Mathf.Max(1f, bodyH));
+            float y = SumXpTop(bodyH);
             sumXpRow.anchoredPosition = new Vector2(0, -y);
-            y += 52f;
+            y += SumXpRowH;
             bool badges = sumBadgeCodes.Count > 0;
             sumBadgeRow.gameObject.SetActive(badges);
             if (badges)
             {
-                y += 24f;
+                y += UIKit.Gap.Large;
                 sumBadgeRow.anchoredPosition = new Vector2(0, -y);
-                y += 44f;
+                y += SumBadgesH;
             }
-            float h = y + 44f;
-            ((RectTransform)summaryCanvas.transform).sizeDelta = new Vector2(900f, h);
-            sumCard.Resize(new Vector2(900f, h));
+            y += UIKit.Gap.Large;
+            sumCaption.rectTransform.anchoredPosition = new Vector2(0, -y);
+            float h = SummaryHeight(bodyH, badges);
+            ((RectTransform)summaryCanvas.transform).sizeDelta = new Vector2(SummaryWidth, h);
+            sumCard.Resize(new Vector2(SummaryWidth, h));
         }
 
         /// <summary>
