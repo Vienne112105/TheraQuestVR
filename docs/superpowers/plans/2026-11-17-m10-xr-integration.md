@@ -85,6 +85,14 @@
   - Headset frame time measured.
   - Not run in parallel with M8.4 or M8.5.
 
+## M10.2: what was built (2026-11-23)
+
+- `Resources/Input/TheraQuestControls.inputactions`: map Controllers (A select, triggers, B or left Menu back, Y re-center, left stick click quest, sticks with touch, aim poses, tracked) and map Headset (worn, tracked, eye position), on the generic `<XRController>` usages so Quest 2, 3 and Pro all work.
+- `XrControls` loads a runtime copy and enables it; `InputHelper`, `XrMode` and `HeadTracking` read through it. Test: no script reads `XRNode`, `InputDevices` or `CommonUsages`.
+- `ControllerRays` (added by `SessionManager` on the rig): a TrackedPoseDriver, a simple handle and an `XRRayInteractor` (UI only, 6 m) per hand; shown only while a menu is open in the headset. The trigger reaches the ray through an `InputActionReference`, because the toolkit turns direct actions off when a ray hides, which would also silence the trigger elsewhere.
+- Menus: `XRUIInputModule` (rays and mouse) and a `TrackedDeviceGraphicRaycaster` on the menu canvas. While a ray points at a button the right trigger only clicks it (`InputHelper.RayOnMenu`).
+- Not done here: XRI controller models (simple handles instead), locomotion providers (M10.3).
+
 ## Questions for the human before M10.1 starts
 
 1. Which headset do you have: Quest 2, Quest 3, Quest 3S or Quest Pro? (Step 6 profile.)

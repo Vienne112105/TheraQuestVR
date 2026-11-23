@@ -80,8 +80,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M9.4 | M9 | planned | Figures and Screenshots |
 | M10 | — | active | XR Environment & VR Integration |
 | M10.1 | M10 | done | XR Origin Rig & Quest Link Lifecycle |
-| M10.2 | M10 | active | Controller Input & Ray Menus |
-| M10.3 | M10 | planned | Comfort Locomotion in the Rig |
+| M10.2 | M10 | done | Controller Input & Ray Menus |
+| M10.3 | M10 | active | Comfort Locomotion in the Rig |
 | M10.4 | M10 | planned | Headset Panels & Rendering |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
@@ -666,7 +666,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience, SessionOrchestration
 
 ### M10.2 — Controller Input & Ray Menus
-- **Status:** active (next up; M10.1 done 2026-11-23)
+- **Status:** done (2026-11-23: the human checked controllers only and keyboard and mouse only on a Quest 2 over Link; f9fa740)
 - **Note (2026-11-19, human request):** thumbsticks no longer walk; walking is keyboard only, in the headset too. Sticks turn and drive menus only, and only with a thumb on them.
 - **Objective:** Controllers drive the game through input actions, and menus are used by pointing at them.
 - **Deliverables:** an input actions asset (XRI defaults where they fit) read through `InputHelper`, replacing the direct `UnityEngine.XR` device reads; the current mapping kept (A select, B pause, Y re-center, thumbsticks for menus, walking and turning); a controller ray with the XR UI input module on the world-space menus, pause menu, settings and summary screens; visible controller models or pointers; keyboard and mouse unchanged; EditMode tests for the action mapping.
@@ -675,7 +675,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience, SessionOrchestration
 
 ### M10.3 — Comfort Locomotion in the Rig
-- **Status:** planned
+- **Status:** active (next up; M10.2 done 2026-11-23)
 - **Objective:** Walking and turning use the toolkit's locomotion on the XR Origin and keep the comfort rules.
 - **Deliverables:** snap turn (30°), optional smooth turn and thumbstick walking through XRI locomotion providers, with the room boundaries of `PlayerMover`; locomotion locked during exercises; re-center to the exercise spot; settings (snap or smooth) still saved in `GameSettings`; tests for the exercise lock and the boundaries.
 - **Completion criteria:** the invariants in [[VRClinicExperience]] hold in the headset (no view movement the patient did not ask for); the patient cannot leave the room or move during an exercise.
