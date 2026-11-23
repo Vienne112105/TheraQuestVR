@@ -394,11 +394,14 @@ namespace TheraQuest
             rows.Clear();
             bool hasInfo = !string.IsNullOrEmpty(info.text), tabbed = Current == Page.Progress;
             // The info text is as tall as its content (no empty space); rows start right below it
-            float infoTop = tabbed ? TabsY + TabH + 22f : 170f;
+            // A long subtitle (e.g. a protocol name) wraps: the info starts below its real height, never on top of it
+            float subH = string.IsNullOrEmpty(subtitle.text) ? 40f : Mathf.Max(40f, subtitle.preferredHeight);
+            subtitle.rectTransform.sizeDelta = new Vector2(Width - 100, subH);
+            float infoTop = tabbed ? TabsY + TabH + 22f : 124f + subH + 6f;
             float infoH = hasInfo ? info.preferredHeight : 0f;
             info.rectTransform.anchoredPosition = new Vector2(52, -infoTop);
             info.rectTransform.sizeDelta = new Vector2(Width - 100, infoH);
-            float top = hasInfo || tabbed ? infoTop + infoH + 28f : 190f;
+            float top = hasInfo || tabbed ? infoTop + infoH + 28f : infoTop + 20f;
             foreach (Transform c in badgeGrid) Destroy(c.gameObject);
             if (tabbed && progressTab == ProgressViews.ProgressTab.Badges)
             {
