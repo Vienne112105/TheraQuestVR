@@ -452,6 +452,135 @@ namespace TheraQuest
             var b = c.gameObject.GetComponent<Bounce>();
             return b != null ? b : c.gameObject.AddComponent<Bounce>();
         }
+
+        // Panel transitions (M8.3): one short fade plus a slight scale, in unscaled time so pause never freezes them.
+        // VR comfort: 0.25 s or shorter, only the panel moves (never the view), and a panel is fully usable at its end.
+        public const float TransitionMin = 0.15f, TransitionMax = 0.25f, TransitionDefault = 0.2f;
+
+        /// <summary>A transition length kept inside the comfort limits (0.15 to 0.25 s).</summary>
+        public static float TransitionSeconds(float seconds) => Mathf.Clamp(seconds, TransitionMin, TransitionMax);
+
+        /// <summary>
+        /// Shows or hides a panel with the short fade and scale (hiding deactivates it at the end). Use it instead of
+        /// SetActive for menus, HUD cards, pop-ups, the summary and the Progress page. Without animate it snaps.
+        /// </summary>
+        public static PanelFade Show(Component panel, bool visible, bool animate = true, float seconds = TransitionDefault)
+        {
+            if (panel == null) return null;
+            var f = panel.GetComponent<PanelFade>();
+            if (f == null) f = panel.gameObject.AddComponent<PanelFade>();
+            f.Play(visible, animate, seconds);
+            return f;
+        }
+
+        /// <inheritdoc cref="Show(Component, bool, bool, float)"/>
+        public static PanelFade Show(GameObject panel, bool visible, bool animate = true, float seconds = TransitionDefault) =>
+            panel == null ? null : Show(panel.transform, visible, animate, seconds);
+    }
+
+    /// <summary>
+    /// Fades a panel in or out through a CanvasGroup and scales it slightly around its centre (see UIKit.Show).
+    /// Time is unscaled; Step() advances it so tests can drive it without Play mode.
+    /// </summary>
+    public class PanelFade : MonoBehaviour
+    {
+        /// <summary>A hidden panel starts this big and grows to full size as it fades in.</summary>
+        public const float StartScale = 0.96f;
+
+        CanvasGroup group;
+        Vector3 baseScale = Vector3.one;
+        Vector2 lastShift;
+        float t, duration = UIKit.TransitionDefault;
+        bool showing = true, running, baseKnown;
+
+        public bool Running => running;
+        public bool Showing => showing;
+        public float Duration => duration;
+
+        public CanvasGroup Group
+        {
+            get
+            {
+                if (group == null) group = GetComponent<CanvasGroup>();
+                if (group == null) group = gameObject.AddComponent<CanvasGroup>();
+                return group;
+            }
+        }
+
+        /// <summary>0 = hidden look, 1 = fully shown, for a transition <paramref name="elapsed"/> seconds in.</summary>
+        public static float Progress(float elapsed, float seconds, bool showing)
+        {
+            float p = Mathf.Clamp01(elapsed / UIKit.TransitionSeconds(seconds));
+            p = 1f - (1f - p) * (1f - p);   // ease out: quick start, gentle stop
+            return showing ? p : 1f - p;
+        }
+
+        public void Play(bool visible, bool animate, float seconds)
+        {
+            if (!baseKnown) { baseScale = transform.localScale; baseKnown = true; }
+            bool active = gameObject.activeSelf;
+            if (!running && active == visible)
+            {
+                showing = visible;
+                if (visible) Apply(1f);   // already shown: make sure it is at full look
+                return;
+            }
+            // Continue from the current look when reversing mid-way, so the panel never jumps
+            float from = running ? Group.alpha : (active ? 1f : 0f);
+            showing = visible;
+            duration = UIKit.TransitionSeconds(seconds);
+            t = (showing ? from : 1f - from) * duration;
+            if (visible) gameObject.SetActive(true);
+            // Snap when asked, or when nothing would drive it (a parent is hidden, so Update never runs)
+            if (!animate || !gameObject.activeInHierarchy) { SkipToEnd(); return; }
+            running = true;
+            Apply(Progress(t, duration, showing));
+        }
+
+        /// <summary>Jumps to the end state now: fully shown and clickable, or hidden and inactive.</summary>
+        public void SkipToEnd()
+        {
+            running = false;
+            Apply(1f);
+            // Hidden panels keep their full look, so a plain SetActive(true) elsewhere still shows them normally
+            if (!showing) gameObject.SetActive(false);
+        }
+
+        /// <summary>Advances the transition by <paramref name="dt"/> seconds (unscaled).</summary>
+        public void Step(float dt)
+        {
+            if (!running) return;
+            t += Mathf.Max(0f, dt);
+            if (t >= duration) { SkipToEnd(); return; }
+            Apply(Progress(t, duration, showing));
+        }
+
+        void Update() => Step(Time.unscaledDeltaTime);
+
+        void OnDisable()
+        {
+            // Turned off by someone else mid-fade: leave it at its full look for next time
+            if (running) { running = false; showing = true; Apply(1f); }
+        }
+
+        void Apply(float p)
+        {
+            var g = Group;
+            g.alpha = p;
+            // No clicks while it fades out (fading in stays clickable, so buttons never flash their disabled tint)
+            g.interactable = g.blocksRaycasts = showing || p >= 1f && !running;
+            float s = Mathf.Lerp(StartScale, 1f, p);
+            transform.localScale = baseScale * s;
+            // Scale about the centre whatever the pivot (panels here are anchored top-left). Added as a delta, so a
+            // layout that moves the panel during the fade is kept.
+            if (transform is RectTransform rt && rt.parent is RectTransform)
+            {
+                var shift = Vector2.Scale(rt.rect.size * (1f - s), new Vector2(0.5f, 0.5f) - rt.pivot);
+                shift = Vector2.Scale(shift, new Vector2(baseScale.x, baseScale.y));
+                rt.anchoredPosition += shift - lastShift;
+                lastShift = shift;
+            }
+        }
     }
 
     /// <summary>Marks a canvas whose UI draws on top of the scene (see UIKit.MakeOnTop).</summary>
