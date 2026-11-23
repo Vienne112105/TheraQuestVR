@@ -79,7 +79,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M9.3 | M9 | active | Sync with the Built System |
 | M9.4 | M9 | planned | Figures and Screenshots |
 | M10 | — | active | XR Environment & VR Integration |
-| M10.1 | M10 | TBF | XR Origin Rig & Quest Link Lifecycle |
+| M10.1 | M10 | done | XR Origin Rig & Quest Link Lifecycle |
 | M10.2 | M10 | active | Controller Input & Ray Menus |
 | M10.3 | M10 | planned | Comfort Locomotion in the Rig |
 | M10.4 | M10 | planned | Headset Panels & Rendering |
@@ -658,7 +658,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Note:** the human's uncommitted changes already add `com.unity.xr.interaction.toolkit` 3.6.1, `com.unity.xr.hands` 1.9.0, `com.unity.xr.compositionlayers` 2.6.1, XR Management 4.7.0, `Assets/XRI/` and changed OpenXR settings (seen 2026-11-17). The human chose to commit them as they are (7bf9360, 2026-11-17). XR Hands and Composition Layers stay unused until M10.4 decides on Composition Layers.
 
 ### M10.1 — XR Origin Rig & Quest Link Lifecycle
-- **Status:** TBF (2026-11-17: code and EditMode tests done on branch m10-xr-integration; the headset checks are in [[20_PROGRESS.yaml]] → `pending_human_tests`)
+- **Status:** done (2026-11-23: the human passed all five headset checks on a Quest 2 over Link; fixes in 209766b)
 - **Objective:** One camera rig that works in the headset and on the laptop, and a clean start, stop and loss of the Link connection.
 - **Deliverables:** the package set agreed and committed (XR Hands removed unless the human wants it kept); an XR Origin (floor tracking origin) built by `TheraQuestSceneBuilder` and used by `HeadTracking`, `FirstPersonGuide` and `PlayerMover` in place of the current rig; instant re-center and the per-posture default height kept; `TheraQuest → Set Up OpenXR` updated for the new packages; start with Link on, start with Link off, headset taken off (session pauses) and Link lost mid-session (falls back to desktop without losing the session); EditMode tests for the rig set-up and the fallback choice.
 - **Completion criteria:** the game starts in both modes from one build; re-center and default heights give the same view as before; the existing EditMode suite passes; the human sees the room in the headset.
@@ -666,7 +666,8 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience, SessionOrchestration
 
 ### M10.2 — Controller Input & Ray Menus
-- **Status:** active (next up; M10.1 is TBF on its headset checks)
+- **Status:** active (next up; M10.1 done 2026-11-23)
+- **Note (2026-11-19, human request):** thumbsticks no longer walk; walking is keyboard only, in the headset too. Sticks turn and drive menus only, and only with a thumb on them.
 - **Objective:** Controllers drive the game through input actions, and menus are used by pointing at them.
 - **Deliverables:** an input actions asset (XRI defaults where they fit) read through `InputHelper`, replacing the direct `UnityEngine.XR` device reads; the current mapping kept (A select, B pause, Y re-center, thumbsticks for menus, walking and turning); a controller ray with the XR UI input module on the world-space menus, pause menu, settings and summary screens; visible controller models or pointers; keyboard and mouse unchanged; EditMode tests for the action mapping.
 - **Completion criteria:** main menu, settings, pause, summary and Progress page can each be completed with controllers only and with keyboard and mouse only; no script reads XR devices directly any more.

@@ -28,6 +28,7 @@ Renders an immersive 3D physical therapy clinic environment in Unity 6, handles 
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/HeadTracking.cs`: laptop camera pose, per-posture height offset on the Camera Offset, recentering; turns the pose driver on only in the headset.
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/XrRig.cs`: builds the XR Origin (Rig → Camera Offset → Main Camera) at runtime.
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/XrMode.cs`: the one answer to "is the headset in use?" (Desktop, Headset, HeadsetOff, LinkLost) and its change events.
+- `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/XrQuality.cs`: the lighter headset look (URP renderer `TheraQuest_Renderer_Headset` without SSAO, 0.8 eye resolution); the laptop look is unchanged.
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/FirstPersonGuide.cs`: Default body proportions and heights, target and live limbs, side mirror.
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/PlayerMover.cs`: Smooth/snap locomotion and player boundaries.
 - `Main/TheraQuestVR/unity/Assets/TheraQuest/Scripts/Subtitles.cs`: Accessibility caption overlays.
@@ -40,11 +41,21 @@ Renders an immersive 3D physical therapy clinic environment in Unity 6, handles 
 - Only `XrMode` asks the XR runtime whether a headset is active; nothing else reads `XRSettings.isDeviceActive` (EditMode test). Taking the headset off pauses a running exercise; losing Link carries the session on in desktop mode with its reps kept.
 - HUD elements must remain readable and positioned within the comfortable field of view (FOV), with configurable `hudScale` defaulting to `0.00092f` for high legibility at 1.45m VR distance.
 - Floating menus are positioned at 1.35m depth with 0.00115f scale to prevent visual fatigue.
+- In the headset the HUD panels and subtitles stay put in the room (human request, M10.1): they ride on the rig, so walking and turning carry them, but head movement does not. They are placed in front of the patient only at an instant re-center, when the headset is put on, or when the lying view changes. On the laptop they stay locked to the screen.
+- Thumbsticks never walk the patient: walking is keyboard only, in the headset too (human request 2026-11-19, after a faulty Quest 2 stick read 0.87 untouched). Sticks count only with a thumb on them (touch sensor) and past a 0.3 dead zone; walking is also locked during exercises and on the summary.
 
 ## Notes
 - Anti-aliasing (SMAA) is applied to ensure sharp edges and avoid VR pixelation artifacts.
 - Subtitle presets support 3 typography scales (34pt, 44pt, 56pt) for maximum legibility.
 - All HUD and menu text is TextMeshPro made through `UIKit.Label` (DEC-015); don't add `UnityEngine.UI.Text`.
+- Quest Link facts seen on a Quest 2 (M10.1, 2026-11-18 to 2026-11-23):
+  - Link only shows the game after "Unknown Sources" is on in the Meta Horizon Link app (Settings → General).
+  - Taking the headset off reports "not worn" and Link stops the display on the next frame; `XrMode` treats that as HeadsetOff (pause), not Link lost.
+  - Unplugging Link makes OpenXR ask to quit (ends Play mode in the Editor); `XrMode` refuses through `OpenXRRuntime.wantsToQuit`, so the session carries on on the laptop. Plugging back in needs a Play restart (the loader is shut down).
+  - The headset reports a floor height (0) before tracking starts: the default-height offset waits for a tracked head above 0.1 m.
+  - Play mode has no domain reload: XR statics and `onBeforeRender` hooks are reset at `SubsystemRegistration`.
+  - Frame rate: with the laptop look (SSAO, full 3648 × 1872 eye buffers) an RTX 3050 laptop missed 60 to 185 of 4320 frames a minute and Link's guessed frames made edges wobble; with the headset look 3 in about 1230. The human's cable runs at USB 2 speed (USB2_DISCO), which limits Link and can drop the session; a USB 3 cable is advised.
+- On the laptop the mouse looks around without a button whenever no menu is open (cursor locked and hidden); menus free the cursor for clicking.
 
 ## Future Changes
 - Hand tracking support via Quest OpenXR Hand Tracking extension.
