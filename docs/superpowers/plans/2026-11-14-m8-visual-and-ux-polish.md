@@ -204,6 +204,31 @@ endpoint already returns all three, and that the per-exercise stats use counted 
 **Completion criteria:** server tests pass; browser check on the throwaway database with a patient who has no sessions,
 one with missed days, and one with a phase change; the exe is rebuilt; human walkthrough in the desktop app.
 
+**Steps (detailed at M8.7 start, 2026-11-24):**
+
+Payload check (2026-11-24): `dashboard()` in `server.py` already sends `calendar` (14 days, counted sources only,
+statuses complete / incomplete / missed / pending / rest), `phaseHistory` (last 10: phase, protocol, changed_at,
+note) and `byExercise` (records, accuracy, mean error, unsafe reps, counted sources only). Two gaps:
+`byExercise` has no best score and counts records rather than sessions, and `phase_history` does not record who
+approved the change.
+
+1. Tests first in `server/test_backend.py`: `byExercise` gives `sessions` (distinct counted sessions) and `best`
+   (best per-session accuracy) and ignores keyboard sessions; `phaseHistory` gives `approvedBy` (the signed-in
+   clinician's name) for a phase set or protocol removed through the API, and null for older rows.
+2. Server: `phase_history.approved_by` (therapist id; `schema.sql` plus `MIGRATIONS`, NULL on old rows), filled by
+   `set_phase` and `remove_patient_protocol` from the signed-in clinician; `byExercise` adds `sessions` and `best`.
+3. Page (`dashboard.html`, Activity tab, M8.6 tokens and card style): a 14-day calendar strip (one cell per day
+   with weekday, day number, an icon and a text label: Done, Partly, Missed, To do, Rest, Before (before
+   enrolment; needs a per-day `enrolled` flag); a summary line; screen-reader text per cell); a phase history timeline (newest first: phase and protocol, start date, approved by, note;
+   "Custom program" when the phase is empty); a per-exercise table (exercise, sessions, average accuracy, best,
+   unsafe reps) with a "Counted sessions only (webcam)" note. Each block has empty text; the chart's existing
+   loading and error state covers the whole tab (Retry); values go through `esc()`.
+4. Checks: `python -m unittest` in `server/` green; browser check on a throwaway database (port 8010, never the live
+   database or port 8000) with three patients: no sessions, missed days, phase change; at 980 x 640 and full size,
+   no horizontal scroll, no console errors; keyboard reaches everything.
+5. Rebuild the exe with `server/build_app.py`; add the human walkthrough to `pending_human_tests`; M8.7 stays active
+   until the human approves.
+
 ---
 
 **Systems:** VRClinicExperience, AvatarCoach, Gamification, TherapistDashboard.

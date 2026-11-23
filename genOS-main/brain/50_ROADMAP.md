@@ -72,7 +72,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M8.4 | M8 | planned | Hologram & Coach Window |
 | M8.5 | M8 | planned | Menus & Summary Polish |
 | M8.6 | M8 | done | Dashboard Visual Refresh |
-| M8.7 | M8 | planned | Dashboard Hidden Data |
+| M8.7 | M8 | active | Dashboard Hidden Data |
 | M9 | — | active | Manuscript Finalization & Polish |
 | M9.1 | M9 | done | Manuscript Audit |
 | M9.2 | M9 | done | Language and Flow Edit |
@@ -586,7 +586,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** TherapistDashboard
 
 ### M8.7 — Dashboard Hidden Data
-- **Status:** planned
+- **Status:** active (started 2026-11-24). Built and checked on a throwaway database; therapist exe rebuilt; waiting for the human walkthrough in the desktop app. Server payload changes: `phase_history.approved_by`, `byExercise.sessions` and `best`, calendar `enrolled`.
 - **Objective:** Show the data the server already sends but the page hides.
 - **Deliverables:** 14-day adherence calendar on the Activity tab (status by text or icon, not colour alone); phase history timeline; per-exercise stats table from counted sessions only (M7.1); empty, loading and error states; server tests only if the payload must change.
 - **Completion criteria:** server tests pass; browser check on a throwaway database with a patient with no sessions, one with missed days and one with a phase change; exe rebuilt; human walkthrough in the desktop app.

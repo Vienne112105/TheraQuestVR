@@ -717,6 +717,62 @@ class CountedSourceTests(ServerTestCase):
         self.assertTrue(all("input_source" in r for r in rows))
 
 
+class HiddenDataTests(ServerTestCase):
+    """M8.7: the dashboard payload behind the calendar, phase history and per-exercise table."""
+
+    new_patient, upload = AttentionFlagTests.new_patient, AttentionFlagTests.upload
+
+    def dash(self, pid):
+        return self.call("GET", f"/api/patients/{pid}/dashboard", headers=self.auth)[1]
+
+    def test_per_exercise_stats_count_sessions_and_best_from_counted_only(self):
+        pid, vr = self.new_patient()
+        self.upload(pid, vr, 3, accuracy=70, unsafe=1)
+        self.upload(pid, vr, 2, accuracy=90)
+        self.upload(pid, vr, 1, accuracy=99, unsafe=5, source="keyboard")
+        rows = self.dash(pid)["byExercise"]
+        self.assertTrue(rows)
+        for r in rows:
+            self.assertEqual(r["sessions"], 2, r)
+            self.assertEqual(r["best"], 90.0, r)
+            self.assertEqual(r["accuracy"], 80.0, r)
+            self.assertEqual(r["unsafe"], 1, r)
+
+    def test_per_exercise_stats_empty_patient(self):
+        pid, _ = self.new_patient()
+        for r in self.dash(pid)["byExercise"]:
+            self.assertEqual((r["sessions"], r["best"], r["unsafe"]), (0, 0, 0), r)
+
+    def test_phase_history_names_the_approving_clinician(self):
+        pid, _ = self.new_patient()
+        con = server.db()
+        phase = con.execute("SELECT phase_id FROM protocol_phase WHERE vr_allowed=1 LIMIT 1").fetchone()[0]
+        con.close()
+        self.assertEqual(self.call("POST", f"/api/patients/{pid}/phase", {"phase_id": phase, "note": "ok"}, self.auth)[0], 200)
+        self.assertEqual(self.call("DELETE", f"/api/patients/{pid}/protocol", headers=self.auth)[0], 200)
+        hist = self.dash(pid)["phaseHistory"]
+        self.assertEqual([h["approvedBy"] for h in hist[:2]], ["Physical Therapist"] * 2)
+        self.assertIsNone(hist[0]["phase"])
+        self.assertTrue(hist[1]["phase"])
+
+    def test_calendar_marks_days_before_enrolment(self):
+        pid, _ = self.new_patient()
+        cal = self.dash(pid)["calendar"]
+        self.assertEqual(len(cal), 14)
+        self.assertTrue(cal[-1]["enrolled"])
+        self.assertFalse(cal[0]["enrolled"])
+        self.assertTrue(all(d["status"] in ("rest", "pending") for d in cal))
+
+    def test_old_phase_history_rows_have_no_approver(self):
+        pid, _ = self.new_patient()
+        con = server.db()
+        con.execute("INSERT INTO phase_history(patient_id, phase_id, changed_at, note) VALUES (?,NULL,'2026-01-01T00:00:00','old')",
+                    (pid,))
+        con.commit()
+        con.close()
+        self.assertIsNone(self.dash(pid)["phaseHistory"][0]["approvedBy"])
+
+
 class PatientNameTests(ServerTestCase):
     """M7.2 (TASK-004, DEC-027): the name stays in the dashboard; everything else uses the code only."""
 

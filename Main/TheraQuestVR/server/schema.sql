@@ -81,7 +81,8 @@ CREATE TABLE IF NOT EXISTS phase_history (
   patient_id     INTEGER NOT NULL REFERENCES patient(patient_id),
   phase_id       INTEGER REFERENCES protocol_phase(phase_id),   -- NULL = switched to a custom program
   changed_at     TEXT NOT NULL,
-  note           TEXT
+  note           TEXT,
+  approved_by    INTEGER REFERENCES physical_therapist(therapist_id)   -- who approved it (NULL on rows before M8.7)
 );
 
 CREATE TABLE IF NOT EXISTS exercise (

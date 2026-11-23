@@ -766,6 +766,7 @@ MIGRATIONS = {
     "performance_record": [("unsafe_reps", "INTEGER NOT NULL DEFAULT 0"),
                            ("prescribed", "INTEGER NOT NULL DEFAULT 1")],   # 0 = exercise was no longer active
     "protocol": [("builtin", "INTEGER NOT NULL DEFAULT 0")],                # 1 = loaded from PROTOCOLS
+    "phase_history": [("approved_by", "INTEGER")],                          # therapist_id; NULL on rows before M8.7
     "physical_therapist": [
         ("username", "TEXT"),
         ("password_hash", "TEXT"),
@@ -1176,7 +1177,7 @@ def day_statuses(con, patient_id, program, days=14, today=None, created_at=None)
             st = "rest"
         else:
             st = "pending" if d == today else "missed"
-        out.append({"date": k, "dow": py_dow(d), "status": st, "scheduled": scheduled})
+        out.append({"date": k, "dow": py_dow(d), "status": st, "scheduled": scheduled, "enrolled": k >= created})
     return out
 
 
@@ -1302,7 +1303,7 @@ def phase_info(con, p):
             "other": ph["other_exercises"] or "", "startedAt": p["phase_started_at"] or ""}
 
 
-def set_phase(con, patient_id, body):
+def set_phase(con, patient_id, body, therapist_id=None):
     """
     Therapist assigns a protocol phase (or phase_id null = keep the exercises as a custom program).
     The phase's exercises replace the patient's program; the therapist can still adjust any value.
@@ -1321,8 +1322,8 @@ def set_phase(con, patient_id, body):
             add_exercise(con, p["program_id"], r["code"], dict(r))
     con.execute("UPDATE patient SET phase_id=?, phase_started_at=? WHERE patient_id=?",
                 (phase_id or None, now if phase_id else None, patient_id))
-    con.execute("INSERT INTO phase_history(patient_id, phase_id, changed_at, note) VALUES (?,?,?,?)",
-                (patient_id, phase_id or None, now, body.get("note", "")))
+    con.execute("INSERT INTO phase_history(patient_id, phase_id, changed_at, note, approved_by) VALUES (?,?,?,?,?)",
+                (patient_id, phase_id or None, now, body.get("note", ""), therapist_id))
     con.commit()
     return get_program(con, patient_id)
 
@@ -1632,14 +1633,14 @@ def delete_protocol(con, protocol_id):
     return {"success": True, "protocol_id": protocol_id, "name": prot["name"]}
 
 
-def remove_patient_protocol(con, patient_id, note="Protocol removed by clinician"):
+def remove_patient_protocol(con, patient_id, note="Protocol removed by clinician", therapist_id=None):
     p = con.execute("SELECT * FROM patient WHERE patient_id=?", (patient_id,)).fetchone()
     if not p:
         raise NotFound("Unknown patient")
     now = datetime.now().isoformat(timespec="seconds")
     con.execute("UPDATE patient SET phase_id=NULL, phase_started_at=NULL WHERE patient_id=?", (patient_id,))
-    con.execute("INSERT INTO phase_history(patient_id, phase_id, changed_at, note) VALUES (?,NULL,?,?)",
-                (patient_id, now, note))
+    con.execute("INSERT INTO phase_history(patient_id, phase_id, changed_at, note, approved_by) VALUES (?,NULL,?,?,?)",
+                (patient_id, now, note, therapist_id))
     con.commit()
     return get_program(con, patient_id)
 
@@ -2113,7 +2114,8 @@ def dashboard(con, patient_id, session_limit=SESSION_PAGE):
     recent = [s for s in sessions if s["started_at"][:10] >= since and s["input_source"] in COUNTED_SOURCES]
     att = sum(s["attempts"] for s in recent)
     per_ex = con.execute(f"""
-        SELECT e.name, COUNT(r.record_id) AS n, COALESCE(SUM(r.unsafe_reps),0) AS unsafe,
+        SELECT e.name, COUNT(r.record_id) AS n, COUNT(DISTINCT r.session_id) AS sessions,
+               COALESCE(SUM(r.unsafe_reps),0) AS unsafe, COALESCE(MAX(r.avg_accuracy),0) AS best,
                CASE WHEN SUM(r.attempts)>0 THEN SUM(r.avg_accuracy*r.attempts)/SUM(r.attempts) ELSE 0 END AS accuracy,
                CASE WHEN SUM(r.attempts)>0 THEN SUM(r.mean_angle_error*r.attempts)/SUM(r.attempts) ELSE 0 END AS mean_err
         FROM exercise e LEFT JOIN (SELECT pr.* FROM performance_record pr JOIN session s ON s.session_id = pr.session_id
@@ -2133,12 +2135,14 @@ def dashboard(con, patient_id, session_limit=SESSION_PAGE):
         "calendar": statuses,
         "readiness": readiness(con, p),
         "phaseHistory": [dict(r) for r in con.execute("""
-            SELECT h.changed_at, h.note, ph.name AS phase, pr.name AS protocol FROM phase_history h
+            SELECT h.changed_at, h.note, ph.name AS phase, pr.name AS protocol, t.name AS approvedBy FROM phase_history h
             LEFT JOIN protocol_phase ph ON ph.phase_id = h.phase_id LEFT JOIN protocol pr ON pr.protocol_id = ph.protocol_id
+            LEFT JOIN physical_therapist t ON t.therapist_id = h.approved_by
             WHERE h.patient_id=? ORDER BY h.history_id DESC LIMIT 10""", (patient_id,))],
         "sessionsTotal": con.execute("SELECT COUNT(*) FROM session WHERE patient_id=?", (patient_id,)).fetchone()[0],
         "sessions": [{**s, "accuracy": round(s["accuracy"], 1), "mean_err": round(s["mean_err"], 1)} for s in sessions],
-        "byExercise": [{**dict(r), "accuracy": round(r["accuracy"], 1), "mean_err": round(r["mean_err"], 1)} for r in per_ex],
+        "byExercise": [{**dict(r), "accuracy": round(r["accuracy"], 1), "best": round(r["best"], 1),
+                        "mean_err": round(r["mean_err"], 1)} for r in per_ex],
     }
 
 
@@ -2489,9 +2493,9 @@ class Handler(BaseHTTPRequestHandler):
         if method == "POST" and len(parts) == 4 and parts[1] == "patients" and parts[3] == "archive":
             return self._send(200, set_patient_archived(con, self._id(parts[2]), self._body()))
         if len(parts) == 4 and parts[1] == "patients" and parts[3] == "protocol" and method == "DELETE":
-            return self._send(200, remove_patient_protocol(con, self._id(parts[2])))
+            return self._send(200, remove_patient_protocol(con, self._id(parts[2]), therapist_id=therapist["therapist_id"]))
         if len(parts) == 4 and parts[1] == "patients" and parts[3] == "phase" and method == "POST":
-            return self._send(200, set_phase(con, self._id(parts[2]), self._body()))
+            return self._send(200, set_phase(con, self._id(parts[2]), self._body(), therapist["therapist_id"]))
         if method == "GET" and parts == ["api", "library"]:
             return self._send(200, [{
                 "code": c, "name": v[0], "joint": v[1], "measure": v[2], "view": v[3], "position": v[4],
