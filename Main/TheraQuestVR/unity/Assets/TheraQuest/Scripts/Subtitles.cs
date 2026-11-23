@@ -36,7 +36,7 @@ namespace TheraQuest
         {
             instance = this;
             var cam = Camera.main != null ? Camera.main.transform : transform;
-            canvas = UIKit.Canvas(cam, "Subtitles", new Vector3(0f, -0.32f, 1.25f), 0f, new Vector2(1200, 160));
+            canvas = UIKit.Canvas(cam, "Subtitles", Offset, 0f, new Vector2(1200, 160));
             canvas.sortingOrder = 50;
             // No background box: white text with a dark outline and soft shadow reads on any background
             bg = UIKit.Box(canvas.transform, Vector2.zero, new Vector2(1200, 160), Color.clear, "Area");
@@ -78,6 +78,19 @@ namespace TheraQuest
             timer -= Time.unscaledDeltaTime;   // keeps counting while the game is paused
             if (timer <= 0f) canvas.gameObject.SetActive(false);
         }
+
+        /// <summary>On the laptop the line is fixed to the screen; in the headset it stays put in the room with the HUD panels (M10.1).</summary>
+        void LateUpdate()
+        {
+            var cam = Camera.main != null ? Camera.main.transform : null;
+            Transform want = XrMode.InHeadset && HUDController.View != null ? HUDController.View : cam;
+            if (want == null || canvas.transform.parent == want) return;
+            canvas.transform.SetParent(want, false);
+            canvas.transform.localPosition = Offset;
+            canvas.transform.localRotation = Quaternion.identity;
+        }
+
+        static readonly Vector3 Offset = new Vector3(0f, -0.32f, 1.25f);
 
         static string StripTags(string s) => System.Text.RegularExpressions.Regex.Replace(s ?? "", "<.*?>", "").Replace("\n", " ");
     }

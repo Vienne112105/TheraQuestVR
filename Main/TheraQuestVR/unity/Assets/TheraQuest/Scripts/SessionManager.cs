@@ -89,7 +89,7 @@ namespace TheraQuest
         }
 
         void OnEnable() { XrMode.Changed += OnXrChanged; }
-        void OnDisable() { XrMode.Changed -= OnXrChanged; }
+        void OnDisable() { XrMode.Changed -= OnXrChanged; InputHelper.FreeLook = false; }
         void OnDestroy() { Time.timeScale = 1f; AudioListener.pause = false; }
 
         /// <summary>Headset taken off: pause the exercise (A resumes). Link lost: carry on on the laptop, reps kept (M10.1).</summary>
@@ -299,7 +299,10 @@ namespace TheraQuest
             XrMode.Tick();   // notices the headset being taken off or Link being lost
             float dt = Time.deltaTime;   // 0 while paused, which freezes the exercise
             // No walking during an exercise: stick drift or a bumped stick would move the patient (M4.3)
-            if (mover != null) { mover.locked = menu.IsOpen; mover.walkLocked = phase == Phase.Running; }   // during exercises: stay on the spot, but turn and look freely
+            // During exercises and on the summary: stay on the spot (in front of the summary panel), but turn and look freely
+            if (mover != null) { mover.locked = menu.IsOpen; mover.walkLocked = phase == Phase.Running || phase == Phase.Uploading || phase == Phase.Summary; }
+            // On the laptop the mouse looks around by itself; menus get the cursor back to click
+            InputHelper.FreeLook = !menu.IsOpen && !XrMode.InHeadset && Application.isFocused;
 
             var ex = Current;
             motion.Sample(ex, dt);

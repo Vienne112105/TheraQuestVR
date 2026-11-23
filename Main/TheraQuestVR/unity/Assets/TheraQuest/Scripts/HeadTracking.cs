@@ -23,7 +23,7 @@ namespace TheraQuest
         XROrigin origin;
         Transform offset;
         TrackedPoseDriver driver;
-        bool heightSet;
+        bool heightSet, qualitySet;
         float trackedY, heightOffset;
 
         /// <summary>The object that is moved and turned to walk, turn and re-center (the XR Origin).</summary>
@@ -55,15 +55,20 @@ namespace TheraQuest
             desktopEyeHeight = eye;
             heightOffset = FirstPersonMath.HeightOffset(eye, trackedY);
         }
-        void OnEnable() { Application.onBeforeRender += ApplyPose; }
+        // Remove before adding: building the rig in Awake toggles it off and on, which can enable this twice
+        void OnEnable() { Application.onBeforeRender -= ApplyPose; Application.onBeforeRender += ApplyPose; }
         void OnDisable() { Application.onBeforeRender -= ApplyPose; }
         void Update() { ApplyPose(); }
 
         /// <summary>Applies this frame's view (called every frame and before rendering; public for the tests).</summary>
         public void ApplyPose()
         {
+            // A destroyed copy left hooked in (Play mode without domain reload) unhooks itself
+            if (!this) { Application.onBeforeRender -= ApplyPose; return; }
             EnsureRig();
+            bool wasHeadset = HeadsetActive;
             HeadsetActive = XrMode.InHeadset;
+            if (HeadsetActive != wasHeadset || !qualitySet) { XrQuality.Apply(GetComponent<Camera>(), HeadsetActive); qualitySet = true; }
             if (driver != null && driver.enabled != HeadsetActive) driver.enabled = HeadsetActive;
 
             if (!HeadsetActive)
@@ -77,7 +82,17 @@ namespace TheraQuest
 
             // The pose driver has put the tracked head (floor origin) in the camera's local pose
             trackedY = transform.localPosition.y;
-            if (!heightSet) { heightSet = true; SetEyeHeight(desktopEyeHeight); }
+            if (!heightSet)
+            {
+                // On the first headset frames the camera still holds the laptop pose: calibrate from the headset itself
+                var hmd = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(UnityEngine.XR.XRNode.Head);
+                // Before tracking starts the headset reports the floor (0): wait for a real head height
+                if (!hmd.TryGetFeatureValue(UnityEngine.XR.CommonUsages.isTracked, out bool tracked) || !tracked) return;
+                if (!hmd.TryGetFeatureValue(UnityEngine.XR.CommonUsages.centerEyePosition, out Vector3 eyePos) || eyePos.y < 0.1f) return;
+                trackedY = eyePos.y;
+                heightSet = true;
+                SetEyeHeight(desktopEyeHeight);
+            }
             // Written every frame: XROrigin resets the offset to 0 whenever the runtime changes the tracking origin
             if (offset != null) offset.localPosition = Vector3.up * heightOffset;
         }
@@ -94,6 +109,10 @@ namespace TheraQuest
             rig.rotation = Quaternion.Euler(0, -yaw, 0);
             Vector3 headWorld = transform.position;
             rig.position -= new Vector3(headWorld.x, 0, headWorld.z);
+            Recentered?.Invoke();
         }
+
+        /// <summary>Raised after an instant re-center in the headset: the panels are put back in front of the patient.</summary>
+        public static event System.Action Recentered;
     }
 }

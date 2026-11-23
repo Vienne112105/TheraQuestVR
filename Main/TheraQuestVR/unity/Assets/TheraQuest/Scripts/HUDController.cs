@@ -116,6 +116,7 @@ namespace TheraQuest
             BuildMirror();
             // Move the panels into an overlay that follows the camera, and draw them on top of the scene
             view = new GameObject("View HUD").transform;
+            View = view;
             foreach (var c in new[] { leftCanvas, rightCanvas, bubbleCanvas, summaryCanvas, coachCanvas, mirrorCanvas })
             {
                 c.transform.SetParent(view, false);
@@ -125,7 +126,45 @@ namespace TheraQuest
             bubbleChangedAt = Time.unscaledTime;
         }
 
+        void OnEnable()
+        {
+            HeadTracking.Recentered += Replace;
+            XrMode.Changed += OnXrChanged;
+        }
+
+        void OnDisable()
+        {
+            HeadTracking.Recentered -= Replace;
+            XrMode.Changed -= OnXrChanged;
+        }
+
         void OnDestroy() { if (view != null) Destroy(view.gameObject); }
+
+        bool placedLying;
+
+        /// <summary>The world-space overlay the HUD panels sit on (the subtitles join it in the headset).</summary>
+        public static Transform View { get; private set; }
+
+        void Replace() { viewPlaced = false; }
+
+        void OnXrChanged(XrModeLogic.Change c)
+        {
+            if (c == XrModeLogic.Change.HeadsetBack || c == XrModeLogic.Change.HeadsetConnected) viewPlaced = false;
+        }
+
+        /// <summary>Puts the panels in front of where the patient looks now, level (lying down: tilted up toward the ceiling).</summary>
+        void PlaceViewInFront(Transform ct)
+        {
+            float yaw = ct.eulerAngles.y;
+            if (lyingView)
+            {
+                float rigYaw = ct.parent != null ? ct.parent.eulerAngles.y : 0f;
+                view.SetPositionAndRotation(ct.position, Quaternion.Euler(-65f, rigYaw, 0f));
+            }
+            else view.SetPositionAndRotation(ct.position, Quaternion.Euler(0f, yaw, 0f));
+            placedLying = lyingView;
+            viewPlaced = true;
+        }
 
         void LateUpdate()
         {
@@ -133,21 +172,23 @@ namespace TheraQuest
             if (cam == null) return;
             bool headset = XrMode.InHeadset;
             var ct = cam.transform;
-            if (headset && lyingView)
+            if (headset)
             {
-                float rigYaw = ct.parent != null ? ct.parent.eulerAngles.y : 0f;
-                view.SetPositionAndRotation(ct.position, Quaternion.Euler(-65f, rigYaw, 0f));
+                // In the headset the panels stay put in the room (M10.1): they ride on the rig, so walking and turning
+                // carry them, but moving the head does not. They are put in front of the patient again only at an
+                // instant re-center, when the headset is put on, or when the lying view changes.
+                var head = cam.GetComponent<HeadTracking>();
+                var rig = head != null ? head.Rig : ct.parent;
+                if (view.parent != rig) { view.SetParent(rig, true); viewPlaced = false; }
+                if (lyingView != placedLying) viewPlaced = false;
+                if (!viewPlaced) PlaceViewInFront(ct);
             }
-            else if (headset && viewPlaced)
+            else
             {
-                // Lazy follow in VR: stays level and catches up smoothly (a face-locked panel is uncomfortable)
-                float k = 1f - Mathf.Exp(-5f * Time.unscaledDeltaTime);
-                view.position = Vector3.Lerp(view.position, ct.position, Mathf.Min(1f, k * 2f));
-                view.rotation = Quaternion.Slerp(view.rotation, Quaternion.Euler(0f, ct.eulerAngles.y, 0f), k);
+                if (view.parent != null) view.SetParent(null, true);
+                view.SetPositionAndRotation(ct.position, ct.rotation);   // laptop: locked to the screen
+                viewPlaced = false;
             }
-            else if (headset) view.SetPositionAndRotation(ct.position, Quaternion.Euler(0f, ct.eulerAngles.y, 0f));
-            else view.SetPositionAndRotation(ct.position, ct.rotation);   // laptop: locked to the screen
-            viewPlaced = true;
             UpdateQuestCard();
             UpdateBubbleFade();
             LayoutView(cam, headset);

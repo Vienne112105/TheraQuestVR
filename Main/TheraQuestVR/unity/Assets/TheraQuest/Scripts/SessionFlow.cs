@@ -104,7 +104,7 @@ namespace TheraQuest
 
         public static readonly ControlHints Controller = new ControlHints
         {
-            Start = "A", Back = "B", Recenter = "Y", Quest = "left stick click", Walk = "left stick", Turn = "right stick",
+            Start = "A", Back = "B", Recenter = "Y", Quest = "left stick click", Walk = "W A S D on the keyboard", Turn = "right stick",
             Navigate = "stick up / down", Change = "stick left / right", Angle = "the right stick",
         };
 

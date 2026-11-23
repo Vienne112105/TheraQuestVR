@@ -13,7 +13,7 @@ namespace TheraQuest
     /// wears the headset, it says which mode the game is in and what just changed. No Unity calls, so it is unit tested.
     ///   Desktop    : no headset since the start (or the game started with Link off).
     ///   Headset    : display running and the headset is worn.
-    ///   HeadsetOff : display running but the headset was taken off (the session pauses).
+    ///   HeadsetOff : the headset was taken off (the session pauses). Quest Link may stop the display meanwhile.
     ///   LinkLost   : the display stopped after the headset had been used (Link unplugged): the game carries on on the laptop.
     /// A presence change must last <see cref="PresenceDebounce"/> seconds before it counts, so a brief sensor flicker does nothing.
     /// </summary>
@@ -37,8 +37,13 @@ namespace TheraQuest
         {
             if (!displayRunning)
             {
+                // Quest Link stops the display as soon as the headset is taken off: if it had just reported "not worn",
+                // this is the headset coming off (pause), not Link being lost
+                bool takenOff = State == XrState.Headset && presenceChangeTime >= 0f;
                 presenceChangeTime = -1f;
-                if (State == XrState.Headset || State == XrState.HeadsetOff) { State = XrState.LinkLost; return Change.FellBackToDesktop; }
+                if (takenOff) { State = XrState.HeadsetOff; return Change.HeadsetRemoved; }
+                if (State == XrState.HeadsetOff) return Change.None;   // still off; the display comes back when it is worn
+                if (State == XrState.Headset) { State = XrState.LinkLost; return Change.FellBackToDesktop; }
                 return Change.None;
             }
 
@@ -67,9 +72,26 @@ namespace TheraQuest
     /// </summary>
     public static class XrMode
     {
-        static readonly XrModeLogic logic = new XrModeLogic();
+        static XrModeLogic logic = new XrModeLogic();
         static readonly List<XRDisplaySubsystem> displays = new List<XRDisplaySubsystem>();
         static int sampledFrame = -1;
+
+        // The project enters Play mode without a domain reload, so statics would keep the last run's state
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetForPlay()
+        {
+            logic = new XrModeLogic();
+            sampledFrame = -1;
+            Changed = null;
+            UnityEngine.XR.OpenXR.OpenXRRuntime.wantsToQuit -= KeepRunning;
+            UnityEngine.XR.OpenXR.OpenXRRuntime.wantsToQuit += KeepRunning;
+        }
+
+        /// <summary>
+        /// When Link is unplugged the OpenXR runtime is lost and Unity would quit the game (in the Editor: end Play mode),
+        /// losing the session. Refuse: the game carries on on the laptop (M10.1) and the reps are kept.
+        /// </summary>
+        static bool KeepRunning() => false;
 
         /// <summary>Raised on the frame a change is seen (HeadsetRemoved, HeadsetBack, FellBackToDesktop, HeadsetConnected).</summary>
         public static event Action<XrModeLogic.Change> Changed;

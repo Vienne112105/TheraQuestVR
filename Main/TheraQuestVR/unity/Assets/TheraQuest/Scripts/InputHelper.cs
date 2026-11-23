@@ -17,9 +17,9 @@ namespace TheraQuest
     ///   Pause / back        Esc, P or Backspace        B (right) or Menu (left)
     ///   Menu: choose        Up / Down arrows           either thumbstick up / down
     ///   Menu: change value  Left / Right arrows        either thumbstick left / right
-    ///   Walk                W A S D (Shift = faster)   left thumbstick
+    ///   Walk                W A S D (Shift = faster)   W A S D on the keyboard (sticks do not walk)
     ///   Turn                Q / E, Left / Right, or    right thumbstick left / right
-    ///                       hold the right mouse button and move the mouse to look around
+    ///                       move the mouse to look around (no menu open; in a menu, hold the right button)
     ///   Back to the station R                          Y (left)
     ///   Show / hide quest   M                          left thumbstick click
     ///   Angle up / down     Up / Down arrows           right thumbstick up / down (keyboard input mode)
@@ -43,8 +43,29 @@ namespace TheraQuest
         public static float AngleAxis { get; private set; }   // -1..1, keyboard input mode
         public static Vector2 Move { get; private set; }      // -1..1, x = strafe, y = forward
         public static float Turn { get; private set; }        // -1..1
-        public static Vector2 Look { get; private set; }      // mouse movement in pixels while the right button is held
+        public static Vector2 Look { get; private set; }      // mouse movement in pixels (free look, or the right button held)
         public static bool Sprint { get; private set; }
+
+        /// <summary>
+        /// On the laptop with no menu open, moving the mouse looks around without holding a button, and the cursor is
+        /// hidden and kept in the window (M10.1: after Link is lost the patient picks up the mouse). Set by SessionManager.
+        /// </summary>
+        public static bool FreeLook
+        {
+            get => freeLook;
+            set
+            {
+                if (freeLook == value) return;
+                freeLook = value;
+                Cursor.lockState = value ? CursorLockMode.Locked : CursorLockMode.None;
+                Cursor.visible = !value;
+            }
+        }
+        static bool freeLook;
+
+        // Play mode without a domain reload keeps statics: start each run with the cursor free
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetForPlay() => freeLook = false;
 
         static bool Pressed(B b) => now[(int)b] && !before[(int)b];
 
@@ -72,7 +93,7 @@ namespace TheraQuest
 
             var move = new Vector2((Key(KeyCode.D) ? 1f : 0f) - (Key(KeyCode.A) ? 1f : 0f),
                                    (Key(KeyCode.W) ? 1f : 0f) - (Key(KeyCode.S) ? 1f : 0f));
-            if (ls.sqrMagnitude > 0.04f) move = ls;
+            // Walking is keyboard only, in the headset too (human request 2026-11-19, after a faulty left stick walked them)
             Move = Vector2.ClampMagnitude(move, 1f);
 
             float turn = (Key(KeyCode.E) || Key(KeyCode.RightArrow) ? 1f : 0f) - (Key(KeyCode.Q) || Key(KeyCode.LeftArrow) ? 1f : 0f);
@@ -85,16 +106,44 @@ namespace TheraQuest
         static Vector2 Stick(XRNode node)
         {
             var dev = XRInputDevices.GetDeviceAtXRNode(node);
-            return dev.isValid && dev.TryGetFeatureValue(XRUsages.primary2DAxis, out Vector2 v) ? v : Vector2.zero;
+            if (!dev.isValid || !dev.TryGetFeatureValue(XRUsages.primary2DAxis, out Vector2 v)) return Vector2.zero;
+            bool hasTouch = dev.TryGetFeatureValue(XRUsages.primary2DAxisTouch, out bool touched);
+            return StickValue(v, hasTouch, touched);
+        }
+
+        /// <summary>
+        /// A thumbstick's value as the game uses it. Touch controllers sense the thumb on the stick: with no thumb on it the
+        /// stick is ignored, however far it reads, because a faulty stick can read far past the dead zone on its own
+        /// (human's left stick read 0.87 untouched and walked them right, 2026-11-19). Controllers without the sensor
+        /// keep the dead zone only.
+        /// </summary>
+        public static Vector2 StickValue(Vector2 raw, bool hasTouchSensor, bool thumbOnStick)
+        {
+            if (hasTouchSensor && !thumbOnStick) return Vector2.zero;
+            return DeadZone(raw);
+        }
+
+        /// <summary>How far a thumbstick must be pushed before it counts (0..1). Worn Quest 2 sticks drift on their own (M10.1).</summary>
+        public const float StickDeadZone = 0.3f;
+
+        /// <summary>
+        /// Ignores a thumbstick pushed less than <see cref="StickDeadZone"/>, so drift does not walk or turn the patient,
+        /// and rescales the rest so a push still starts gently from zero and reaches full at the edge.
+        /// </summary>
+        public static Vector2 DeadZone(Vector2 v, float inner = StickDeadZone)
+        {
+            float m = v.magnitude;
+            if (m <= inner) return Vector2.zero;
+            return v / m * Mathf.Clamp01((m - inner) / (1f - inner));
         }
 
         static Vector2 MouseLook()
         {
 #if ENABLE_INPUT_SYSTEM
             var m = Mouse.current;
-            return m != null && m.rightButton.isPressed ? m.delta.ReadValue() : Vector2.zero;
+            return m != null && (freeLook || m.rightButton.isPressed) ? m.delta.ReadValue() : Vector2.zero;
 #else
-            return Input.GetMouseButton(1) ? new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y")) * 10f : Vector2.zero;
+            return freeLook || Input.GetMouseButton(1) ? new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y")) * 10f : Vector2.zero;
 #endif
         }
 
