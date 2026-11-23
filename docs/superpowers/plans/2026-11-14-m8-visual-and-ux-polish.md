@@ -156,6 +156,41 @@ is within tolerance; the window and mirror frames stay inside the comfortable fi
 
 **Completion criteria:** tests pass; the full suite is green; human approves before and after screenshots per posture.
 
+**Steps (detailed at M8.4 start, 2026-11-24):**
+
+Owners today: `Resources/Shaders/Hologram.shader` (the look), `FirstPersonGuide` (target, live and mirror body
+materials; side-mirror camera), `HumanoidCoach` (coach window camera and arrow), `HUDController` (the coach window and
+side-mirror panels, word chip, layout). `UIKit.cs` belongs to M8.3 and M8.5 while they run: M8.4 only calls it.
+
+1. **Before screenshots first** (Play mode, laptop view, renderer index 0): one exercise per posture (standing,
+   seated, lying, side-lying) at the default eye heights, plus one exercise behind the body (side mirror). Live limb
+   outside and inside tolerance. Saved in `Assets/Screenshots/M8.4` (the human folder, not committed).
+2. **Tests first (EditMode, `HologramGlowTests`, `ComfortFrameTests`):**
+   - the glow property (`_Glow`) is above zero only for the evaluator states inside tolerance (`OnTarget`,
+     `Holding`); every other `LiveState`, a missing reading (orange) and a fault stay at zero; leaving tolerance
+     drops it to zero at once; entering eases it in (no flicker, no pop);
+   - the target and live limb colours come from the `UIKit` palette;
+   - the coach window and side-mirror frames, as placed for the headset, stay inside the comfortable field of view
+     (`ViewComfort`: centre of every frame within 35 degrees sideways and every corner within 55 degrees sideways,
+     20 degrees up and 40 degrees down of the view direction), and inside the camera's view on the laptop;
+   - the hologram shader exposes and documents every parameter, and still compiles under URP.
+3. **Hologram rework (`Hologram.shader`):** fresnel rim tinted from the fill colour (not white), soft inner fill,
+   `_Glow` brightening the rim and fill into HDR so the room's light bloom gives a steady halo, scan lines off by
+   default, `_Cutoff` alpha clip for pixels too faint to see. The see-through limbs must stay alpha-blended (the
+   patient sees the room through them); the coach-window arrow is solid and uses the opaque mode (`_SrcBlend`,
+   `_DstBlend`, `_ZWrite`, no blending). Every parameter documented in the header. Checked in the Frame Debugger
+   with both URP renderers (laptop with SSAO, headset without).
+4. **`FirstPersonGuide`:** target = `UIKit.Blue`, live = `UIKit.White`; inside tolerance both turn `UIKit.Green`
+   with the glow; warnings keep their tone colours (red stays for safety, DEC-016). One pure, tested helper decides
+   tone and glow.
+5. **Coach window and side mirror (`HUDController`, `HumanoidCoach`, `FirstPersonGuide`):** one framed picture
+   helper used by both panels (window card, inset navy frame round the picture); a soft radial backdrop behind the
+   coach in the window picture and behind the mirror's body; the arrow wider with an outline; the word chip larger
+   with an outline, same palette. Layout positions for the two frames come from one pure function used by the
+   comfort test.
+6. **Checks:** full EditMode suite green; after screenshots of the same shots; Play mode with no new console errors;
+   the human approves before and after per posture. M8.4 stays active until then.
+
 ## M8.5 — Menus & Summary Polish
 
 **Objective:** Consistent, tidy menus that stay short.

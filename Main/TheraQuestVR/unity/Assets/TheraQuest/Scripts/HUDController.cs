@@ -75,7 +75,11 @@ namespace TheraQuest
         bool viewPlaced;
 
         // Coach window and side mirror (M5.8)
-        const float CoachW = 640f, CoachH = 740f, CoachPicture = 592f, CoachGap = 18f, MirrorSize = 520f;
+        // M8.4: both pictures sit in the same navy frame (FramedPicture), inset FrameInset px from the card's fill
+        const float CoachW = 640f, CoachH = 740f, FrameInset = 16f, FrameWidth = 6f, CoachFrame = 592f,
+                    CoachPicture = CoachFrame - 2f * FrameWidth, CoachGap = 18f, MirrorSize = 520f;
+        /// <summary>The quest card's height while minimised during a session (when the coach window shows under it).</summary>
+        public const float QuestMinimisedH = 110f + 72f + 8f + NextRowH + 70f;
         RawImage coachPicture, mirrorPicture;
         TextMeshProUGUI coachWord, coachCaption;
         RectTransform coachWordChip;
@@ -494,10 +498,12 @@ namespace TheraQuest
         {
             coachCanvas = UIKit.Canvas(transform, "Coach Window", Vector3.zero, 0f, new Vector2(CoachW, CoachH));
             var card = UIKit.Window(coachCanvas.transform, new Vector2(CoachW, CoachH), GlassAlpha);
-            coachPicture = Picture(card.fill.transform, new Vector2(16, -32), CoachPicture, "Coach picture");
-            coachWord = UIKit.Pill(coachPicture.transform, Vector2.zero, new Vector2(250, 52), UIKit.Orange, "", 26, UIKit.White);
+            coachPicture = FramedPicture(card.fill.transform, CoachW - 16f, CoachFrame, CoachBackdropEdge, "Coach picture");
+            // The word guide (M8.4): larger, with a navy outline like the arrow's
+            coachWord = UIKit.Pill(coachPicture.transform, Vector2.zero, new Vector2(250, WordChipH), UIKit.Orange, "", 30, UIKit.White);
             coachWordChip = (RectTransform)coachWord.transform.parent;
-            coachCaption = Label(card.fill.transform, new Vector2(24, -632), new Vector2(576, 84), 28, UIKit.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
+            UIKit.Stroke(coachWordChip.GetComponent<Image>(), UIKit.Navy, 3f);
+            coachCaption = Label(card.fill.transform, new Vector2(24, -32f - CoachFrame - 8f), new Vector2(576, 84), 28, UIKit.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
             coachCanvas.gameObject.SetActive(false);
         }
 
@@ -505,8 +511,55 @@ namespace TheraQuest
         {
             mirrorCanvas = UIKit.Canvas(transform, "Side Mirror", Vector3.zero, 0f, new Vector2(MirrorSize, MirrorSize));
             var card = UIKit.Window(mirrorCanvas.transform, new Vector2(MirrorSize, MirrorSize), GlassAlpha);
-            mirrorPicture = Picture(card.fill.transform, new Vector2(16, -32), MirrorSize - 48f, "Side view");
+            mirrorPicture = FramedPicture(card.fill.transform, MirrorSize - 16f, MirrorSize - 64f, MirrorBackdropEdge, "Side view");
             mirrorCanvas.gameObject.SetActive(false);
+        }
+
+        // ---- The picture frame shared by the coach window and the side mirror (M8.4)
+        const float WordChipH = 60f;
+        /// <summary>Colour the soft backdrop fades to at the picture's rim (the centre keeps the camera's own background).</summary>
+        static readonly Color CoachBackdropEdge = new Color(UIKit.Blue.r, UIKit.Blue.g, UIKit.Blue.b, 0.30f),
+                              MirrorBackdropEdge = new Color(0f, 0f, 0f, 0.40f);
+        static Texture2D softEdge;
+
+        /// <summary>
+        /// A square picture centred across the card's fill (fillW wide), 32 px below its top, in a navy rounded frame,
+        /// with a soft radial backdrop over the picture: clear in the middle, fading to edgeTint toward the rim, so the
+        /// figure stands in a soft pool of light. Children added to the returned picture draw above the backdrop.
+        /// </summary>
+        static RawImage FramedPicture(Transform fill, float fillW, float frameSize, Color edgeTint, string name)
+        {
+            var frame = Box(fill, new Vector2((fillW - frameSize) / 2f, -32f), new Vector2(frameSize, frameSize), UIKit.Navy, name + " frame");
+            float inner = frameSize - 2f * FrameWidth;
+            var window = Box(frame.transform, new Vector2(FrameWidth, -FrameWidth), new Vector2(inner, inner), Color.white, name + " mask");
+            window.gameObject.AddComponent<Mask>().showMaskGraphic = false;   // rounded corners for the picture
+            var pic = Picture(window.transform, Vector2.zero, inner, name);
+            var backdrop = Picture(pic.transform, Vector2.zero, inner, name + " backdrop");
+            backdrop.texture = SoftEdge;
+            backdrop.color = edgeTint;
+            return pic;
+        }
+
+        /// <summary>White with alpha rising from the middle to the corners (smooth, no banding at 128 px).</summary>
+        static Texture2D SoftEdge
+        {
+            get
+            {
+                if (softEdge != null) return softEdge;
+                const int n = 128;
+                softEdge = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "Soft backdrop edge" };
+                var px = new Color32[n * n];
+                for (int y = 0; y < n; y++)
+                    for (int x = 0; x < n; x++)
+                    {
+                        float dx = (x + 0.5f) / n * 2f - 1f, dy = (y + 0.5f) / n * 2f - 1f;
+                        float a = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.45f, 1.35f, Mathf.Sqrt(dx * dx + dy * dy)));
+                        px[y * n + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(a * 255f));
+                    }
+                softEdge.SetPixels32(px);
+                softEdge.Apply(false, true);
+                return softEdge;
+            }
         }
 
         static RawImage Picture(Transform parent, Vector2 pos, float size, string name)
@@ -536,7 +589,7 @@ namespace TheraQuest
             coachCaption.text = caption;
             coachWord.text = word;
             // The chip is as wide as its word (a fixed 250 px chip was too big to sit near the arrow)
-            float width = Mathf.Clamp(coachWord.GetPreferredValues(word ?? "").x + 44f, 120f, 280f);
+            float width = Mathf.Clamp(coachWord.GetPreferredValues(word ?? "").x + 48f, 140f, 320f);
             if (!Mathf.Approximately(coachWordChip.sizeDelta.x, width))
             {
                 coachWordChip.sizeDelta = new Vector2(width, coachWordChip.sizeDelta.y);
@@ -804,7 +857,7 @@ namespace TheraQuest
                 questOpenByUser = !QuestOpen;
                 SetQuest(lastExs, lastEvs, lastActive, questRunning);
             }
-            float target = QuestOpen ? questOpenH : 110f + 72f + 8f + NextRowH + 70f;
+            float target = QuestOpen ? questOpenH : QuestMinimisedH;
             questH = Mathf.Lerp(questH, target, 1f - Mathf.Exp(-12f * Time.unscaledDeltaTime));
             if (Mathf.Abs(questH - target) < 0.5f) questH = target;
             rightCanvas.GetComponent<RectTransform>().sizeDelta = new Vector2(640f, questH);

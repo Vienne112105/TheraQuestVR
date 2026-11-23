@@ -130,7 +130,7 @@ namespace TheraQuest
         bool idleLayout;            // standing with no props (menu, summary, free roam)
         Camera windowCam;
         RenderTexture windowTex;
-        LineRenderer arrow;
+        LineRenderer arrow, arrowOutline;   // M8.4: the arrow is solid orange with a navy outline drawn just behind it
         bool windowOn, arrowDirty;
         bool matDirty = true;       // posture or props changed: fit the mat once the coach has settled
         Transform yogaMat;
@@ -203,24 +203,37 @@ namespace TheraQuest
             windowCam.targetTexture = windowTex;
             windowCam.cullingMask = 1 << WindowLayer;
             windowCam.clearFlags = CameraClearFlags.SolidColor;
-            windowCam.backgroundColor = new Color(0.89f, 0.93f, 0.95f);
+            windowCam.backgroundColor = WindowBackdrop;
             windowCam.fieldOfView = WindowFov;
             if (UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline == null) windowCam.stereoTargetEye = StereoTargetEyeMask.None;   // URP ignores it (and warns)
             windowCam.enabled = false;
 
-            arrow = new GameObject("Coach window arrow").AddComponent<LineRenderer>();
-            arrow.transform.SetParent(transform, false);
-            arrow.gameObject.layer = WindowLayer;
-            arrow.sharedMaterial = FirstPersonGuide.HologramMaterial(UIKit.Orange, 0f, 0f, alwaysOnTop: true);
-            arrow.shadowCastingMode = ShadowCastingMode.Off;
-            arrow.receiveShadows = false;
-            arrow.alignment = LineAlignment.View;
-            arrow.numCapVertices = 4;
-            arrow.positionCount = ArrowPoints;
-            // A line that widens into an arrowhead over its last part
-            arrow.widthCurve = new AnimationCurve(new Keyframe(0f, 0.03f), new Keyframe(0.86f, 0.03f),
-                                                  new Keyframe(0.861f, 0.1f), new Keyframe(1f, 0.002f));
-            arrow.enabled = false;
+            arrowOutline = ArrowLine("Coach window arrow outline", UIKit.Navy, ArrowOutline);
+            arrow = ArrowLine("Coach window arrow", UIKit.Orange, 0f);
+            arrow.sharedMaterial.renderQueue = arrowOutline.sharedMaterial.renderQueue + 1;   // drawn over its outline
+        }
+
+        /// <summary>Centre of the window picture's soft backdrop (the HUD frame fades it toward palette blue at the rim).</summary>
+        public static readonly Color WindowBackdrop = new Color(0.93f, 0.96f, 0.97f);
+        /// <summary>Arrow body and head widths in metres (M8.4: larger than the M5.8 0.03 / 0.10), and the outline's extra width.</summary>
+        public const float ArrowBody = 0.042f, ArrowHead = 0.13f, ArrowOutline = 0.022f;
+
+        /// <summary>One solid line that widens into an arrowhead over its last part, drawn on top in the window only.</summary>
+        LineRenderer ArrowLine(string name, Color colour, float extra)
+        {
+            var line = new GameObject(name).AddComponent<LineRenderer>();
+            line.transform.SetParent(transform, false);
+            line.gameObject.layer = WindowLayer;
+            line.sharedMaterial = FirstPersonGuide.HologramMaterial(colour, 0f, 0f, alwaysOnTop: true, solid: true);
+            line.shadowCastingMode = ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            line.alignment = LineAlignment.View;
+            line.numCapVertices = 4;
+            line.positionCount = ArrowPoints;
+            line.widthCurve = new AnimationCurve(new Keyframe(0f, ArrowBody + extra), new Keyframe(0.84f, ArrowBody + extra),
+                                                 new Keyframe(0.841f, ArrowHead + extra * 1.6f), new Keyframe(1f, 0.004f + extra));
+            line.enabled = false;
+            return line;
         }
 
         /// <summary>Switches to the next (step 1) or previous (step -1) coach and remembers the choice.</summary>
@@ -509,6 +522,7 @@ namespace TheraQuest
             if (yogaMat != null) SetLayer(yogaMat, layer);
             windowCam.enabled = on;
             arrow.enabled = on;
+            arrowOutline.enabled = on;
         }
 
         static void SetLayer(Transform t, int layer)
@@ -531,6 +545,7 @@ namespace TheraQuest
                 arrow.SetPosition(i, to + (to - from).normalized * 0.07f);   // just beyond the limb's end
             }
             b.coach.Pose(motion, posture, current.targetAngle, side, 0f, 0f);
+            for (int i = 0; i < ArrowPoints; i++) arrowOutline.SetPosition(i, arrow.GetPosition(i));
 
             // Frame everything the window must show: the whole body (hair included, measured from the mesh), the arrow and the
             // yoga mat, with a margin, so nothing is cut off whatever the model's proportions (a head-bone-plus-a-fixed-0.2 m

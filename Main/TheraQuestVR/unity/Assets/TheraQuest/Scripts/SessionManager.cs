@@ -367,8 +367,7 @@ namespace TheraQuest
             if (!motion.HasReading && (cur == null || !cur.Resting)) return Tone.Warn;
             if (tutorial.Active && ex != null) return Mathf.Abs(motion.Angle - ex.targetAngle) <= ex.tolerance ? Tone.Good : Tone.Neutral;
             if (cur == null) return Tone.Neutral;
-            return cur.State == LiveState.OnTarget || cur.State == LiveState.Holding ? Tone.Good :
-                   cur.State == LiveState.TooFar || cur.State == LiveState.Fault || cur.State == LiveState.Unsafe ? Tone.Bad : Tone.Neutral;
+            return HologramLook.StateTone(cur.State);   // green (and the guide's glow) only inside tolerance (M8.4)
         }
 
         void RunTutorial(ExerciseDef ex, float dt)

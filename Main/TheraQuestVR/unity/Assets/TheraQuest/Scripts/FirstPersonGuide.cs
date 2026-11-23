@@ -255,8 +255,6 @@ namespace TheraQuest
     {
         public const int HologramLayer = 30, MirrorOnlyLayer = 29;
 
-        static readonly Color TargetColor = new Color(0.35f, 0.8f, 1f, 0.3f);
-        static readonly Color LiveColor = new Color(0.97f, 0.98f, 1f, 0.55f);
 
         sealed class LimbView
         {
@@ -272,29 +270,40 @@ namespace TheraQuest
         string pose = "";
         int side = 1;
         bool behind, shown;
-        float liveAngle, liveVel, liveTilt, tiltVel;
+        float liveAngle, liveVel, liveTilt, tiltVel, glow;
 
         /// <summary>The side view while it is needed, else null.</summary>
         public Texture MirrorTexture => shown && behind ? mirrorTex : null;
 
-        /// <summary>The see-through material, or a plain transparent one when the shader is missing.</summary>
-        public static Material HologramMaterial(Color c, float rim = 1.5f, float lines = 30f, bool alwaysOnTop = false)
+        /// <summary>
+        /// The see-through material (parameters documented in Hologram.shader), or a plain transparent one when the shader
+        /// is missing. solid: no blending and depth written (the coach window's arrow); see-through limbs stay blended.
+        /// </summary>
+        public static Material HologramMaterial(Color c, float rim = 1.5f, float lines = 0f, bool alwaysOnTop = false, bool solid = false)
         {
             var shader = Resources.Load<Shader>("Shaders/Hologram");
-            if (shader == null) return FigureVisualizer.MakeMat(c, true);
+            if (shader == null) return FigureVisualizer.MakeMat(c, !solid);
             var m = new Material(shader) { color = c };
             m.SetFloat("_Rim", rim);
             m.SetFloat("_Lines", lines);
             m.SetFloat("_ZTest", (float)(alwaysOnTop ? UnityEngine.Rendering.CompareFunction.Always : UnityEngine.Rendering.CompareFunction.LessEqual));
+            if (solid)
+            {
+                m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+                m.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.Zero);
+                m.SetFloat("_ZWrite", 1f);
+                m.SetFloat("_Cutoff", 0f);
+                m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.GeometryLast;   // after the coach it is drawn over
+            }
             return m;
         }
 
         void Awake()
         {
             root = new GameObject("First-person body").transform;
-            targetMat = HologramMaterial(TargetColor);
-            liveMat = HologramMaterial(LiveColor);
-            bodyMat = HologramMaterial(new Color(0.75f, 0.85f, 0.95f, 0.18f), 1f, 0f);
+            targetMat = HologramMaterial(HologramLook.Target);
+            liveMat = HologramMaterial(HologramLook.Live);
+            bodyMat = HologramMaterial(new Color(0.75f, 0.85f, 0.95f, 0.18f), 0.8f);
             for (int i = 0; i < 2; i++)
             {
                 target[i] = MakeLimb(targetMat, "Target limb " + i);
@@ -391,6 +400,7 @@ namespace TheraQuest
             liveVel = 0f;
             liveTilt = 0f;
             tiltVel = 0f;
+            glow = 0f;
         }
 
         /// <summary>Room points the view should frame, from the start of the movement to the target.</summary>
@@ -419,9 +429,9 @@ namespace TheraQuest
             var chains = FirstPersonMath.Limbs(pose, side, liveAngle);
             chains[0] = FirstPersonMath.Tilt(chains[0], pose, side, liveTilt);
             for (int i = 0; i < chains.Length; i++) Place(live[i], chains, i);
-            var c = FeedbackManager.ToneColor(tone);
-            targetMat.color = tone == Tone.Good ? new Color(c.r, c.g, c.b, 0.45f) : TargetColor;
-            liveMat.color = tone == Tone.Neutral ? LiveColor : new Color(c.r, c.g, c.b, 0.65f);
+            // Green and a steady glow only inside tolerance (Tone.Good comes from the evaluator, HologramLook.StateTone)
+            glow = HologramLook.NextGlow(glow, tone == Tone.Good, dt);
+            HologramLook.Apply(targetMat, liveMat, tone, glow);
         }
 
         public void Hide()

@@ -69,7 +69,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M8.1 | M8 | done | URP Migration |
 | M8.2 | M8 | done | Clinic Room Look |
 | M8.3 | M8 | active | Feedback Motion |
-| M8.4 | M8 | planned | Hologram & Coach Window |
+| M8.4 | M8 | active | Hologram & Coach Window |
 | M8.5 | M8 | active | Menus & Summary Polish |
 | M8.6 | M8 | done | Dashboard Visual Refresh |
 | M8.7 | M8 | active | Dashboard Hidden Data |
@@ -562,7 +562,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience, Gamification
 
 ### M8.4 — Hologram & Coach Window
-- **Status:** planned
+- **Status:** active (started 2026-11-24)
 - **Objective:** The target limb, live limb and coach window are the clearest things in view.
 - **Deliverables:** reworked URP hologram (fresnel rim, soft fill, alpha clip where possible, palette colours for target and live limb, steady glow inside tolerance); framed coach window with a soft backdrop and restyled arrows and word guides; same frame for the side mirror; documented shader parameters checked in the Frame Debugger.
 - **Completion criteria:** EditMode tests (glow only when the evaluator reports in-tolerance; frames inside the comfortable field-of-view limits) pass; full suite green; human approves before and after screenshots for all four postures.
