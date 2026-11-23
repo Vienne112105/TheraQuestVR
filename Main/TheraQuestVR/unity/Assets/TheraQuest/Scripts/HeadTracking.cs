@@ -85,10 +85,8 @@ namespace TheraQuest
             if (!heightSet)
             {
                 // On the first headset frames the camera still holds the laptop pose: calibrate from the headset itself
-                var hmd = UnityEngine.XR.InputDevices.GetDeviceAtXRNode(UnityEngine.XR.XRNode.Head);
                 // Before tracking starts the headset reports the floor (0): wait for a real head height
-                if (!hmd.TryGetFeatureValue(UnityEngine.XR.CommonUsages.isTracked, out bool tracked) || !tracked) return;
-                if (!hmd.TryGetFeatureValue(UnityEngine.XR.CommonUsages.centerEyePosition, out Vector3 eyePos) || eyePos.y < 0.1f) return;
+                if (!XrControls.TryGetTrackedEyePosition(out Vector3 eyePos) || eyePos.y < 0.1f) return;
                 trackedY = eyePos.y;
                 heightSet = true;
                 SetEyeHeight(desktopEyeHeight);

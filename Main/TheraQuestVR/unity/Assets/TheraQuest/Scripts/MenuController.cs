@@ -103,6 +103,7 @@ namespace TheraQuest
             canvas.sortingOrder = 40;
             ((RectTransform)canvas.transform).pivot = new Vector2(0.5f, 0.5f);
             canvas.gameObject.AddComponent<GraphicRaycaster>();
+            canvas.gameObject.AddComponent<UnityEngine.XR.Interaction.Toolkit.UI.TrackedDeviceGraphicRaycaster>();   // controller rays (M10.2)
             var t = canvas.transform;
             card = UIKit.Window(t, new Vector2(Width, 900), 0.97f, "Card");   // same frame as the HUD cards, nearly solid
             title = UIKit.Stroke(UIKit.Label(t, new Vector2(TitleX, -52), new Vector2(Width - 100, 80), 70, UIKit.Orange, TextAnchor.UpperLeft, FontStyle.Bold), 3f);
@@ -166,7 +167,10 @@ namespace TheraQuest
             if (EventSystem.current != null || FindAnyObjectByType<EventSystem>() != null) return;
             var go = new GameObject("EventSystem", typeof(EventSystem));
 #if ENABLE_INPUT_SYSTEM
-            go.AddComponent<InputSystemUIInputModule>().AssignDefaultActions();
+            // The XR Interaction Toolkit's module takes both the controller rays and the mouse (M10.2)
+            var module = go.AddComponent<UnityEngine.XR.Interaction.Toolkit.UI.XRUIInputModule>();
+            module.enableXRInput = true;
+            module.enableMouseInput = true;
 #else
             go.AddComponent<StandaloneInputModule>();
 #endif

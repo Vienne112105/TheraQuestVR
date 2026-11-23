@@ -1,0 +1,61 @@
+{
+    "name": "TheraQuestControls",
+    "maps": [
+        {
+            "name": "Controllers",
+            "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a51",
+            "actions": [
+                { "name": "Select", "type": "Button", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a01", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "RightTrigger", "type": "Button", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a02", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "LeftTrigger", "type": "Button", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a03", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "Back", "type": "Button", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a04", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "Recenter", "type": "Button", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a05", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "QuestToggle", "type": "Button", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a06", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "LeftStick", "type": "Value", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a07", "expectedControlType": "Vector2", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "RightStick", "type": "Value", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a08", "expectedControlType": "Vector2", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "LeftStickTouch", "type": "Button", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a09", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "RightStickTouch", "type": "Button", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a10", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "LeftAimPosition", "type": "Value", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a11", "expectedControlType": "Vector3", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "LeftAimRotation", "type": "Value", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a12", "expectedControlType": "Quaternion", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "RightAimPosition", "type": "Value", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a13", "expectedControlType": "Vector3", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "RightAimRotation", "type": "Value", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a14", "expectedControlType": "Quaternion", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "LeftTracked", "type": "Button", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a15", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "RightTracked", "type": "Button", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a16", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": true }
+            ],
+            "bindings": [
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b01", "path": "<XRController>{RightHand}/{PrimaryButton}", "interactions": "", "processors": "", "groups": "", "action": "Select", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b02", "path": "<XRController>{RightHand}/{TriggerButton}", "interactions": "", "processors": "", "groups": "", "action": "RightTrigger", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b03", "path": "<XRController>{LeftHand}/{TriggerButton}", "interactions": "", "processors": "", "groups": "", "action": "LeftTrigger", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b04", "path": "<XRController>{RightHand}/{SecondaryButton}", "interactions": "", "processors": "", "groups": "", "action": "Back", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b05", "path": "<XRController>{LeftHand}/{MenuButton}", "interactions": "", "processors": "", "groups": "", "action": "Back", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b06", "path": "<XRController>{LeftHand}/{SecondaryButton}", "interactions": "", "processors": "", "groups": "", "action": "Recenter", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b07", "path": "<XRController>{LeftHand}/{Primary2DAxisClick}", "interactions": "", "processors": "", "groups": "", "action": "QuestToggle", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b08", "path": "<XRController>{LeftHand}/{Primary2DAxis}", "interactions": "", "processors": "", "groups": "", "action": "LeftStick", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b09", "path": "<XRController>{RightHand}/{Primary2DAxis}", "interactions": "", "processors": "", "groups": "", "action": "RightStick", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b10", "path": "<XRController>{LeftHand}/{Primary2DAxisTouch}", "interactions": "", "processors": "", "groups": "", "action": "LeftStickTouch", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b11", "path": "<XRController>{RightHand}/{Primary2DAxisTouch}", "interactions": "", "processors": "", "groups": "", "action": "RightStickTouch", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b12", "path": "<XRController>{LeftHand}/pointerPosition", "interactions": "", "processors": "", "groups": "", "action": "LeftAimPosition", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b13", "path": "<XRController>{LeftHand}/pointerRotation", "interactions": "", "processors": "", "groups": "", "action": "LeftAimRotation", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b14", "path": "<XRController>{RightHand}/pointerPosition", "interactions": "", "processors": "", "groups": "", "action": "RightAimPosition", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b15", "path": "<XRController>{RightHand}/pointerRotation", "interactions": "", "processors": "", "groups": "", "action": "RightAimRotation", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b16", "path": "<XRController>{LeftHand}/isTracked", "interactions": "", "processors": "", "groups": "", "action": "LeftTracked", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b17", "path": "<XRController>{RightHand}/isTracked", "interactions": "", "processors": "", "groups": "", "action": "RightTracked", "isComposite": false, "isPartOfComposite": false }
+            ]
+        },
+        {
+            "name": "Headset",
+            "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a52",
+            "actions": [
+                { "name": "Worn", "type": "Button", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a21", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "Tracked", "type": "Button", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a22", "expectedControlType": "Button", "processors": "", "interactions": "", "initialStateCheck": true },
+                { "name": "EyePosition", "type": "Value", "id": "6b0e2f4a-1c3d-4e5f-8a9b-0c1d2e3f4a23", "expectedControlType": "Vector3", "processors": "", "interactions": "", "initialStateCheck": true }
+            ],
+            "bindings": [
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b21", "path": "<XRHMD>/userPresence", "interactions": "", "processors": "", "groups": "", "action": "Worn", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b22", "path": "<XRHMD>/isTracked", "interactions": "", "processors": "", "groups": "", "action": "Tracked", "isComposite": false, "isPartOfComposite": false },
+                { "name": "", "id": "7c1f3a5b-2d4e-4f60-9b0c-1d2e3f4a5b23", "path": "<XRHMD>/centerEyePosition", "interactions": "", "processors": "", "groups": "", "action": "EyePosition", "isComposite": false, "isPartOfComposite": false }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

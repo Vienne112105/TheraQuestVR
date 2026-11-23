@@ -79,6 +79,12 @@ namespace TheraQuest
                 mover = rig.GetComponent<PlayerMover>();
                 if (mover == null) mover = rig.AddComponent<PlayerMover>();
                 mover.head = head;
+                // Controller rays for the menus in the headset (M10.2)
+                var rays = rig.GetComponent<ControllerRays>();
+                if (rays == null) rays = rig.AddComponent<ControllerRays>();
+                var origin = rig.GetComponent<Unity.XR.CoreUtils.XROrigin>();
+                rays.Build(origin != null ? origin.CameraFloorOffsetObject.transform : rig.transform);
+                rays.menuOpen = () => menu != null && menu.IsOpen;
             }
             if (focus == null && mover != null)
             {

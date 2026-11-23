@@ -10,7 +10,8 @@
         "Unity.RenderPipelines.Core.Runtime",
         "Unity.XR.CoreUtils",
         "Unity.InputSystem",
-        "Unity.XR.OpenXR"
+        "Unity.XR.OpenXR",
+        "Unity.XR.Interaction.Toolkit"
     ],
     "includePlatforms": [
         "Editor"

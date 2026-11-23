@@ -118,11 +118,6 @@ namespace TheraQuest
             return false;
         }
 
-        static bool UserPresent()
-        {
-            var head = InputDevices.GetDeviceAtXRNode(XRNode.Head);
-            // Headsets without a presence sensor count as worn
-            return !head.isValid || !head.TryGetFeatureValue(CommonUsages.userPresence, out bool present) || present;
-        }
+        static bool UserPresent() => XrControls.HeadsetWorn;   // headsets without a presence sensor count as worn
     }
 }

@@ -1,7 +1,4 @@
 using UnityEngine;
-using UnityEngine.XR;
-using XRUsages = UnityEngine.XR.CommonUsages;
-using XRInputDevices = UnityEngine.XR.InputDevices;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -9,8 +6,9 @@ using UnityEngine.InputSystem;
 namespace TheraQuest
 {
     /// <summary>
-    /// One place for all controls, so the app works with either Unity input system
-    /// and with Quest controllers (via Quest Link) without extra packages.
+    /// One place for all controls: the keyboard and mouse, and the Quest controllers (via Quest Link) read through the
+    /// input actions in <see cref="XrControls"/> (M10.2). In a menu in the headset, a controller ray and the trigger
+    /// also click the row pointed at (<see cref="ControllerRays"/>).
     ///
     ///   Action              Keyboard / mouse           Quest controller
     ///   Start / select      Space or Enter             A (right) or right trigger
@@ -72,13 +70,14 @@ namespace TheraQuest
         public static void Tick()
         {
             for (int i = 0; i < now.Length; i++) before[i] = now[i];
-            now[(int)B.Start] = Key(KeyCode.Space) || Key(KeyCode.Return) || Xr(XRNode.RightHand, XRUsages.primaryButton) || Xr(XRNode.RightHand, XRUsages.triggerButton);
-            now[(int)B.Back] = Key(KeyCode.Escape) || Key(KeyCode.P) || Key(KeyCode.Backspace) ||
-                               Xr(XRNode.RightHand, XRUsages.secondaryButton) || Xr(XRNode.LeftHand, XRUsages.menuButton);
-            now[(int)B.Recenter] = Key(KeyCode.R) || Xr(XRNode.LeftHand, XRUsages.secondaryButton);
-            now[(int)B.Quest] = Key(KeyCode.M) || Xr(XRNode.LeftHand, XRUsages.primary2DAxisClick);
+            // The right trigger selects too, except while a controller ray points at a menu button: then the trigger
+            // clicks that button only, so it is not chosen twice (M10.2)
+            now[(int)B.Start] = Key(KeyCode.Space) || Key(KeyCode.Return) || XrControls.SelectDown || (XrControls.RightTriggerDown && !RayOnMenu);
+            now[(int)B.Back] = Key(KeyCode.Escape) || Key(KeyCode.P) || Key(KeyCode.Backspace) || XrControls.BackDown;
+            now[(int)B.Recenter] = Key(KeyCode.R) || XrControls.RecenterDown;
+            now[(int)B.Quest] = Key(KeyCode.M) || XrControls.QuestToggleDown;
 
-            Vector2 rs = Stick(XRNode.RightHand), ls = Stick(XRNode.LeftHand);
+            Vector2 rs = XrControls.RightStick, ls = XrControls.LeftStick;
 
             float axis = 0f;
             if (Key(KeyCode.UpArrow)) axis += 1f;
@@ -103,13 +102,8 @@ namespace TheraQuest
             Look = MouseLook();
         }
 
-        static Vector2 Stick(XRNode node)
-        {
-            var dev = XRInputDevices.GetDeviceAtXRNode(node);
-            if (!dev.isValid || !dev.TryGetFeatureValue(XRUsages.primary2DAxis, out Vector2 v)) return Vector2.zero;
-            bool hasTouch = dev.TryGetFeatureValue(XRUsages.primary2DAxisTouch, out bool touched);
-            return StickValue(v, hasTouch, touched);
-        }
+        /// <summary>True while a controller ray points at a menu button (set by <see cref="ControllerRays"/>).</summary>
+        public static bool RayOnMenu { get; set; }
 
         /// <summary>
         /// A thumbstick's value as the game uses it. Touch controllers sense the thumb on the stick: with no thumb on it the
@@ -177,12 +171,6 @@ namespace TheraQuest
 #else
             return Input.GetKey(k);
 #endif
-        }
-
-        static bool Xr(XRNode node, InputFeatureUsage<bool> usage)
-        {
-            var dev = XRInputDevices.GetDeviceAtXRNode(node);
-            return dev.isValid && dev.TryGetFeatureValue(usage, out bool v) && v;
         }
     }
 }
