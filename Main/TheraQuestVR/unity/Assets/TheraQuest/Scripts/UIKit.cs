@@ -491,7 +491,7 @@ namespace TheraQuest
         Vector3 baseScale = Vector3.one;
         Vector2 lastShift;
         float t, duration = UIKit.TransitionDefault;
-        bool showing = true, running, baseKnown;
+        bool showing = true, running;
 
         public bool Running => running;
         public bool Showing => showing;
@@ -517,7 +517,7 @@ namespace TheraQuest
 
         public void Play(bool visible, bool animate, float seconds)
         {
-            if (!baseKnown) { baseScale = transform.localScale; baseKnown = true; }
+            if (!running) baseScale = transform.localScale;   // the layout may have rescaled it since last time
             bool active = gameObject.activeSelf;
             if (!running && active == visible)
             {
@@ -535,6 +535,19 @@ namespace TheraQuest
             if (!animate || !gameObject.activeInHierarchy) { SkipToEnd(); return; }
             running = true;
             Apply(Progress(t, duration, showing));
+        }
+
+        /// <summary>Fades an already shown panel in again from its hidden look (e.g. a new menu page).</summary>
+        public void Replay(float seconds = UIKit.TransitionDefault)
+        {
+            if (running && !showing) return;   // fading out: leave it
+            if (!running) baseScale = transform.localScale;
+            showing = true;
+            duration = UIKit.TransitionSeconds(seconds);
+            t = 0f;
+            if (!gameObject.activeInHierarchy) { SkipToEnd(); return; }
+            running = true;
+            Apply(0f);
         }
 
         /// <summary>Jumps to the end state now: fully shown and clickable, or hidden and inactive.</summary>
@@ -569,12 +582,14 @@ namespace TheraQuest
             g.alpha = p;
             // No clicks while it fades out (fading in stays clickable, so buttons never flash their disabled tint)
             g.interactable = g.blocksRaycasts = showing || p >= 1f && !running;
-            float s = Mathf.Lerp(StartScale, 1f, p);
-            transform.localScale = baseScale * s;
-            // Scale about the centre whatever the pivot (panels here are anchored top-left). Added as a delta, so a
-            // layout that moves the panel during the fade is kept.
+            // Only panels inside a canvas scale: a root canvas's scale belongs to the code that places it (laptop or
+            // headset size), so it only fades
             if (transform is RectTransform rt && rt.parent is RectTransform)
             {
+                float s = Mathf.Lerp(StartScale, 1f, p);
+                transform.localScale = baseScale * s;
+                // Scale about the centre whatever the pivot (panels here are anchored top-left). Added as a delta, so
+                // a layout that moves the panel during the fade is kept.
                 var shift = Vector2.Scale(rt.rect.size * (1f - s), new Vector2(0.5f, 0.5f) - rt.pivot);
                 shift = Vector2.Scale(shift, new Vector2(baseScale.x, baseScale.y));
                 rt.anchoredPosition += shift - lastShift;
