@@ -71,7 +71,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M8.3 | M8 | planned | Feedback Motion |
 | M8.4 | M8 | planned | Hologram & Coach Window |
 | M8.5 | M8 | planned | Menus & Summary Polish |
-| M8.6 | M8 | TBF | Dashboard Visual Refresh |
+| M8.6 | M8 | done | Dashboard Visual Refresh |
 | M8.7 | M8 | planned | Dashboard Hidden Data |
 | M9 | — | active | Manuscript Finalization & Polish |
 | M9.1 | M9 | done | Manuscript Audit |
@@ -96,7 +96,7 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 
 `M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience, first-person view and tracking safeguards; their human checks moved to HW) ➔ `M6` (done: camera tracking mechanics, webcam only, no headset) ➔ `M7` (done: pre-study data readiness, backlog TASK-003..TASK-006)
 
-In progress: `M8` (active: visual and UX polish; M8.2 done 2026-11-24, M8.6 is TBF, the other children wait) and `M9` (active since 2026-11-16: manuscript finalization; the progress pointer is on M9).
+In progress: `M8` (active: visual and UX polish; M8.2 and M8.6 done 2026-11-24, the other children wait) and `M9` (active since 2026-11-16: manuscript finalization; the progress pointer is on M9).
 
 Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided (it takes the next free `M` number when scheduled).
 
@@ -578,7 +578,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** VRClinicExperience, Gamification
 
 ### M8.6 — Dashboard Visual Refresh
-- **Status:** TBF (closed temporarily by the human 2026-11-16; code done, human walkthrough in the desktop app and any further layout fixes pending)
+- **Status:** done (2026-11-24, approved by the human). New theme (left sidebar, slim top bar, greeting and key-numbers strip, neutral greys) approved from before/after screenshots on 2026-11-19; Backup and Protocol library dialogs rebuilt, themed picker panels in Create protocol; clinician sign-up form. Browser check at 1440x900, 980x640 and 600x800 passed; server tests 106 pass; exe rebuilt. Commits dca99a9, 0122d06, 9556728, 7545a6c; a4f21aa stops the app reusing a server on port 8000 that uses another database file (found during the walkthrough).
 - **Objective:** The therapist sees what matters for a patient at a glance.
 - **Deliverables:** type and spacing scale in the `:root` tokens; one button, card and table style; patient chart header (code, name, protocol and phase, adherence, last session, flags); caseload table polish (flag chips, hover and focus, sticky header); Chart.js styled from tokens; before and after screenshots on a throwaway database.
 - **Completion criteria:** server tests pass; browser check at 980 × 640 and full size (no horizontal scroll, no console errors, keyboard use and dialogs as in M5.1); therapist exe rebuilt; human walkthrough in the desktop app.
