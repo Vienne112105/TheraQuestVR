@@ -7,6 +7,7 @@ import os
 import sys
 import threading
 import time
+import json
 import socket
 from urllib.request import urlopen
 
@@ -30,7 +31,8 @@ def notify(message):
         ctypes.windll.user32.MessageBoxW(None, message, "TheraQuest Therapist", 0x40)
 
 
-from server import init_db, migrate_legacy_db, Handler, ThreadingHTTPServer
+from server import (init_db, migrate_legacy_db, Handler, ThreadingHTTPServer,
+                    DB_PATH, database_id_of, store_python_warning)
 
 def is_port_in_use(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -44,6 +46,20 @@ def is_theraquest(url: str) -> bool:
             return resp.headers.get("Server", "").startswith("TheraQuest")
     except Exception:
         return False
+
+
+def running_database_id(url: str):
+    """The databaseId the server on the port reports, or None (older server, or no answer)."""
+    try:
+        with urlopen(url + "/api/auth/setup", timeout=2) as resp:
+            return json.loads(resp.read().decode("utf-8")).get("databaseId")
+    except Exception:
+        return None
+
+
+def same_database(running_id, own_id):
+    """Reuse a server already on the port only when it reports this app's own database ID."""
+    return bool(running_id) and running_id == own_id
 
 
 def start_server_thread(port: int):
@@ -66,6 +82,8 @@ def keep_serving(message):
 
 
 def main():
+    if not FROZEN and store_python_warning(DB_PATH):
+        print(store_python_warning(DB_PATH), file=sys.stderr)
     port = 8000
     url = f"http://127.0.0.1:{port}"
     started_here = False
@@ -74,7 +92,15 @@ def main():
         start_server_thread(port)
         started_here = True
     elif is_theraquest(url):
-        print(f"TheraQuest clinical backend is already running on port {port}.")
+        # A server started another way (e.g. "python server.py" on the Microsoft Store Python) can be using
+        # a different copy of the database: signing in would then fail or show other patients.
+        if not same_database(running_database_id(url), database_id_of(DB_PATH)):
+            notify(f"Another TheraQuest server is already running on port {port}, but it uses a different copy "
+                   "of the database, so your login and patients would not match.\n\n"
+                   "Close that server (a \"TheraQuest server\" or \"python server.py\" window, or python in "
+                   "Task Manager) and open the Therapist app again.")
+            sys.exit(1)
+        print(f"TheraQuest clinical backend is already running on port {port} with this database.")
     else:
         notify(f"Port {port} is used by another program, so TheraQuest can't start.\n"
                "Close that program (or restart the computer) and run this again.")

@@ -15,7 +15,8 @@ VR API (Unity; header X-Patient-Code: P-001; accepted from this machine only)
                                              a repeated session_uuid returns the stored session)
 
 Therapist API (header Authorization: Bearer <token> from /api/auth/login; 401 without it)
-  GET  /api/auth/setup                       {"needsSetup": true} until the first clinician login exists (open)
+  GET  /api/auth/setup                       {"needsSetup": true} until the first clinician login exists, and
+                                             "databaseId": the random ID of this database file (open)
   POST /api/auth/setup                       first run only, from this machine: create that login (open)
   POST /api/auth/signup                      add a clinician login; needs an existing clinician's username+password (open)
   POST /api/auth/login | /api/auth/logout    sign in (open) / sign out
@@ -90,6 +91,54 @@ def default_db_path():
 
 DB_PATH = default_db_path()
 LEGACY_DB_PATH = os.path.join(HERE, "theraquest.db")   # where the database lived before DEC-010
+
+
+def is_store_python():
+    """True under the Microsoft Store build of Python. It silently redirects writes under %LOCALAPPDATA%
+    to a private copy inside its package folder, so it would use a different database than the
+    Therapist app (same path on screen, different file on disk)."""
+    where = " ".join([sys.executable or "", sys.prefix or "", getattr(sys, "base_prefix", "") or ""])
+    return "WindowsApps" in where or "PythonSoftwareFoundation" in where
+
+
+def store_python_warning(db_path):
+    """Warning text when this Python would read and write a private copy of the database, else ''."""
+    local = os.environ.get("LOCALAPPDATA")
+    if not (is_store_python() and local):
+        return ""
+    if not os.path.normcase(os.path.abspath(db_path)).startswith(os.path.normcase(os.path.abspath(local))):
+        return ""
+    return ("WARNING: this is the Microsoft Store Python. Windows sends its writes under %LOCALAPPDATA% to a\n"
+            "private copy, so this server uses a DIFFERENT database from the Therapist app: logins and patients\n"
+            "will not match. Use Start_Therapist_App.bat (the built app) or a python.org Python instead,\n"
+            "or set THERAQUEST_DB to a test database outside %LOCALAPPDATA%.")
+
+
+def database_id(con):
+    """The random ID of this database file, created on first use. Two servers report the same ID only
+    when they use the same file (the Therapist app checks this before reusing a server on its port)."""
+    row = con.execute("SELECT value FROM app_meta WHERE key='database_id'").fetchone()
+    if row:
+        return row[0]
+    new_id = secrets.token_hex(16)
+    con.execute("INSERT OR IGNORE INTO app_meta(key, value) VALUES ('database_id', ?)", (new_id,))
+    con.commit()
+    return con.execute("SELECT value FROM app_meta WHERE key='database_id'").fetchone()[0]
+
+
+def database_id_of(path):
+    """database_id() of the database file at path, or None when there is no usable database there."""
+    if not os.path.exists(path):
+        return None
+    try:
+        con = sqlite3.connect(path, timeout=15.0)
+        try:
+            con.execute("CREATE TABLE IF NOT EXISTS app_meta (key TEXT PRIMARY KEY, value TEXT)")
+            return database_id(con)
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return None
 
 
 def migrate_legacy_db():
@@ -939,6 +988,7 @@ def init_db():
     version = con.execute("SELECT value FROM app_meta WHERE key='protocol_version'").fetchone()
     if not version or version[0] != PROTOCOL_VERSION:
         replace_protocols(con)
+    database_id(con)
     con.commit()
     con.close()
 
@@ -2338,7 +2388,7 @@ class Handler(BaseHTTPRequestHandler):
     def _api(self, con, method, parts, fmt):
         # Clinician Authentication endpoints
         if method == "GET" and parts == ["api", "auth", "setup"]:
-            return self._send(200, {"needsSetup": needs_setup(con)})
+            return self._send(200, {"needsSetup": needs_setup(con), "databaseId": database_id(con)})
         if method == "POST" and parts == ["api", "auth", "setup"]:
             if not self._client_is_loopback():
                 return self._send(403, {"error": "First-run setup must be done on the clinic computer itself"})
@@ -2500,6 +2550,9 @@ def main():
     init_db()
     print(f"TheraQuest server running.  Dashboard: http://localhost:{args.port}   (Ctrl+C to stop)")
     print(f"Database: {DB_PATH}")
+    warning = store_python_warning(DB_PATH)
+    if warning:
+        print(warning, file=sys.stderr)
     try:
         ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
     except KeyboardInterrupt:
