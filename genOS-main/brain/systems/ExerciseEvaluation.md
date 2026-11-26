@@ -37,6 +37,7 @@ Evaluates real-time patient kinematics against prescribed clinical rehabilitatio
 - Unity holds no per-exercise rules keyed by code: posture checks, direction and pose come from the program.
 - A webcam exercise counts only after the patient's resting angle is known, and scores the movement above it (DEC-026).
 - A rep shorter than `ExerciseEvaluator.MinRepSeconds` is noise: no attempt and no feedback.
+- Patient Lock (M10.5): while the tracker says another person has taken the patient's place (`patient: different`), and until it says the locked patient is tracked again, nothing is evaluated: the same pause as a tracking loss (`TrackingPaused`, via `PatientGate`). Reps already counted are kept, an open rep is dropped without an attempt, and nothing the other person does is scored.
 
 ## Notes
 - Posture thresholds were derived from clinical physical therapy literature to avoid hip/spine substitution patterns during isolated limb exercises.

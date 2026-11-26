@@ -1,0 +1,864 @@
+[
+ {
+  "op": "delete_empty_after",
+  "match": "Scope of Clinical Application:",
+  "count": 1,
+  "source": "M9.2 C1 empty heading after Limitations"
+ },
+ {
+  "op": "delete_empty_after",
+  "match": "Despite these advantages, studies also identified several implementati",
+  "count": 1,
+  "source": "M9.2 C2 empty heading in 2.2.1"
+ },
+ {
+  "op": "delete_empty_after",
+  "match": "Several studies also reported that integrating motion tracking with im",
+  "count": 3,
+  "source": "M9.2 C2 empty headings after 2.2.2"
+ },
+ {
+  "op": "delete_empty_after",
+  "match": "In rehabilitation, adherence to prescribed therapy programs is a criti",
+  "count": 1,
+  "source": "M9.2 C2 empty heading before 2.4"
+ },
+ {
+  "op": "delete_empty_after",
+  "match": "Human - Computer Interaction (HCI)",
+  "count": 1,
+  "source": "M9.2 C3 empty heading after Figure 3.2.1"
+ },
+ {
+  "op": "delete_empty_after",
+  "match": "At this stage, the system analyzes the patient’s movements and determi",
+  "count": 2,
+  "source": "M9.2 C3 empty headings in 3.2"
+ },
+ {
+  "op": "delete_empty_after",
+  "match": "These outputs provide measurable data that can be used to evaluate the",
+  "count": 1,
+  "source": "M9.2 C3 empty heading in 3.2"
+ },
+ {
+  "op": "delete_row",
+  "match": "Self-Determination Theory Motivation Model",
+  "exact": true,
+  "source": "M9.2 F-4 (D2) List of Figures: Self-Determination row removed"
+ },
+ {
+  "op": "replace",
+  "match": "Figure 2.3.2",
+  "exact": true,
+  "old": "2.3.2",
+  "new": "2.3.1",
+  "source": "M9.2 F-4 (D2) List of Figures renumber"
+ },
+ {
+  "op": "replace",
+  "match": "Figure 2.3.3",
+  "exact": true,
+  "old": "2.3.3",
+  "new": "2.3.2",
+  "source": "M9.2 F-4 (D2) List of Figures renumber"
+ },
+ {
+  "op": "replace",
+  "match": "Figure 2.3.4",
+  "exact": true,
+  "old": "2.3.4",
+  "new": "2.3.3",
+  "source": "M9.2 F-4 (D2) List of Figures renumber"
+ },
+ {
+  "op": "replace",
+  "match": "Figure 2.3.5",
+  "exact": true,
+  "old": "2.3.5",
+  "new": "2.3.4",
+  "source": "M9.2 F-4 (D2) List of Figures renumber"
+ },
+ {
+  "op": "replace",
+  "match": "Project Timeline of the TheraQuest VR System",
+  "old": "Project Timeline of the TheraQuest VR System",
+  "new": "Project Gantt Timeline of the Development of the TheraQuest VR System",
+  "source": "M9.2 md 156->149 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "System Flowchart of the TheraQuest VR",
+  "old": "System Flowchart of the TheraQuest VR",
+  "new": "System Flowchart of the TheraQuest VR System",
+  "source": "M9.2 md 161->154 (table cell)",
+  "exact": true
+ },
+ {
+  "op": "replace",
+  "match": "Post-surgical recovery, neurological disorders, and musculoskeletal injuries are some of the conditions for which physical therapy rehabilitation is a cornerstone of recovery. The effectiveness of such rehabilitation programs is dependent on patient adherence to prescribed exercise regimens, especially home exercise programs. However, many studies have reported persistently low patient adherence to home exercise programs, with recent evidence indicating that only about 43% of patients fully adhere to prescribed physical therapy programs (Shahidi et al., 2022). Some of the frequently cited barriers to adherence to home exercise programs include lack of supervision, absence of in-the-moment corrective feedback, and repeating exercise content and processes. Without appropriate guidance, patients can perform exercises incorrectly, which might lead to reinjury or delay recovery.",
+  "old": "Post-surgical recovery, neurological disorders, and musculoskeletal injuries are some of the conditions for which physical therapy rehabilitation is a cornerstone of recovery. The effectiveness of such rehabilitation programs is dependent on patient adherence to prescribed exercise regimens, especially home exercise programs. However, many studies have reported persistently low patient adherence to home exercise programs, with recent evidence indicating that only about 43% of patients fully adhere to prescribed physical therapy programs (Shahidi et al., 2022). Some of the frequently cited barriers to adherence to home exercise programs include lack of supervision, absence of in-the-moment corrective feedback, and repeating exercise content and processes. Without appropriate guidance, patients can perform exercises incorrectly, which might lead to reinjury or delay recovery.",
+  "new": "Post-surgical recovery, neurological disorders, and musculoskeletal injuries are some of the conditions for which physical therapy rehabilitation is a cornerstone of recovery. The effectiveness of such rehabilitation programs is dependent on patient adherence to prescribed exercise regimens, especially home exercise programs. However, many studies have reported persistently low patient adherence to home exercise programs, with recent evidence indicating that only about 43% of patients fully adhere to prescribed physical therapy programs (Shahidi et al., 2022). Frequently cited barriers to adherence to home exercise programs include lack of supervision, absence of in-the-moment corrective feedback, and repetitive exercise content. Without appropriate guidance, patients can perform exercises incorrectly, which might lead to reinjury or delay recovery.",
+  "source": "M9.2 md 189->182"
+ },
+ {
+  "op": "replace",
+  "match": "To address accessibility and monitoring, digital health tools, including mobile health (mHealth) apps, have been developed to offer instructional, educational, and reminder services, as well as tools for logging training progress. However, although simplifying access, such tools lack direct real-time or even interactive supervision, thus making patients lose interest and reducing long-term adherence in their rehabilitation process.",
+  "old": "To address accessibility and monitoring, digital health tools, including mobile health (mHealth) apps, have been developed to offer instructional, educational, and reminder services, as well as tools for logging training progress. However, although simplifying access, such tools lack direct real-time or even interactive supervision, thus making patients lose interest and reducing long-term adherence in their rehabilitation process.",
+  "new": "To address accessibility and monitoring, digital health tools, including mobile health (mHealth) apps, have been developed to offer instructional, educational, and reminder services, as well as tools for logging training progress. However, although these tools make access easier, they lack real-time, interactive supervision, so patients may lose interest and long-term adherence to their rehabilitation may decline.",
+  "source": "M9.2 md 191->184"
+ },
+ {
+  "op": "replace",
+  "match": "The latest progress in VR technology has created many new doors for rehabilitation. VR technology enables the development of immersive, computer-generated worlds, vastly improving the patients’ engagement in the therapy and allowing for guided, controlled, and repeatable therapeutic settings. Recent studies report that VR-based rehabilitation increases motivation and enjoyment while decreasing perceived pain and fatigue, and these positive experiences during the therapy may contribute to greater adherence to the treatment program (Laver et al., 2017).",
+  "old": "The latest progress in VR technology has created many new doors for rehabilitation. VR technology enables the development of immersive, computer-generated worlds, vastly improving the patients’ engagement in the therapy and allowing for guided, controlled, and repeatable therapeutic settings. Recent studies report that VR-based rehabilitation increases motivation and enjoyment while decreasing perceived pain and fatigue, and these positive experiences during the therapy may contribute to greater adherence to the treatment program (Laver et al., 2017).",
+  "new": "Recent progress in VR technology has opened new possibilities for rehabilitation. VR technology enables the development of immersive, computer-generated worlds that can improve patients’ engagement in therapy and allow for guided, controlled, and repeatable therapeutic settings. Such engaging experiences during therapy may increase motivation and enjoyment, which may in turn contribute to greater adherence to the treatment program.",
+  "source": "M9.2 md 193->186"
+ },
+ {
+  "op": "replace",
+  "match": "However, it is not enough to have patients immersed and engaged if their movements cannot be monitored and quantified in real time. Recent studies have demonstrated that computer vision-based systems can objectively monitor and classify rehabilitation exercises through real-time motion tracking and machine learning techniques (Arrowsmith et al., 2023). This study presents a computer vision-based motion-tracking framework for markerless, noninvasive, real-time, 3D posture and movement tracking of a patient directly within an HMD-based VR system. This approach is particularly well-suited for tracking physical rehabilitation exercises in the home because it requires no special devices or clothing and no optical markers that would occlude the patient’s view of his/her own body.",
+  "old": "However, it is not enough to have patients immersed and engaged if their movements cannot be monitored and quantified in real time. Recent studies have demonstrated that computer vision-based systems can objectively monitor and classify rehabilitation exercises through real-time motion tracking and machine learning techniques (Arrowsmith et al., 2023). This study presents a computer vision-based motion-tracking framework for markerless, noninvasive, real-time, 3D posture and movement tracking of a patient directly within an HMD-based VR system. This approach is particularly well-suited for tracking physical rehabilitation exercises in the home because it requires no special devices or clothing and no optical markers that would occlude the patient’s view of his/her own body.",
+  "new": "However, it is not enough to have patients immersed and engaged if their movements cannot be monitored and quantified in real time. Recent studies have demonstrated that computer vision-based systems can objectively monitor and classify rehabilitation exercises through real-time motion tracking and machine learning techniques (Arrowsmith et al., 2023). This study presents a computer vision-based motion-tracking framework for markerless, noninvasive, real-time tracking of a patient's posture and movement as two-dimensional joint angles from a single external webcam, shown within a VR system. This approach is particularly well-suited for tracking physical rehabilitation exercises in the home because it requires no special devices or clothing, and no markers or wearable sensors on the patient’s body.",
+  "source": "M9.3 E1 C1-3 (D5) (md 195->188)"
+ },
+ {
+  "op": "replace",
+  "match": "Also, research has shown that incorporating these types of game elements provides continual feedback in these systems and establishes movement goals, likely to be met, and performance rewards in the context of those goals. (Sardi, Idri, & Fernández-Alemán, 2017). These features help to positively reinforce the motor behavior goals intended by the user's therapist.",
+  "old": "Also, research has shown that incorporating these types of game elements provides continual feedback in these systems and establishes movement goals, likely to be met, and performance rewards in the context of those goals. (Sardi, Idri, & Fernández-Alemán, 2017). These features help to positively reinforce the motor behavior goals intended by the user's therapist.",
+  "new": "Research has also shown that incorporating game elements into such systems provides continual feedback, sets achievable movement goals, and rewards performance in the context of those goals (Sardi, Idri, & Fernández-Alemán, 2017). These features help to positively reinforce the motor behavior goals intended by the user's therapist.",
+  "source": "M9.2 md 197->190"
+ },
+ {
+  "op": "replace",
+  "match": "Although there is more and more research about VR and rehab, there is a big gap in the availability of fully integrated systems, including both immersive VR, engaging game mechanics, real-time computer-vision motion tracking, and adherence monitoring functionalities in one solution. Most systems focus on immersion or tracking, and they do not include the levels of integrated performance analytics necessary to make them useful for both therapists and patients.",
+  "old": "Although there is more and more research about VR and rehab, there is a big gap in the availability of fully integrated systems, including both immersive VR, engaging game mechanics, real-time computer-vision motion tracking, and adherence monitoring functionalities in one solution. Most systems focus on immersion or tracking, and they do not include the levels of integrated performance analytics necessary to make them useful for both therapists and patients.",
+  "new": "Although research on VR rehabilitation is growing, fully integrated systems that combine immersive VR, engaging game mechanics, real-time computer vision motion tracking, and adherence monitoring in one solution remain scarce. Most systems focus on either immersion or tracking and do not include the integrated performance analytics needed to make them useful to both therapists and patients.",
+  "source": "M9.2 md 199->192"
+ },
+ {
+  "op": "replace",
+  "match": "The lack of these enabling technologies restricts the overall effectiveness of VR-based rehabilitation systems, as current applications provide limited exercise guidance and insufficient monitoring of patient motivation, participation, and exercise performance.",
+  "old": "The lack of these enabling technologies restricts the overall effectiveness of VR-based rehabilitation systems, as current applications provide limited exercise guidance and insufficient monitoring of patient motivation, participation, and exercise performance.",
+  "new": "The lack of real-time supervision, corrective feedback, and integrated monitoring also restricts the overall effectiveness of VR-based rehabilitation systems, as current applications provide limited exercise guidance and insufficient monitoring of patient motivation, participation, and exercise performance.",
+  "source": "M9.2 md 211->206"
+ },
+ {
+  "op": "replace",
+  "match": "This study addresses these gaps through the design, development, and evaluation of TheraQuest VR, the study aims to:",
+  "old": "This study addresses these gaps through the design, development, and evaluation of TheraQuest VR, the study aims to:",
+  "new": "This study addresses these gaps through the design, development, and evaluation of TheraQuest VR. Specifically, the study aims to:",
+  "source": "M9.2 md 213->208"
+ },
+ {
+  "op": "replace",
+  "match": "Determine the level of usability, functionality, and overall user satisfaction of the TheraQuest VR system among its intended users.",
+  "old": "Determine the level of usability, functionality, and overall user satisfaction of the TheraQuest VR system among its intended users.",
+  "new": "Determine the level of usability and functionality of the TheraQuest VR system among its intended users.",
+  "source": "M9.2 md 218->213"
+ },
+ {
+  "op": "replace",
+  "match": "Examine the impact of integrating immersive VR, gamification, and computer vision-based feedback on adherence monitoring compared to conventional rehabilitation methods.",
+  "old": "Examine the impact of integrating immersive VR, gamification, and computer vision-based feedback on adherence monitoring compared to conventional rehabilitation methods.",
+  "new": "Examine how integrating immersive VR, gamification, and computer vision-based feedback in one system supports adherence monitoring.",
+  "source": "M9.2 md 218->213"
+ },
+ {
+  "op": "replace",
+  "match": "The study specifically aims to:",
+  "old": "The study specifically aims to:",
+  "new": "The specific objectives of the study are:",
+  "source": "M9.2 md 227->222"
+ },
+ {
+  "op": "replace",
+  "match": "○ Motion tracking accuracy",
+  "old": "○ Motion tracking accuracy",
+  "new": "○ Motion tracking accuracy;",
+  "source": "M9.2 md 233->228"
+ },
+ {
+  "op": "replace",
+  "match": "○ Functionality and Relevance of an Adherence Monitoring System",
+  "old": "○ Functionality and Relevance of an Adherence Monitoring System",
+  "new": "○ Functionality and relevance of the adherence monitoring system; and",
+  "source": "M9.2 md 233->228"
+ },
+ {
+  "op": "replace",
+  "match": "Physical Therapists. The system provides objective performance analytics and adherence tracking, enabling therapists to monitor patients remotely, deliver timely interventions, and personalize therapy plans more efficiently. This can strengthen therapist oversight even outside traditional clinic-based sessions and support better-informed rehabilitation decisions.",
+  "old": "Physical Therapists. The system provides objective performance analytics and adherence tracking, enabling therapists to monitor patients remotely, deliver timely interventions, and personalize therapy plans more efficiently. This can strengthen therapist oversight even outside traditional clinic-based sessions and support better-informed rehabilitation decisions.",
+  "new": "Physical Therapists. The system provides objective performance analytics and adherence tracking, enabling therapists to review recorded sessions without being present during the exercise, deliver timely interventions, and personalize therapy plans more efficiently. This can strengthen therapist oversight even outside traditional clinic-based sessions and support better-informed rehabilitation decisions.",
+  "source": "M9.3 E2 C1-16 (md 242->237)"
+ },
+ {
+  "op": "replace",
+  "match": "Wellness Monitoring and Analytics: Development of an adherence monitoring and performance analytics backend system that records exercise completion rates, movement accuracy scores, and session frequency, and generates structured progress reports for patients and clinicians.",
+  "old": "Wellness Monitoring and Analytics: Development of an adherence monitoring and performance analytics backend system that records exercise completion rates, movement accuracy scores, and session frequency, and generates structured progress reports for patients and clinicians.",
+  "new": "Adherence Monitoring and Analytics: Development of an adherence monitoring and performance analytics backend system that records exercise completion rates, movement accuracy scores, and completed sessions, shows the therapist the adherence rate and attention flags for each patient, and generates structured progress reports for patients and clinicians.",
+  "source": "M9.3 E3 C1-18 (D7) (md 265->260)"
+ },
+ {
+  "op": "replace",
+  "match": "Pilot Evaluation: Conducting user testing within a defined timeframe to assess usability, engagement, adherence improvement, and overall system effectiveness.",
+  "old": "Pilot Evaluation: Conducting user testing within a defined timeframe to assess usability, engagement, adherence improvement, and overall system effectiveness.",
+  "new": "Pilot Evaluation: Conducting user testing within a defined timeframe to assess usability, engagement, the system's support for adherence monitoring, and overall system effectiveness.",
+  "source": "M9.2 md 267->262"
+ },
+ {
+  "op": "replace",
+  "match": "Hardware Dependency: System operation requires specific VR hardware, such as standalone VR headsets like the Meta Quest, which may limit accessibility for some users who do not have access to such devices.",
+  "old": "Hardware Dependency: System operation requires specific VR hardware, such as standalone VR headsets like the Meta Quest, which may limit accessibility for some users who do not have access to such devices.",
+  "new": "Hardware Dependency: System operation requires a Windows computer and a VR headset such as the Meta Quest connected to it by Quest Link, which may limit accessibility for some users who do not have access to such devices. When no headset is connected, the system runs in a desktop mode on the same computer.",
+  "source": "M9.3 E4 C1-21 (D4) (md 275->270)"
+ },
+ {
+  "op": "replace",
+  "match": "Motion Tracking Accuracy: The precision of computer vision motion tracking depends on consumer-level VR cameras and may not achieve the same level of accuracy as clinical motion capture systems used in professional rehabilitation settings.",
+  "old": "Motion Tracking Accuracy: The precision of computer vision motion tracking depends on consumer-level VR cameras and may not achieve the same level of accuracy as clinical motion capture systems used in professional rehabilitation settings.",
+  "new": "Motion Tracking Accuracy: The precision of computer vision motion tracking depends on a consumer-level webcam and its placement, and may not achieve the same level of accuracy as clinical motion capture systems used in professional rehabilitation settings.",
+  "source": "M9.3 E5 C1-22 (D5) (md 275->270)"
+ },
+ {
+  "op": "replace",
+  "match": "Sample Size: The evaluation phase involves a limited number of participants, which may affect the reliability and generalizability of the study results across a broader population.",
+  "old": "Sample Size: The evaluation phase involves a limited number of participants, which may affect the reliability and generalizability of the study results across a broader population.",
+  "new": "Sample Size: The evaluation phase will involve a limited number of participants, which may affect the reliability and generalizability of the study results across a broader population.",
+  "source": "M9.2 md 278->273"
+ },
+ {
+  "op": "replace",
+  "match": "The process of tracking and recording whether patients perform their assigned rehabilitation sessions. In this study, it refers to the system’s monitoring of session completion and participation.",
+  "old": "The process of tracking and recording whether patients perform their assigned rehabilitation sessions. In this study, it refers to the system’s monitoring of session completion and participation.",
+  "new": "The process of tracking and recording whether patients perform their assigned rehabilitation sessions. In this study, it refers to the system’s monitoring of session completion and participation, shown to the therapist as an adherence rate and attention flags.",
+  "source": "M9.3 E7 C1-27 (D7) (md 300->295)"
+ },
+ {
+  "op": "replace",
+  "match": "The gamified virtual reality-based rehabilitation system was developed in this study. It integrates immersive exercise environments, motion tracking, real-time feedback, and adherence monitoring.",
+  "old": "The gamified virtual reality-based rehabilitation system was developed in this study. It integrates immersive exercise environments, motion tracking, real-time feedback, and adherence monitoring.",
+  "new": "The gamified virtual reality-based rehabilitation system developed in this study. It integrates immersive exercise environments, motion tracking, real-time feedback, and adherence monitoring.",
+  "source": "M9.2 md 303->298"
+ },
+ {
+  "op": "replace",
+  "match": "Quantitative data generated by the system, such as accuracy scores and session results, are used to evaluate patient performance.",
+  "old": "Quantitative data generated by the system, such as accuracy scores and session results, are used to evaluate patient performance.",
+  "new": "Quantitative data generated by the system, such as accuracy scores and session results, that are used to evaluate patient performance.",
+  "source": "M9.2 md 324->325"
+ },
+ {
+  "op": "replace",
+  "match": "Organized and interpreted performance data used to monitor rehabilitation progress over time. This study, it includes adherence, exercise accuracy, and session outcomes.",
+  "old": "Organized and interpreted performance data used to monitor rehabilitation progress over time. This study, it includes adherence, exercise accuracy, and session outcomes.",
+  "new": "Organized and interpreted performance data used to monitor rehabilitation progress over time. In this study, it includes adherence, exercise accuracy, and session outcomes.",
+  "source": "M9.2 md 327->328"
+ },
+ {
+  "op": "replace",
+  "match": "A virtual therapeutic space where patients perform guided rehabilitation exercises. In this study, the exercise setting refers to the one within TheraQuest VR.",
+  "old": "A virtual therapeutic space where patients perform guided rehabilitation exercises. In this study, the exercise setting refers to the one within TheraQuest VR.",
+  "new": "A virtual therapeutic space where patients perform guided rehabilitation exercises. In this study, it refers to the exercise setting within TheraQuest VR.",
+  "source": "M9.2 md 333->340"
+ },
+ {
+  "op": "replace",
+  "match": "The level of attention, interest, and participation shown by the user while interacting with the system. This study, it reflects patient involvement during rehabilitation sessions.",
+  "old": "The level of attention, interest, and participation shown by the user while interacting with the system. This study, it reflects patient involvement during rehabilitation sessions.",
+  "new": "The level of attention, interest, and participation shown by the user while interacting with the system. In this study, it reflects patient involvement during rehabilitation sessions.",
+  "source": "M9.2 md 336->343"
+ },
+ {
+  "op": "replace",
+  "match": "A branch of physical therapy focused on the treatment of musculoskeletal conditions involving muscles, joints, ligaments, and bones. This study, it defines the clinical scope of the rehabilitation exercises.",
+  "old": "A branch of physical therapy focused on the treatment of musculoskeletal conditions involving muscles, joints, ligaments, and bones. This study, it defines the clinical scope of the rehabilitation exercises.",
+  "new": "A branch of physical therapy focused on the treatment of musculoskeletal conditions involving muscles, joints, ligaments, and bones. In this study, it defines the clinical scope of the rehabilitation exercises.",
+  "source": "M9.2 md 351->358"
+ },
+ {
+  "op": "replace",
+  "match": "A rehabilitation approach in which therapeutic exercises are performed outside the clinic, usually at home. In this study, the setting refers to where adherence challenges commonly occur.",
+  "old": "A rehabilitation approach in which therapeutic exercises are performed outside the clinic, usually at home. In this study, the setting refers to where adherence challenges commonly occur.",
+  "new": "A rehabilitation approach in which therapeutic exercises are performed outside the clinic, usually at home. In this study, it refers to the setting where adherence challenges commonly occur.",
+  "source": "M9.2 md 354->361"
+ },
+ {
+  "op": "replace",
+  "match": "A technology-based tool designed to assist in conducting, monitoring, and improving rehabilitation activities. In this study, it refers to TheraQuest VR is referred to as a supplementary tool for exercise guidance, performance evaluation, and adherence tracking.",
+  "old": "A technology-based tool designed to assist in conducting, monitoring, and improving rehabilitation activities. In this study, it refers to TheraQuest VR is referred to as a supplementary tool for exercise guidance, performance evaluation, and adherence tracking.",
+  "new": "A technology-based tool designed to assist in conducting, monitoring, and improving rehabilitation activities. In this study, it refers to TheraQuest VR as a supplementary tool for exercise guidance, performance evaluation, and adherence tracking.",
+  "source": "M9.2 md 357->364"
+ },
+ {
+  "op": "replace",
+  "match": "This chapter presents a comprehensive review of related literature and studies that establish the conceptual, theoretical, technological, and empirical foundation of the present research. It examines scholarly works on physical therapy rehabilitation, virtual reality, gamification, computer vision-based motion tracking, adherence monitoring, and integrated rehabilitation technologies that are relevant to the development of the proposed system. It also discusses the theoretical frameworks that support the study, particularly in relation to technology acceptance, system effectiveness, motivation, and motor learning. Through the analysis and synthesis of these sources, the chapter identifies prevailing trends, strengths, limitations, and research gaps in existing rehabilitation systems, thereby providing a clear basis for the design, development, and evaluation of TheraQuest VR as a gamified virtual reality-based physical therapy system with real-time motion tracking and adherence monitoring.",
+  "old": "This chapter presents a comprehensive review of related literature and studies that establish the conceptual, theoretical, technological, and empirical foundation of the present research. It examines scholarly works on physical therapy rehabilitation, virtual reality, gamification, computer vision-based motion tracking, adherence monitoring, and integrated rehabilitation technologies that are relevant to the development of the proposed system. It also discusses the theoretical frameworks that support the study, particularly in relation to technology acceptance, system effectiveness, motivation, and motor learning. Through the analysis and synthesis of these sources, the chapter identifies prevailing trends, strengths, limitations, and research gaps in existing rehabilitation systems, thereby providing a clear basis for the design, development, and evaluation of TheraQuest VR as a gamified virtual reality-based physical therapy system with real-time motion tracking and adherence monitoring.",
+  "new": "This chapter presents a comprehensive review of related literature and studies that establish the conceptual, theoretical, technological, and empirical foundation of the present research. It examines scholarly works on physical therapy rehabilitation, virtual reality, gamification, computer vision-based motion tracking, adherence monitoring, and integrated rehabilitation technologies that are relevant to the development of the proposed system. It also discusses the theoretical frameworks that support the study, particularly in relation to motor learning, feedback, engagement, and behavior change. Through the analysis and synthesis of these sources, the chapter identifies prevailing trends, strengths, limitations, and research gaps in existing rehabilitation systems, thereby providing a clear basis for the design, development, and evaluation of TheraQuest VR as a gamified virtual reality-based physical therapy system with real-time motion tracking and adherence monitoring.",
+  "source": "M9.2 md 361->368"
+ },
+ {
+  "op": "replace",
+  "match": "This section provides a comprehensive and in-depth discussion of existing concepts, principles, and technologies that are closely related to the study. It integrates and synthesizes relevant scholarly literature on physical therapy, virtual reality, gamification, computer vision, and adherence monitoring systems to establish a well-grounded understanding of the field. Through this review, the section highlights current developments, emerging trends, and practical applications of these technologies in rehabilitation contexts. Furthermore, it critically examines the limitations and gaps present in existing systems and studies, which serve as a basis for justifying the need for innovation. Overall, this section lays a strong theoretical and technological foundation that guides the design, development, and implementation of the proposed TheraQuest VR system.",
+  "old": "This section provides a comprehensive and in-depth discussion of existing concepts, principles, and technologies that are closely related to the study. It integrates and synthesizes relevant scholarly literature on physical therapy, virtual reality, gamification, computer vision, and adherence monitoring systems to establish a well-grounded understanding of the field. Through this review, the section highlights current developments, emerging trends, and practical applications of these technologies in rehabilitation contexts. Furthermore, it critically examines the limitations and gaps present in existing systems and studies, which serve as a basis for justifying the need for innovation. Overall, this section lays a strong theoretical and technological foundation that guides the design, development, and implementation of the proposed TheraQuest VR system.",
+  "new": "This section discusses existing concepts, principles, and technologies closely related to the study. It integrates and synthesizes relevant scholarly literature on physical therapy, virtual reality, gamification, computer vision, and adherence monitoring systems to establish a well-grounded understanding of the field. Through this review, the section highlights current developments, emerging trends, and practical applications of these technologies in rehabilitation contexts. Furthermore, it critically examines the limitations and gaps present in existing systems and studies, which serve as a basis for justifying the need for innovation. Overall, this section lays a strong theoretical and technological foundation that guides the design, development, and implementation of the proposed TheraQuest VR system.",
+  "source": "M9.2 md 365->372"
+ },
+ {
+  "op": "replace",
+  "match": "Physical therapy plays a critical role in restoring mobility, improving physical function, and enhancing the quality of life of individuals with musculoskeletal and orthopedic conditions (Bateni et al., 2024). Rehabilitation programs commonly involve structured therapeutic exercises that require consistent participation and proper execution to achieve effective recovery outcomes (Halbig et al., 2022). However, adherence to prescribed rehabilitation programs remains a persistent challenge, particularly in home-based physical therapy settings where patients often experience limited supervision, reduced motivation, and repetitive exercise routines. Studies indicate that patient adherence is strongly influenced by engagement, confidence, accessibility, and the availability of monitoring and feedback mechanisms (De Guzman et al., 2024; Shahidi et al., 2022).",
+  "old": "Physical therapy plays a critical role in restoring mobility, improving physical function, and enhancing the quality of life of individuals with musculoskeletal and orthopedic conditions (Bateni et al., 2024). Rehabilitation programs commonly involve structured therapeutic exercises that require consistent participation and proper execution to achieve effective recovery outcomes (Halbig et al., 2022). However, adherence to prescribed rehabilitation programs remains a persistent challenge, particularly in home-based physical therapy settings where patients often experience limited supervision, reduced motivation, and repetitive exercise routines. Studies indicate that patient adherence is strongly influenced by engagement, confidence, accessibility, and the availability of monitoring and feedback mechanisms (De Guzman et al., 2024; Shahidi et al., 2022).",
+  "new": "Physical therapy plays a critical role in restoring mobility, improving physical function, and enhancing the quality of life of individuals with musculoskeletal and orthopedic conditions (Bateni et al., 2024). Rehabilitation programs commonly involve structured therapeutic exercises that require consistent participation and proper execution to achieve effective recovery outcomes (Halbig et al., 2022). However, adherence to prescribed rehabilitation programs remains a persistent challenge, particularly in home-based physical therapy settings where patients often experience limited supervision, reduced motivation, and repetitive exercise routines. Studies indicate that patient adherence is strongly influenced by engagement, confidence, accessibility, and the availability of monitoring and feedback mechanisms (Shahidi et al., 2022).",
+  "source": "M9.2 md 369->376"
+ },
+ {
+  "op": "replace",
+  "match": "In the Philippine context, rehabilitation accessibility remains limited due to inadequate facilities, lack of equipment, insufficient healthcare personnel, and geographic barriers, especially in community-based and rural settings (Carrillo et al., 2021; Buckingham et al., 2024). Local studies further reported that rehabilitation adherence and therapy implementation are affected by clinical workload, practice conditions, and the limited availability of continuous patient monitoring systems (Abcede et al., 2016). These challenges highlight the need for technology-supported rehabilitation solutions that can improve patient engagement, provide exercise guidance, and support adherence monitoring beyond traditional clinical environments.",
+  "old": "In the Philippine context, rehabilitation accessibility remains limited due to inadequate facilities, lack of equipment, insufficient healthcare personnel, and geographic barriers, especially in community-based and rural settings (Carrillo et al., 2021; Buckingham et al., 2024). Local studies further reported that rehabilitation adherence and therapy implementation are affected by clinical workload, practice conditions, and the limited availability of continuous patient monitoring systems (Abcede et al., 2016). These challenges highlight the need for technology-supported rehabilitation solutions that can improve patient engagement, provide exercise guidance, and support adherence monitoring beyond traditional clinical environments.",
+  "new": "In the Philippine context, rehabilitation accessibility remains limited due to inadequate facilities, lack of equipment, insufficient healthcare personnel, and geographic barriers, especially in community-based and rural settings (Carrillo et al., 2021). Local studies further reported that rehabilitation adherence and therapy implementation are affected by clinical workload, practice conditions, and the limited availability of continuous patient monitoring systems (Abcede et al., 2016). These challenges highlight the need for technology-supported rehabilitation solutions that can improve patient engagement, provide exercise guidance, and support adherence monitoring beyond traditional clinical environments.",
+  "source": "M9.2 md 371->378"
+ },
+ {
+  "op": "replace",
+  "match": "Virtual Reality (VR) has emerged as a promising technology in healthcare, particularly in physical rehabilitation, due to its ability to create immersive and interactive environments (Oduoye et al., 2024). VR-based systems allow patients to perform therapeutic exercises within simulated environments while receiving visual and auditory feedback (Yang, 2023).",
+  "old": "Virtual Reality (VR) has emerged as a promising technology in healthcare, particularly in physical rehabilitation, due to its ability to create immersive and interactive environments (Oduoye et al., 2024). VR-based systems allow patients to perform therapeutic exercises within simulated environments while receiving visual and auditory feedback (Yang, 2023).",
+  "new": "Virtual Reality (VR) has emerged as a promising technology in healthcare, particularly in physical rehabilitation, due to its ability to create immersive and interactive environments (Oduoye et al., 2024). VR-based systems can allow patients to perform therapeutic exercises within simulated environments while receiving visual and auditory feedback.",
+  "source": "M9.2 md 375->382"
+ },
+ {
+  "op": "replace",
+  "match": "Despite these advancements, challenges remain in terms of accuracy, environmental sensitivity, and system calibration. Variations in lighting conditions, camera positioning, and occlusions can affect the reliability of motion tracking systems (Stepanenko & Dubko, 2025)",
+  "old": "Despite these advancements, challenges remain in terms of accuracy, environmental sensitivity, and system calibration. Variations in lighting conditions, camera positioning, and occlusions can affect the reliability of motion tracking systems (Stepanenko & Dubko, 2025)",
+  "new": "Despite these advancements, challenges remain in terms of accuracy, environmental sensitivity, and system calibration. Variations in lighting conditions, camera positioning, and occlusions can affect the reliability of motion tracking systems (Stepanenko & Dubko, 2025).",
+  "source": "M9.2 md 395->402"
+ },
+ {
+  "op": "replace",
+  "match": "Recent studies have shown that virtual reality technologies can improve rehabilitation engagement by providing immersive and interactive therapy environments that support repetitive exercise training and immediate feedback (Bateni et al., 2024; Oduoye et al., 2024; Yang, 2023). VR-based rehabilitation systems allow patients to perform therapeutic exercises within simulated environments that enhance motivation, participation, and movement interaction. In addition, immersive technologies have been applied in patient care, rehabilitation support, and healthcare training because of their ability to improve user engagement and therapy experiences.",
+  "old": "Recent studies have shown that virtual reality technologies can improve rehabilitation engagement by providing immersive and interactive therapy environments that support repetitive exercise training and immediate feedback (Bateni et al., 2024; Oduoye et al., 2024; Yang, 2023). VR-based rehabilitation systems allow patients to perform therapeutic exercises within simulated environments that enhance motivation, participation, and movement interaction. In addition, immersive technologies have been applied in patient care, rehabilitation support, and healthcare training because of their ability to improve user engagement and therapy experiences.",
+  "new": "Recent studies have shown that virtual reality technologies can improve rehabilitation engagement by providing immersive and interactive therapy environments that support repetitive exercise training and immediate feedback (Bateni et al., 2024; Oduoye et al., 2024). VR-based rehabilitation systems allow patients to perform therapeutic exercises within simulated environments that enhance motivation, participation, and movement interaction. In addition, immersive technologies have been applied in patient care, rehabilitation support, and healthcare training because of their ability to improve user engagement and therapy experiences.",
+  "source": "M9.2 md 415->422"
+ },
+ {
+  "op": "replace",
+  "match": "Studies involving VR-based gamified rehabilitation systems further demonstrated that combining immersive environments with game mechanics improves user engagement and perceived therapy effectiveness (Navea et al., 2025; Consing & Aguila, 2024). However, researchers emphasized that many existing systems focus heavily on entertainment and motivation while lacking deeper integration with rehabilitation objectives, movement assessment, and standardized therapeutic feedback (Warsinsky et al., 2021; Lee et al., 2025). These findings highlight the importance of designing gamified rehabilitation systems that balance engagement with therapeutic functionality.",
+  "old": "Studies involving VR-based gamified rehabilitation systems further demonstrated that combining immersive environments with game mechanics improves user engagement and perceived therapy effectiveness (Navea et al., 2025; Consing & Aguila, 2024). However, researchers emphasized that many existing systems focus heavily on entertainment and motivation while lacking deeper integration with rehabilitation objectives, movement assessment, and standardized therapeutic feedback (Warsinsky et al., 2021; Lee et al., 2025). These findings highlight the importance of designing gamified rehabilitation systems that balance engagement with therapeutic functionality.",
+  "new": "Studies involving VR-based gamified rehabilitation systems further demonstrated that combining immersive environments with game mechanics improves user engagement and perceived therapy effectiveness (Navea et al., 2025a; Consing & Aguila, 2024). However, researchers emphasized that many existing systems focus heavily on entertainment and motivation while lacking deeper integration with rehabilitation objectives, movement assessment, and standardized therapeutic feedback (Warsinsky et al., 2021; Lee et al., 2025). These findings highlight the importance of designing gamified rehabilitation systems that balance engagement with therapeutic functionality.",
+  "source": "M9.2 md 437->436"
+ },
+ {
+  "op": "replace",
+  "match": "In addition, a local study by Consing and Aguila (2024) examined the attitudes of rehabilitation professionals toward the use of immersive gamification technology systems (ImGTS) in therapy. The study found that rehabilitation professionals generally expressed positive perceptions regarding the usefulness of these systems in improving patient outcomes and enhancing therapy performance. Participants agreed that ImGTS can increase patient motivation, engagement, and adherence to rehabilitation programs. However, the study also identified limitations related to resource availability, technological support, and familiarity with such systems in clinical practice. These findings suggest that while immersive and gamified rehabilitation technologies are promising, their successful implementation depends on accessibility, training, and institutional support.",
+  "old": "In addition, a local study by Consing and Aguila (2024) examined the attitudes of rehabilitation professionals toward the use of immersive gamification technology systems (ImGTS) in therapy. The study found that rehabilitation professionals generally expressed positive perceptions regarding the usefulness of these systems in improving patient outcomes and enhancing therapy performance. Participants agreed that ImGTS can increase patient motivation, engagement, and adherence to rehabilitation programs. However, the study also identified limitations related to resource availability, technological support, and familiarity with such systems in clinical practice. These findings suggest that while immersive and gamified rehabilitation technologies are promising, their successful implementation depends on accessibility, training, and institutional support.",
+  "new": "A local study by Consing and Aguila (2024) examined the attitudes of rehabilitation professionals toward the use of immersive gamification technology systems (ImGTS) in therapy. The study found that rehabilitation professionals generally expressed positive perceptions regarding the usefulness of these systems in improving patient outcomes and enhancing therapy performance. Participants agreed that ImGTS can increase patient motivation, engagement, and adherence to rehabilitation programs. However, the study also identified limitations related to resource availability, technological support, and familiarity with such systems in clinical practice. These findings suggest that while immersive and gamified rehabilitation technologies are promising, their successful implementation depends on accessibility, training, and institutional support.",
+  "source": "M9.2 md 441->440"
+ },
+ {
+  "op": "replace",
+  "match": "System feasibility evaluates whether technology-assisted rehabilitation platforms can be practically integrated, operated, and accepted within clinical and home environments (Berton et al., 2020; de Vries et al., 2025; Reilly et al., 2021). Across modern digital health applications, establishing system feasibility encompasses four primary dimensions: clinical acceptance and user experience (de Vries et al., 2025; Reilly et al., 2021), technical tracking reliability and interface usability (Bateni et al., 2024; Reilly et al., 2021), operational safety and session efficiency (de Vries et al., 2025; Reilly et al., 2021), and economic scalability (Berton et al., 2020; Jeyaraman et al., 2024; Reilly et al., 2021).",
+  "old": "System feasibility evaluates whether technology-assisted rehabilitation platforms can be practically integrated, operated, and accepted within clinical and home environments (Berton et al., 2020; de Vries et al., 2025; Reilly et al., 2021). Across modern digital health applications, establishing system feasibility encompasses four primary dimensions: clinical acceptance and user experience (de Vries et al., 2025; Reilly et al., 2021), technical tracking reliability and interface usability (Bateni et al., 2024; Reilly et al., 2021), operational safety and session efficiency (de Vries et al., 2025; Reilly et al., 2021), and economic scalability (Berton et al., 2020; Jeyaraman et al., 2024; Reilly et al., 2021).",
+  "new": "System feasibility evaluates whether technology-assisted rehabilitation platforms can be practically integrated, operated, and accepted within clinical and home environments (Berton et al., 2020; de Vries et al., 2025; Reilly et al., 2021). In digital health applications, system feasibility covers four main dimensions: clinical acceptance and user experience (de Vries et al., 2025; Reilly et al., 2021), technical tracking reliability and interface usability (Bateni et al., 2024; Reilly et al., 2021), operational safety and session efficiency (de Vries et al., 2025; Reilly et al., 2021), and economic scalability (Berton et al., 2020; Jeyaraman et al., 2024; Reilly et al., 2021).",
+  "source": "M9.2 md 449->446"
+ },
+ {
+  "op": "replace",
+  "match": "Empirical investigations into virtual reality (VR) physical therapy demonstrate high patient acceptability and willingness to adopt immersive modalities over conventional, clinic-bound regimens (de Vries et al., 2025; Jeyaraman et al., 2024; Reilly et al., 2021). In an evaluation of orthopaedic trauma patients with operative lower extremity fractures, Reilly et al. (2021) established baseline feasibility with a Feasibility of Intervention Measure (FIM) score of 4.0 out of 5, an Acceptability of Intervention Measure (AIM) score of 3.9 out of 5, and an average enjoyment rating of 7.5 out of 10. Notably, 93.3% of participants expressed willingness to enroll in a randomized controlled trial evaluating VR physical therapy against the standard of care, and 86.7% preferred a hybrid model combining in-home VR with supplemental clinic-based therapy over standard clinic visits alone (Reilly et al., 2021). Similarly, in acute critical care and post-intensive care settings, de Vries et al. (2025) reported a median overall patient satisfaction of 80 out of 100 on a Visual Analogue Scale (VAS) when utilizing immersive head-mounted displays (HMDs) for upper extremity mobilization. Participants characterized the gamified virtual tasks as enjoyable and engaging, which mitigated the monotony typical of repetitive physical therapy regimens (de Vries et al., 2025).",
+  "old": "Empirical investigations into virtual reality (VR) physical therapy demonstrate high patient acceptability and willingness to adopt immersive modalities over conventional, clinic-bound regimens (de Vries et al., 2025; Jeyaraman et al., 2024; Reilly et al., 2021). In an evaluation of orthopaedic trauma patients with operative lower extremity fractures, Reilly et al. (2021) established baseline feasibility with a Feasibility of Intervention Measure (FIM) score of 4.0 out of 5, an Acceptability of Intervention Measure (AIM) score of 3.9 out of 5, and an average enjoyment rating of 7.5 out of 10. Notably, 93.3% of participants expressed willingness to enroll in a randomized controlled trial evaluating VR physical therapy against the standard of care, and 86.7% preferred a hybrid model combining in-home VR with supplemental clinic-based therapy over standard clinic visits alone (Reilly et al., 2021). Similarly, in acute critical care and post-intensive care settings, de Vries et al. (2025) reported a median overall patient satisfaction of 80 out of 100 on a Visual Analogue Scale (VAS) when utilizing immersive head-mounted displays (HMDs) for upper extremity mobilization. Participants characterized the gamified virtual tasks as enjoyable and engaging, which mitigated the monotony typical of repetitive physical therapy regimens (de Vries et al., 2025).",
+  "new": "Empirical investigations into VR physical therapy demonstrate high patient acceptability and willingness to adopt immersive modalities over conventional, clinic-bound regimens (de Vries et al., 2025; Jeyaraman et al., 2024; Reilly et al., 2021). In an evaluation of orthopaedic trauma patients with operative lower extremity fractures, Reilly et al. (2021) established baseline feasibility with a Feasibility of Intervention Measure (FIM) score of 4.0 out of 5, an Acceptability of Intervention Measure (AIM) score of 3.9 out of 5, and an average enjoyment rating of 7.5 out of 10. Notably, 93.3% of participants expressed willingness to enroll in a randomized controlled trial evaluating VR physical therapy against the standard of care, and 86.7% preferred a hybrid model combining in-home VR with supplemental clinic-based therapy over standard clinic visits alone (Reilly et al., 2021). Similarly, in acute critical care and post-intensive care settings, de Vries et al. (2025) reported a median overall patient satisfaction of 80 out of 100 on a Visual Analogue Scale (VAS) when utilizing immersive head-mounted displays (HMDs) for upper extremity mobilization. Participants characterized the gamified virtual tasks as enjoyable and engaging, which mitigated the monotony typical of repetitive physical therapy regimens (de Vries et al., 2025).",
+  "source": "M9.2 md 451->448"
+ },
+ {
+  "op": "replace",
+  "match": "Technical usability serves as a critical indicator of system feasibility, particularly when introducing digital interfaces to diverse patient demographics (Berton et al., 2020; Reilly et al., 2021). Using the standardized System Usability Scale (SUS), Reilly et al. (2021) reported a mean score of 67.5 out of 100, aligning with established thresholds for acceptable usability in emerging healthcare software. Systematic reviews by Berton et al. (2020) and Gumaa and Youssef (2019) corroborate that user-friendliness remains essential, as the majority of orthopaedic rehabilitation recipients are older adults (predominantly aged 40 to 60 years or older) who frequently present variable levels of digital literacy. Consequently, complex configurations requiring multi-camera calibration or tethered cabling create technical barriers that impede home deployment (Berton et al., 2020; Reilly et al., 2021). Modern system architectures increasingly shift toward standalone HMD units (such as Meta Quest) and markerless tracking frameworks (such as MediaPipe or OpenCV) to achieve an optimal balance between low setup complexity and motion tracking fidelity without placing cumbersome hardware on the patient (Bateni et al., 2024; Reilly et al., 2021; Sunido & Soreño, 2026).",
+  "old": "Technical usability serves as a critical indicator of system feasibility, particularly when introducing digital interfaces to diverse patient demographics (Berton et al., 2020; Reilly et al., 2021). Using the standardized System Usability Scale (SUS), Reilly et al. (2021) reported a mean score of 67.5 out of 100, aligning with established thresholds for acceptable usability in emerging healthcare software. Systematic reviews by Berton et al. (2020) and Gumaa and Youssef (2019) corroborate that user-friendliness remains essential, as the majority of orthopaedic rehabilitation recipients are older adults (predominantly aged 40 to 60 years or older) who frequently present variable levels of digital literacy. Consequently, complex configurations requiring multi-camera calibration or tethered cabling create technical barriers that impede home deployment (Berton et al., 2020; Reilly et al., 2021). Modern system architectures increasingly shift toward standalone HMD units (such as Meta Quest) and markerless tracking frameworks (such as MediaPipe or OpenCV) to achieve an optimal balance between low setup complexity and motion tracking fidelity without placing cumbersome hardware on the patient (Bateni et al., 2024; Reilly et al., 2021; Sunido & Soreño, 2026).",
+  "new": "Technical usability serves as a critical indicator of system feasibility, particularly when introducing digital interfaces to diverse patient demographics (Berton et al., 2020; Reilly et al., 2021). Using the standardized System Usability Scale (SUS), Reilly et al. (2021) reported a mean score of 67.5 out of 100, aligning with established thresholds for acceptable usability in emerging healthcare software. Systematic reviews by Berton et al. (2020) and Gumaa and Youssef (2019) corroborate that user-friendliness remains essential, as the majority of orthopaedic rehabilitation recipients are older adults (predominantly aged 40 to 60 years or older) who frequently present variable levels of digital literacy. Consequently, complex configurations requiring multi-camera calibration or tethered cabling create technical barriers that impede home deployment (Berton et al., 2020; Reilly et al., 2021). Modern system architectures increasingly shift toward standalone HMD units (such as Meta Quest) and markerless tracking frameworks (such as MediaPipe or OpenCV) to achieve an optimal balance between low setup complexity and motion tracking fidelity without placing cumbersome hardware on the patient (Bateni et al., 2024; Reilly et al., 2021).",
+  "source": "M9.2 md 453->450"
+ },
+ {
+  "op": "replace",
+  "match": "This section presents the theories that support the design and development of the proposed TheraQuest VR system. The study is grounded in theories related to motor learning, feedback, engagement, and behavior change to address challenges in rehabilitation such as low therapy adherence, limited engagement, and ineffective feedback mechanisms. Flow Theory supports the use of immersive and adaptive activities, accompanied by clear goals and immediate feedback, to maintain user engagement and enjoyment during rehabilitation exercises (Csikszentmihalyi, 1990). In parallel, gamification design principles leverage challenges, progress tracking, and performance rewards to sustain patient participation (Deterding et al., 2011).",
+  "old": "This section presents the theories that support the design and development of the proposed TheraQuest VR system. The study is grounded in theories related to motor learning, feedback, engagement, and behavior change to address challenges in rehabilitation such as low therapy adherence, limited engagement, and ineffective feedback mechanisms. Flow Theory supports the use of immersive and adaptive activities, accompanied by clear goals and immediate feedback, to maintain user engagement and enjoyment during rehabilitation exercises (Csikszentmihalyi, 1990). In parallel, gamification design principles leverage challenges, progress tracking, and performance rewards to sustain patient participation (Deterding et al., 2011).",
+  "new": "This section presents the theories that support the design and development of the proposed TheraQuest VR system. The study is grounded in theories related to motor learning, feedback, engagement, and behavior change to address challenges in rehabilitation such as low therapy adherence, limited engagement, and ineffective feedback mechanisms. Flow Theory supports the use of immersive and adaptive activities, accompanied by clear goals and immediate feedback, to maintain user engagement and enjoyment during rehabilitation exercises (Csikszentmihalyi, 1990). In parallel, gamification design principles leverage challenges, progress tracking, and performance rewards that can sustain patient participation.",
+  "source": "M9.2 md 461->458"
+ },
+ {
+  "op": "replace",
+  "match": "The study also applies Motor Learning Theory and Feedback Intervention Theory, which emphasize the importance of repetition, practice, and real-time feedback in improving motor performance and correcting movements during rehabilitation (Schmidt & Lee, 2011; Winstein et al., 2014; Kluger & DeNisi, 1996). In addition, the COM-B Model explains how capability, opportunity, and motivation interact to influence behavior and therapy adherence (Michie et al., 2011). Together, these theoretical frameworks support the integration of virtual reality, motion tracking, gamification, and real-time feedback within TheraQuest VR to improve rehabilitation engagement, exercise accuracy, and adherence to therapy.",
+  "old": "The study also applies Motor Learning Theory and Feedback Intervention Theory, which emphasize the importance of repetition, practice, and real-time feedback in improving motor performance and correcting movements during rehabilitation (Schmidt & Lee, 2011; Winstein et al., 2014; Kluger & DeNisi, 1996). In addition, the COM-B Model explains how capability, opportunity, and motivation interact to influence behavior and therapy adherence (Michie et al., 2011). Together, these theoretical frameworks support the integration of virtual reality, motion tracking, gamification, and real-time feedback within TheraQuest VR to improve rehabilitation engagement, exercise accuracy, and adherence to therapy.",
+  "new": "The study also applies Motor Learning Theory and Feedback Intervention Theory, which emphasize the importance of repetition, practice, and real-time feedback in improving motor performance and correcting movements during rehabilitation (Schmidt & Lee, 2011; Kluger & DeNisi, 1996). In addition, the COM-B Model explains how capability, opportunity, and motivation interact to influence behavior and therapy adherence (Michie et al., 2011). Together, these theoretical frameworks support the integration of virtual reality, motion tracking, gamification, and real-time feedback within TheraQuest VR to improve rehabilitation engagement, exercise accuracy, and adherence to therapy.",
+  "source": "M9.2 md 463->460"
+ },
+ {
+  "op": "replace",
+  "match": "Figure 2.3.4 Motor Learning Process in Rehabilitation",
+  "old": "Figure 2.3.4 Motor Learning Process in Rehabilitation",
+  "new": "Figure 2.3.1 Motor Learning Process in Rehabilitation",
+  "source": "M9.2 md 468->465"
+ },
+ {
+  "op": "replace",
+  "match": "Furthermore, the study draws from Motor Learning Theory, which emphasizes the role of repetition, feedback, and practice in the acquisition and improvement of motor skills. Motor learning research suggests that consistent practice combined with timely feedback enables individuals to refine movement patterns and improve performance over time (Schmidt & Lee, 2011). In rehabilitation contexts, repeated execution of therapeutic exercises and corrective feedback are essential for restoring motor function and facilitating skill reacquisition after injury or impairment (Winstein, Kay, & Woollacott, 2014). Within the TheraQuest VR system, rehabilitation exercises are supported by real-time motion feedback generated through computer vision–based tracking. This feature allows patients to monitor and adjust their movements during exercise, thereby supporting the gradual improvement of motor performance through repeated and guided practice.",
+  "old": "Furthermore, the study draws from Motor Learning Theory, which emphasizes the role of repetition, feedback, and practice in the acquisition and improvement of motor skills. Motor learning research suggests that consistent practice combined with timely feedback enables individuals to refine movement patterns and improve performance over time (Schmidt & Lee, 2011). In rehabilitation contexts, repeated execution of therapeutic exercises and corrective feedback are essential for restoring motor function and facilitating skill reacquisition after injury or impairment (Winstein, Kay, & Woollacott, 2014). Within the TheraQuest VR system, rehabilitation exercises are supported by real-time motion feedback generated through computer vision–based tracking. This feature allows patients to monitor and adjust their movements during exercise, thereby supporting the gradual improvement of motor performance through repeated and guided practice.",
+  "new": "The study draws from Motor Learning Theory, which emphasizes the role of repetition, feedback, and practice in the acquisition and improvement of motor skills. Motor learning research suggests that consistent practice combined with timely feedback enables individuals to refine movement patterns and improve performance over time (Schmidt & Lee, 2011). In rehabilitation contexts, repeated execution of therapeutic exercises and corrective feedback are considered important for restoring motor function and facilitating skill reacquisition after injury or impairment. Within the TheraQuest VR system, rehabilitation exercises are supported by real-time motion feedback generated through computer vision–based tracking. This feature allows patients to monitor and adjust their movements during exercise, thereby supporting the gradual improvement of motor performance through repeated and guided practice.",
+  "source": "M9.2 md 471->468"
+ },
+ {
+  "op": "replace",
+  "match": "Figure 2.3.5 Feedback Intervention Theory (FIT)",
+  "old": "Figure 2.3.5 Feedback Intervention Theory (FIT)",
+  "new": "Figure 2.3.2 Feedback Intervention Theory (FIT)",
+  "source": "M9.2 md 476->473"
+ },
+ {
+  "op": "replace",
+  "match": "Figure 2.3.6 Flow Theory",
+  "old": "Figure 2.3.6 Flow Theory",
+  "new": "Figure 2.3.3 Flow Theory",
+  "source": "M9.2 md 485->482"
+ },
+ {
+  "op": "replace",
+  "match": "Figure 2.3.7 Behavior Change Theory (COM-B Model)",
+  "old": "Figure 2.3.7 Behavior Change Theory (COM-B Model)",
+  "new": "Figure 2.3.4 Behavior Change Theory (COM-B Model)",
+  "source": "M9.2 md 496->493"
+ },
+ {
+  "op": "replace",
+  "match": "(Based on Michie et al, 2011).",
+  "old": "(Based on Michie et al, 2011).",
+  "new": "(Based on Michie et al., 2011).",
+  "source": "M9.2 md 496->493"
+ },
+ {
+  "op": "replace",
+  "match": "Table 1. Summary of the Reviewed Related Literatures",
+  "old": "Table 1. Summary of the Reviewed Related Literatures",
+  "new": "Table 1. Summary of the Reviewed Related Literature",
+  "source": "M9.2 md 511->506"
+ },
+ {
+  "op": "replace",
+  "match": "Abcede et al. (2016);De Guzman et al. (2024); Marshall et al. (2025); Sardá-Gargallo et al. (2025); Tran et al. (2022); Matsangidou et al. (2024)",
+  "old": "Abcede et al. (2016);De Guzman et al. (2024); Marshall et al. (2025); Sardá-Gargallo et al. (2025); Tran et al. (2022); Matsangidou et al. (2024)",
+  "new": "Abcede et al. (2016); Marshall et al. (2025); Sardá-Gargallo et al. (2025); Tran et al. (2022); Matsangidou et al. (2024)",
+  "source": "M9.2 md 515->510 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "Rehab adherence guidelines; rehab compliance; remote monitoring; remote rehab; gamification adherence; wearable tracking",
+  "old": "Rehab adherence guidelines; rehab compliance; remote monitoring; remote rehab; gamification adherence; wearable tracking",
+  "new": "Rehab adherence guidelines; remote monitoring; remote rehab; gamification adherence; wearable tracking",
+  "source": "M9.2 md 515->510 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "Study; Study; Case-control; Systematic review; Review; Systematic review",
+  "old": "Study; Study; Case-control; Systematic review; Review; Systematic review",
+  "new": "Study; Case-control; Systematic review; Review; Systematic review",
+  "source": "M9.2 md 515->510 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "Navea et al. (2025a); Consing & Aguila (2024); Al-Rayes et al. (2022); Moreira et al. (2024); Ebrahimi et al. (2025); Tung et al. (2024); Damaševičius et al. (2023); Tuah et al. (2021); Warsinsky et al. (2021); Lee et al. (2025)",
+  "old": "Navea et al. (2025a); Consing & Aguila (2024); Al-Rayes et al. (2022); Moreira et al. (2024); Ebrahimi et al. (2025); Tung et al. (2024); Damaševičius et al. (2023); Tuah et al. (2021); Warsinsky et al. (2021); Lee et al. (2025)",
+  "new": "Navea et al. (2025a); Consing & Aguila (2024); Al-Rayes et al. (2022); Moreira et al. (2024); Tung et al. (2024); Damaševičius et al. (2023); Tuah et al. (2021); Warsinsky et al. (2021); Lee et al. (2025)",
+  "source": "M9.2 md 515->510 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "VR gamified rehab; gamification perception; gamification healthcare; VR game rehab; gamification rehab; gamification learning; serious games; gamification rehab; gamification framework; gamification design",
+  "old": "VR gamified rehab; gamification perception; gamification healthcare; VR game rehab; gamification rehab; gamification learning; serious games; gamification rehab; gamification framework; gamification design",
+  "new": "VR gamified rehab; gamification perception; gamification healthcare; VR game rehab; gamification learning; serious games; gamification rehab; gamification framework; gamification design",
+  "source": "M9.2 md 515->510 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "Experimental; Survey; Review; Experimental; Meta-analysis; Systematic review; Meta-review; Survey; Review; Scoping review",
+  "old": "Experimental; Survey; Review; Experimental; Meta-analysis; Systematic review; Meta-review; Survey; Review; Scoping review",
+  "new": "Experimental; Survey; Review; Experimental; Systematic review; Meta-review; Survey; Review; Scoping review",
+  "source": "M9.2 md 515->510 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "Lorkowski et al. (2025); Tu et al. (2026);",
+  "old": "Lorkowski et al. (2025); Tu et al. (2026);",
+  "new": "Lorkowski et al. (2025);",
+  "source": "M9.2 md 515->510 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "VR rehabilitation; VR neuro rehab; VR rehab systems; VR therapy; immersive tech",
+  "old": "VR rehabilitation; VR neuro rehab; VR rehab systems; VR therapy; immersive tech",
+  "new": "VR rehabilitation; VR rehab systems; VR therapy; immersive tech",
+  "source": "M9.2 md 515->510 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "Review; Systematic review; Scoping review; Review; Review",
+  "old": "Review; Systematic review; Scoping review; Review; Review",
+  "new": "Review; Scoping review; Review; Review",
+  "source": "M9.2 md 515->510 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "Zhu et al. (2025); Lam et al. (2023); Lugrís et al. (2024); Maskeliūnas et al. (2023);  Stepanenko & Dubko (2025)",
+  "old": "Zhu et al. (2025); Lam et al. (2023); Lugrís et al. (2024); Maskeliūnas et al. (2023);  Stepanenko & Dubko (2025)",
+  "new": "Lam et al. (2023); Lugrís et al. (2024); Maskeliūnas et al. (2023); Stepanenko & Dubko (2025)",
+  "source": "M9.2 md 515->510 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "Computer vision rehab; motion tracking rehab; motion capture; VR + tracking; motion tracking systems",
+  "old": "Computer vision rehab; motion tracking rehab; motion capture; VR + tracking; motion tracking systems",
+  "new": "Motion tracking rehab; motion capture; VR + tracking; motion tracking systems",
+  "source": "M9.2 md 515->510 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "RCT; Systematic review; Technical study; Experimental; Comparative study",
+  "old": "RCT; Systematic review; Technical study; Experimental; Comparative study",
+  "new": "Systematic review; Technical study; Experimental; Comparative study",
+  "source": "M9.2 md 515->510 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "Carrillo et al. (2021); Buckingham et al. (2024); Navea et al. (2025b)",
+  "old": "Carrillo et al. (2021); Buckingham et al. (2024); Navea et al. (2025b)",
+  "new": "Carrillo et al. (2021)",
+  "source": "M9.2 md 520->515 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "Rehab center PH; stroke rehab PH; rehab challenges PH",
+  "old": "Rehab center PH; stroke rehab PH; rehab challenges PH",
+  "new": "Rehab center PH",
+  "source": "M9.2 md 520->515 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "Study; Protocol; Study",
+  "old": "Study; Protocol; Study",
+  "new": "Study",
+  "source": "M9.2 md 520->515 (table cell)"
+ },
+ {
+  "op": "replace",
+  "match": "The methodology is guided by the Iterative-Incremental Model, which supports progressive development of system modules such as the VR environment, motion tracking, exercise evaluation, feedback system, gamification features, and adherence monitoring. Evaluation focuses on motion tracking accuracy, system functionality, usability, user satisfaction, and relevance to rehabilitation monitoring. Data collection involves system logs, usability questionnaires, observation checklists, and expert evaluation from licensed physical therapists to ensure structured, ethical, and evidence-based assessment of the system.",
+  "old": "The methodology is guided by the Iterative-Incremental Model, which supports progressive development of system modules such as the VR environment, motion tracking, exercise evaluation, feedback system, gamification features, and adherence monitoring. Evaluation focuses on motion tracking accuracy, system functionality, usability, user satisfaction, and relevance to rehabilitation monitoring. Data collection involves system logs, usability questionnaires, observation checklists, and expert evaluation from licensed physical therapists to ensure structured, ethical, and evidence-based assessment of the system.",
+  "new": "The methodology is guided by the Iterative-Incremental Model, which supports progressive development of system modules such as the VR environment, motion tracking, exercise evaluation, feedback system, gamification features, and adherence monitoring. Evaluation focuses on motion tracking accuracy, system functionality, usability, and relevance to rehabilitation monitoring. Data collection involves system logs, the System Usability Scale, and expert evaluation from licensed physical therapists to ensure structured, ethical, and evidence-based assessment of the system.",
+  "source": "M9.2 md 526->521"
+ },
+ {
+  "op": "replace",
+  "match": "This study employed a Developmental research design combined with a Descriptive-evaluative approach to guide the design, development, and assessment of the TheraQuest VR system. The developmental design focuses on the systematic creation and refinement of the system through the integration of virtual reality, gamification, and computer vision-based motion tracking, ensuring that the system is functional and aligned with rehabilitation objectives.",
+  "old": "This study employed a Developmental research design combined with a Descriptive-evaluative approach to guide the design, development, and assessment of the TheraQuest VR system. The developmental design focuses on the systematic creation and refinement of the system through the integration of virtual reality, gamification, and computer vision-based motion tracking, ensuring that the system is functional and aligned with rehabilitation objectives.",
+  "new": "This study employs a Developmental research design combined with a Descriptive-evaluative approach to guide the design, development, and assessment of the TheraQuest VR system. The developmental design focuses on the systematic creation and refinement of the system through the integration of virtual reality, gamification, and computer vision-based motion tracking, ensuring that the system is functional and aligned with rehabilitation objectives.",
+  "source": "M9.2 md 530->525"
+ },
+ {
+  "op": "replace",
+  "match": "The descriptive-evaluative approach is used to assess the system’s performance based on predefined criteria, including motion tracking accuracy, adherence monitoring, usability, and user satisfaction. Motion tracking accuracy evaluates the system’s ability to correctly detect and interpret user movements, while adherence monitoring determines whether prescribed rehabilitation sessions are properly completed and recorded. Usability and user satisfaction assess the ease of use, interaction, and overall experience of both patients and physical therapists.",
+  "old": "The descriptive-evaluative approach is used to assess the system’s performance based on predefined criteria, including motion tracking accuracy, adherence monitoring, usability, and user satisfaction. Motion tracking accuracy evaluates the system’s ability to correctly detect and interpret user movements, while adherence monitoring determines whether prescribed rehabilitation sessions are properly completed and recorded. Usability and user satisfaction assess the ease of use, interaction, and overall experience of both patients and physical therapists.",
+  "new": "The descriptive-evaluative approach is used to assess the system’s performance based on predefined criteria, including motion tracking accuracy, adherence monitoring, and usability. Motion tracking accuracy evaluates the system’s ability to correctly detect and interpret user movements, while adherence monitoring determines whether prescribed rehabilitation sessions are properly completed and recorded. Usability assesses the ease of use, interaction, and overall experience of both patients and physical therapists.",
+  "source": "M9.2 md 532->527"
+ },
+ {
+  "op": "replace",
+  "match": "This interaction is consistent with the study’s objective of enabling patients to perform exercises in an immersive environment while receiving guidance and monitoring support .",
+  "old": "This interaction is consistent with the study’s objective of enabling patients to perform exercises in an immersive environment while receiving guidance and monitoring support .",
+  "new": "This interaction is consistent with the study’s objective of enabling patients to perform exercises in an immersive environment while receiving guidance and monitoring support.",
+  "source": "M9.2 md 550->543"
+ },
+ {
+  "op": "replace",
+  "match": "This feedback loop is critical because it allows the patient to immediately adjust their movements, supporting motor learning and improving exercise accuracy. The presence of continuous feedback distinguishes this framework from traditional linear models and reflects the importance of real-time guidance in rehabilitation .",
+  "old": "This feedback loop is critical because it allows the patient to immediately adjust their movements, supporting motor learning and improving exercise accuracy. The presence of continuous feedback distinguishes this framework from traditional linear models and reflects the importance of real-time guidance in rehabilitation .",
+  "new": "This feedback loop is critical because it allows the patient to immediately adjust their movements, supporting motor learning and improving exercise accuracy. The presence of continuous feedback distinguishes this framework from traditional linear models and reflects the importance of real-time guidance in rehabilitation.",
+  "source": "M9.2 md 581->570"
+ },
+ {
+  "op": "replace",
+  "match": "This interaction ensures that the system supports clinical supervision without requiring constant physical presence, addressing the problem of limited supervision identified in the study .",
+  "old": "This interaction ensures that the system supports clinical supervision without requiring constant physical presence, addressing the problem of limited supervision identified in the study .",
+  "new": "This interaction ensures that the system supports clinical supervision without requiring constant physical presence, addressing the problem of limited supervision identified in the study.",
+  "source": "M9.2 md 604->591"
+ },
+ {
+  "op": "replace",
+  "match": "These principles guide the design of the system to ensure that it is easy to use, motivating, and suitable for both patients and therapists. This aligns with the study’s evaluation criteria on usability and user satisfaction .",
+  "old": "These principles guide the design of the system to ensure that it is easy to use, motivating, and suitable for both patients and therapists. This aligns with the study’s evaluation criteria on usability and user satisfaction .",
+  "new": "These principles guide the design of the system to ensure that it is easy to use, motivating, and suitable for both patients and therapists. This aligns with the study’s evaluation criteria on usability.",
+  "source": "M9.2 md 616->603"
+ },
+ {
+  "op": "replace",
+  "match": "The development of the TheraQuest VR system follows the Iterative Incremental Model, a software development methodology in which the system is developed through repeated cycles and divided into smaller functional parts. This approach is appropriate for the study because the system consists of several interconnected modules, including the VR Environment, Motion Tracking, Exercise Evaluation, Feedback Generation, Gamification, and Adherence Monitoring modules. Instead of developing the entire system in a single process, each module is planned, designed, implemented, tested, evaluated, and improved until it becomes part of the complete rehabilitation system.",
+  "old": "The development of the TheraQuest VR system follows the Iterative Incremental Model, a software development methodology in which the system is developed through repeated cycles and divided into smaller functional parts. This approach is appropriate for the study because the system consists of several interconnected modules, including the VR Environment, Motion Tracking, Exercise Evaluation, Feedback Generation, Gamification, and Adherence Monitoring modules. Instead of developing the entire system in a single process, each module is planned, designed, implemented, tested, evaluated, and improved until it becomes part of the complete rehabilitation system.",
+  "new": "The development of the TheraQuest VR system follows the Iterative-Incremental Model, a software development methodology in which the system is developed through repeated cycles and divided into smaller functional parts. This approach is appropriate for the study because the system consists of several interconnected modules, including the VR Environment, Motion Tracking, Exercise Evaluation, Feedback Generation, Gamification, and Adherence Monitoring modules. Instead of developing the entire system in a single process, each module is planned, designed, implemented, tested, evaluated, and improved until it becomes part of the complete rehabilitation system.",
+  "source": "M9.2 md 641->628"
+ },
+ {
+  "op": "replace",
+  "match": "The Evaluation Phase assesses the working increment against predefined technical, usability, and clinical benchmarks. Motion classification performance is evaluated using a confusion matrix (accuracy, precision, recall, and F1-score). Usability, interface learnability, and user satisfaction are measured using the System Usability Scale (SUS) and structured observation checklists. In addition, licensed physical therapists evaluate the clinical relevance, clarity, and utility of generated adherence and performance reports. Findings and user feedback from this phase directly feed back into the next iteration's Planning Phase for progressive enhancement.",
+  "old": "The Evaluation Phase assesses the working increment against predefined technical, usability, and clinical benchmarks. Motion classification performance is evaluated using a confusion matrix (accuracy, precision, recall, and F1-score). Usability, interface learnability, and user satisfaction are measured using the System Usability Scale (SUS) and structured observation checklists. In addition, licensed physical therapists evaluate the clinical relevance, clarity, and utility of generated adherence and performance reports. Findings and user feedback from this phase directly feed back into the next iteration's Planning Phase for progressive enhancement.",
+  "new": "The Evaluation Phase assesses the working increment against predefined technical, usability, and clinical benchmarks. Motion classification performance is evaluated using a confusion matrix (accuracy, precision, recall, and F1-score). Usability and interface learnability are measured using the System Usability Scale (SUS). In addition, licensed physical therapists evaluate the clinical relevance, clarity, and utility of generated adherence and performance reports. Findings and user feedback from this phase directly feed back into the next iteration's Planning Phase for progressive enhancement.",
+  "source": "M9.2 md 675->662"
+ },
+ {
+  "op": "replace",
+  "match": "Iteration (Iterate) Phase",
+  "old": "Iteration (Iterate) Phase",
+  "new": "Iteration Phase",
+  "source": "M9.2 md 677->664"
+ },
+ {
+  "op": "replace",
+  "match": "During January (Initial Planning Phase), the study establishes the preliminary conceptualization, scope, and feasibility of the TheraQuest VR system. This includes defining the core research problem, project milestones, hardware capabilities, target patient demographics, and clinical collaboration protocols with licensed physical therapists.",
+  "old": "During January (Initial Planning Phase), the study establishes the preliminary conceptualization, scope, and feasibility of the TheraQuest VR system. This includes defining the core research problem, project milestones, hardware capabilities, target patient demographics, and clinical collaboration protocols with licensed physical therapists.",
+  "new": "During January (Initial Planning Phase), the study established the preliminary conceptualization, scope, and feasibility of the TheraQuest VR system. This included defining the core research problem, project milestones, hardware capabilities, target patient demographics, and clinical collaboration protocols with licensed physical therapists.",
+  "source": "M9.2 md 697->684"
+ },
+ {
+  "op": "replace",
+  "match": "In February (Planning Phase), the specific objectives, tasks, and deliverables for the development cycle are defined. The team determines which functional module or feature increment will be prioritized, sets technical milestones, schedules development sprints, and identifies technical constraints before active development begins.",
+  "old": "In February (Planning Phase), the specific objectives, tasks, and deliverables for the development cycle are defined. The team determines which functional module or feature increment will be prioritized, sets technical milestones, schedules development sprints, and identifies technical constraints before active development begins.",
+  "new": "In February (Planning Phase), the specific objectives, tasks, and deliverables for the development cycle were defined. The team determined which functional module or feature increment would be prioritized, set technical milestones, scheduled development sprints, and identified technical constraints before active development began.",
+  "source": "M9.2 md 699->686"
+ },
+ {
+  "op": "replace",
+  "match": "March (Requirements Phase) focuses on identifying, analyzing, and documenting the functional and non-functional requirements of the system. Functional requirements include markerless joint tracking, pose classification, exercise accuracy scoring, feedback delivery, and adherence tracking, while non-functional requirements cover responsiveness, latency, stability, and data privacy compliance.",
+  "old": "March (Requirements Phase) focuses on identifying, analyzing, and documenting the functional and non-functional requirements of the system. Functional requirements include markerless joint tracking, pose classification, exercise accuracy scoring, feedback delivery, and adherence tracking, while non-functional requirements cover responsiveness, latency, stability, and data privacy compliance.",
+  "new": "March (Requirements Phase) focused on identifying, analyzing, and documenting the functional and non-functional requirements of the system. Functional requirements included markerless joint tracking, pose classification, exercise accuracy scoring, feedback delivery, and adherence tracking, while non-functional requirements covered responsiveness, latency, stability, and data privacy compliance.",
+  "source": "M9.2 md 701->688"
+ },
+ {
+  "op": "replace",
+  "match": "During April–May (Analysis & Design Phase), the specified requirements are translated into structural, computational, and architectural models. This includes designing the system's four-layer architecture, data flow diagrams, use case specifications, class diagrams, entity-relationship models, and the algorithms and database schemas needed to guide implementation.",
+  "old": "During April–May (Analysis & Design Phase), the specified requirements are translated into structural, computational, and architectural models. This includes designing the system's four-layer architecture, data flow diagrams, use case specifications, class diagrams, entity-relationship models, and the algorithms and database schemas needed to guide implementation.",
+  "new": "During April–May (Analysis & Design Phase), the specified requirements were translated into structural, computational, and architectural models. This included designing the system's four-layer architecture, data flow diagrams, use case specifications, class diagrams, entity-relationship models, and the algorithms and database schemas needed to guide implementation.",
+  "source": "M9.2 md 703->690"
+ },
+ {
+  "op": "replace",
+  "match": "In June–July (Implementation Phase), the technical construction of the designed models into working code takes place. Development begins with building the 3D therapeutic environment in Unity, followed by integrating computer vision scripts for motion tracking, exercise evaluation logic, corrective feedback overlays, gamification mechanics, and database logging services.",
+  "old": "In June–July (Implementation Phase), the technical construction of the designed models into working code takes place. Development begins with building the 3D therapeutic environment in Unity, followed by integrating computer vision scripts for motion tracking, exercise evaluation logic, corrective feedback overlays, gamification mechanics, and database logging services.",
+  "new": "In June–July (Implementation Phase), the technical construction of the designed models into working code took place. Development began with building the 3D therapeutic environment in Unity, followed by integrating computer vision scripts for motion tracking, exercise evaluation logic, corrective feedback overlays, gamification mechanics, and database logging services.",
+  "source": "M9.2 md 705->692"
+ },
+ {
+  "op": "replace",
+  "match": "August (Testing Phase) involves systematically verifying that each developed increment operates accurately and interfaces correctly with existing modules. This includes functional verification, motion tracking latency and accuracy testing, corrective prompt validation, and database integrity checks, with identified defects isolated and debugged.",
+  "old": "August (Testing Phase) involves systematically verifying that each developed increment operates accurately and interfaces correctly with existing modules. This includes functional verification, motion tracking latency and accuracy testing, corrective prompt validation, and database integrity checks, with identified defects isolated and debugged.",
+  "new": "August (Testing Phase) involved systematically verifying that each developed increment operated accurately and interfaced correctly with existing modules. This included functional verification, motion tracking latency and accuracy testing, corrective prompt validation, and database integrity checks, with identified defects isolated and debugged.",
+  "source": "M9.2 md 707->694"
+ },
+ {
+  "op": "replace",
+  "match": "This section presents the system analysis of the proposed TheraQuest VR system, focusing on identifying and defining the system components, data structures, and functional interactions required to support virtual reality-based rehabilitation. It examines how user requirements are translated into system specifications, including the relationships between users, system processes, and data management. Through the use of modeling tools such as Use Case diagrams, Entity Relationship diagrams (ERD), and System Flowcharts, this section provides a structured representation of how the system operates. The analysis serves as the foundation for system design and development, ensuring that all components are aligned with the objectives of motion tracking, feedback generation, and adherence monitoring within the rehabilitation process.",
+  "old": "This section presents the system analysis of the proposed TheraQuest VR system, focusing on identifying and defining the system components, data structures, and functional interactions required to support virtual reality-based rehabilitation. It examines how user requirements are translated into system specifications, including the relationships between users, system processes, and data management. Through the use of modeling tools such as Use Case diagrams, Entity Relationship diagrams (ERD), and System Flowcharts, this section provides a structured representation of how the system operates. The analysis serves as the foundation for system design and development, ensuring that all components are aligned with the objectives of motion tracking, feedback generation, and adherence monitoring within the rehabilitation process.",
+  "new": "This section presents the system analysis of the proposed TheraQuest VR system, focusing on identifying and defining the system components, data structures, and functional interactions required to support virtual reality-based rehabilitation. It examines how user requirements are translated into system specifications, including the relationships between users, system processes, and data management. Through the use of modeling tools such as Use Case diagrams, Entity Relationship diagrams (ERD), and Data Flow diagrams (DFD), this section provides a structured representation of how the system operates. The analysis serves as the foundation for system design and development, ensuring that all components are aligned with the objectives of motion tracking, feedback generation, and adherence monitoring within the rehabilitation process.",
+  "source": "M9.2 md 751->738"
+ },
+ {
+  "op": "replace",
+  "match": "B. LEVEL 1 DFD",
+  "old": "B. LEVEL 1 DFD",
+  "new": "B. Level 1 DFD",
+  "source": "M9.2 md 803->790"
+ },
+ {
+  "op": "replace",
+  "match": "Figure 3.6.1.1 System Flowchart of the TheraQuest VR",
+  "old": "Figure 3.6.1.1 System Flowchart of the TheraQuest VR",
+  "new": "Figure 3.6.1.1 System Flowchart of the TheraQuest VR System",
+  "source": "M9.2 md 827->818"
+ },
+ {
+  "op": "replace",
+  "match": "The system flowchart illustrates the overall operational process of the TheraQuest VR system, beginning from user login and continuing through two possible user paths: the Patient workflow and the Physical Therapist workflow. It shows how the system manages authentication, rehabilitation exercise execution, motion analysis, feedback generation, adherence recording, and therapist monitoring.",
+  "old": "The system flowchart illustrates the overall operational process of the TheraQuest VR system, beginning from user login and continuing through two possible user paths: the Patient workflow and the Physical Therapist workflow. It shows how the system manages authentication, rehabilitation exercise execution, motion analysis, feedback generation, adherence recording, and therapist monitoring.",
+  "new": "The flowchart begins at user login and continues through two possible user paths: the Patient workflow and the Physical Therapist workflow. It shows how the system manages authentication, rehabilitation exercise execution, motion analysis, feedback generation, adherence recording, and therapist monitoring.",
+  "source": "M9.2 md 829->820"
+ },
+ {
+  "op": "replace",
+  "match": "The system architecture diagram presents the TheraQuest VR system as a four layer structure that illustrates how system components interact to support rehabilitation processes. The layers are arranged vertically to show the flow of data and functionality, from user interaction at the top to data storage at the bottom.",
+  "old": "The system architecture diagram presents the TheraQuest VR system as a four layer structure that illustrates how system components interact to support rehabilitation processes. The layers are arranged vertically to show the flow of data and functionality, from user interaction at the top to data storage at the bottom.",
+  "new": "The system architecture diagram presents the TheraQuest VR system as a four-layer structure that illustrates how system components interact to support rehabilitation processes. The layers are arranged vertically to show the flow of data and functionality, from user interaction at the top to data storage at the bottom.",
+  "source": "M9.2 md 851->842"
+ },
+ {
+  "op": "replace",
+  "match": "The Processing Layer functions as the core of the system, where movement data is analyzed and evaluated. The Motion Tracking module captures and interprets body movements in real time, which are then assessed by the Exercise Evaluation module to determine accuracy. Based on the results, the system generates real time feedback through the Feedback module and records session completion through the Adherence Monitoring module.",
+  "old": "The Processing Layer functions as the core of the system, where movement data is analyzed and evaluated. The Motion Tracking module captures and interprets body movements in real time, which are then assessed by the Exercise Evaluation module to determine accuracy. Based on the results, the system generates real time feedback through the Feedback module and records session completion through the Adherence Monitoring module.",
+  "new": "The Processing Layer functions as the core of the system, where movement data is analyzed and evaluated. The Motion Tracking module captures and interprets body movements in real time, which are then assessed by the Exercise Evaluation module to determine accuracy. Based on the results, the system generates real-time feedback through the Feedback module and records session completion through the Adherence Monitoring module.",
+  "source": "M9.2 md 857->848"
+ },
+ {
+  "op": "replace",
+  "match": "The Data Layer is responsible for storing and organizing all system data. It includes patient and session information, performance results, adherence records, and rehabilitation programs. This data supports progress tracking, report generation, and therapist decision making.",
+  "old": "The Data Layer is responsible for storing and organizing all system data. It includes patient and session information, performance results, adherence records, and rehabilitation programs. This data supports progress tracking, report generation, and therapist decision making.",
+  "new": "The Data Layer is responsible for storing and organizing all system data. It includes patient and session information, performance results, adherence records, and rehabilitation programs. This data supports progress tracking, report generation, and therapist decision-making.",
+  "source": "M9.2 md 859->850"
+ },
+ {
+  "op": "replace",
+  "match": "The TheraQuest VR system consists of six core functional modules: VR Environment, Motion Tracking, Exercise Evaluation, Feedback Generation, Gamification, and Adherence Monitoring. These modules work together as interconnected components to support the rehabilitation process by capturing user input, analyzing movements, generating feedback, and recording performance data. Each module performs a specific function, contributing to accurate motion tracking, real time feedback, user engagement, and session level adherence monitoring, forming the core operation of the system.",
+  "old": "The TheraQuest VR system consists of six core functional modules: VR Environment, Motion Tracking, Exercise Evaluation, Feedback Generation, Gamification, and Adherence Monitoring. These modules work together as interconnected components to support the rehabilitation process by capturing user input, analyzing movements, generating feedback, and recording performance data. Each module performs a specific function, contributing to accurate motion tracking, real time feedback, user engagement, and session level adherence monitoring, forming the core operation of the system.",
+  "new": "The TheraQuest VR system consists of six core functional modules: VR Environment, Motion Tracking, Exercise Evaluation, Feedback Generation, Gamification, and Adherence Monitoring. These modules work together as interconnected components to support the rehabilitation process by capturing user input, analyzing movements, generating feedback, and recording performance data. Each module performs a specific function, contributing to accurate motion tracking, real-time feedback, user engagement, and session-level adherence monitoring, forming the core operation of the system.",
+  "source": "M9.2 md 865->856"
+ },
+ {
+  "op": "replace",
+  "match": "Programming languages such as C# and Python is used in system development. C# is primarily used within Unity for implementing system logic, user interaction, and gamification features, while Python is used for computer vision processing and integration of motion tracking algorithms.",
+  "old": "Programming languages such as C# and Python is used in system development. C# is primarily used within Unity for implementing system logic, user interaction, and gamification features, while Python is used for computer vision processing and integration of motion tracking algorithms.",
+  "new": "Programming languages such as C# and Python are used in system development. C# is primarily used within Unity for implementing system logic, user interaction, and gamification features, while Python is used for computer vision processing and integration of motion tracking algorithms.",
+  "source": "M9.2 md 963->954"
+ },
+ {
+  "op": "replace",
+  "match": "A database system is required to store and manage system data, including patient information, session records, performance metrics, and adherence results. The database ensures that data is securely stored and can be retrieved efficiently by the system, particularly for monitoring and reporting purposes by physical therapist.",
+  "old": "A database system is required to store and manage system data, including patient information, session records, performance metrics, and adherence results. The database ensures that data is securely stored and can be retrieved efficiently by the system, particularly for monitoring and reporting purposes by physical therapist.",
+  "new": "A database system is required to store and manage system data, including patient information, session records, performance metrics, and adherence results. The database ensures that data is securely stored and can be retrieved efficiently by the system, particularly for monitoring and reporting purposes by the physical therapist.",
+  "source": "M9.2 md 965->956"
+ },
+ {
+  "op": "replace",
+  "match": "Data are gathered through system-generated records, observation checklists, usability questionnaires, and expert evaluation forms. These data include motion tracking results, exercise performance, session completion status, adherence records, and feedback outputs. Overall, this section ensures that the system is evaluated in a structured, safe, and ethical manner based on both technical performance and user-centered assessment.",
+  "old": "Data are gathered through system-generated records, observation checklists, usability questionnaires, and expert evaluation forms. These data include motion tracking results, exercise performance, session completion status, adherence records, and feedback outputs. Overall, this section ensures that the system is evaluated in a structured, safe, and ethical manner based on both technical performance and user-centered assessment.",
+  "new": "Data are gathered through system-generated records, the System Usability Scale, and expert evaluation forms. These data include motion tracking results, exercise performance, session completion status, adherence records, and feedback outputs. Overall, this section ensures that the system is evaluated in a structured, safe, and ethical manner based on both technical performance and user-centered assessment.",
+  "source": "M9.2 md 1013->1004"
+ },
+ {
+  "op": "replace",
+  "match": "The participants of the study consist of three groups: physical therapy patients, healthy volunteers, and licensed physical therapists (PT doctors). These participants are selected using purposive sampling based on their relevance to the study and their ability to interact with or evaluate the system.",
+  "old": "The participants of the study consist of three groups: physical therapy patients, healthy volunteers, and licensed physical therapists (PT doctors). These participants are selected using purposive sampling based on their relevance to the study and their ability to interact with or evaluate the system.",
+  "new": "The participants of the study consist of three groups: physical therapy patients, healthy volunteers, and licensed physical therapists. These participants are selected using purposive sampling based on their relevance to the study and their ability to interact with or evaluate the system.",
+  "source": "M9.2 md 1029->1020"
+ },
+ {
+  "op": "replace",
+  "match": "Furthermore, 3 to 5 licensed physical therapists (PT doctors) will participate as expert evaluators. They will assess the usefulness, effectiveness, and clinical relevance of the system, particularly the adherence monitoring component. PT doctors will review system-generated outputs such as adherence reports and performance summaries to determine whether the system provides accurate and meaningful data that can support rehabilitation monitoring and clinical decision-making.",
+  "old": "Furthermore, 3 to 5 licensed physical therapists (PT doctors) will participate as expert evaluators. They will assess the usefulness, effectiveness, and clinical relevance of the system, particularly the adherence monitoring component. PT doctors will review system-generated outputs such as adherence reports and performance summaries to determine whether the system provides accurate and meaningful data that can support rehabilitation monitoring and clinical decision-making.",
+  "new": "Furthermore, 3 to 5 licensed physical therapists will participate as expert evaluators. They will assess the usefulness, effectiveness, and clinical relevance of the system, particularly the adherence monitoring component. The therapists will review system-generated outputs such as adherence reports and performance summaries to determine whether the system provides accurate and meaningful data that can support rehabilitation monitoring and clinical decision-making.",
+  "source": "M9.2 md 1035->1026"
+ },
+ {
+  "op": "replace",
+  "match": "The inclusion of these participant groups ensures a comprehensive evaluation of the system. Healthy volunteers contribute to system development and technical validation, physical therapy patients provide real-world usability testing, and PT doctors offer expert assessment of the system’s clinical applicability and effectiveness.",
+  "old": "The inclusion of these participant groups ensures a comprehensive evaluation of the system. Healthy volunteers contribute to system development and technical validation, physical therapy patients provide real-world usability testing, and PT doctors offer expert assessment of the system’s clinical applicability and effectiveness.",
+  "new": "The inclusion of these participant groups ensures a comprehensive evaluation of the system. Healthy volunteers contribute to system development and technical validation, physical therapy patients provide real-world usability testing, and licensed physical therapists offer expert assessment of the system’s clinical applicability and effectiveness.",
+  "source": "M9.2 md 1037->1028"
+ },
+ {
+  "op": "replace",
+  "match": "While the participants are performing the tasks, the system automatically records performance data, including motion tracking accuracy, movement evaluation results, and adherence monitoring outputs. At the same time, researchers utilize an observation checklist to monitor user interaction and note any usability issues or behavioral responses.",
+  "old": "While the participants are performing the tasks, the system automatically records performance data, including motion tracking accuracy, movement evaluation results, and adherence monitoring outputs. At the same time, researchers utilize an observation checklist to monitor user interaction and note any usability issues or behavioral responses.",
+  "new": "While the participants are performing the tasks, the system automatically records performance data, including motion tracking accuracy, movement evaluation results, and adherence monitoring outputs.",
+  "source": "M9.2 md 1081->1072"
+ },
+ {
+  "op": "replace",
+  "match": "After completing the session, participants are asked to answer the survey questionnaires, including the System Usability Scale (SUS) and the user feedback questionnaire, to evaluate their experience with the system.",
+  "old": "After completing the session, participants are asked to answer the survey questionnaires, including the System Usability Scale (SUS) and the user feedback questionnaire, to evaluate their experience with the system.",
+  "new": "After completing the session, participants are asked to answer the System Usability Scale (SUS) questionnaire to evaluate their experience with the system.",
+  "source": "M9.2 md 1081->1072"
+ },
+ {
+  "op": "replace",
+  "match": "Finally, all collected data, including system-generated logs, observation records, and questionnaire responses are compiled for analysis to assess the system’s accuracy, usability, and the functionality and relevance of its adherence monitoring component.",
+  "old": "Finally, all collected data, including system-generated logs, observation records, and questionnaire responses are compiled for analysis to assess the system’s accuracy, usability, and the functionality and relevance of its adherence monitoring component.",
+  "new": "Finally, all collected data, including system-generated logs and questionnaire responses are compiled for analysis to assess the system’s accuracy, usability, and the functionality and relevance of its adherence monitoring component.",
+  "source": "M9.2 md 1085->1075"
+ },
+ {
+  "op": "insert_before",
+  "match": "Patient adherence to home-based physical therapy remains a persistent challenge",
+  "like": "1.3    Objectives of the Study",
+  "text": "1.2    Statement of the Problem",
+  "source": "M9.2 C1 missing 1.2 heading restored"
+ },
+ {
+  "op": "delete_para",
+  "match": "Consistent with earlier findings, De Guzman et al. (2024)",
+  "source": "M9.2 C2-13 (D12) De Guzman paragraph removed (no reference entry)"
+ },
+ {
+  "op": "replace",
+  "match": "These local findings reinforce the need",
+  "old": "These local findings reinforce",
+  "new": "This local study reinforces",
+  "source": "M9.2 C2-13 (D12) follows the removal"
+ },
+ {
+  "op": "replace",
+  "match": "Human - Computer Interaction (HCI)",
+  "old": "TheraQuest VR : Human - Computer Interaction",
+  "new": "TheraQuest VR: Human-Computer Interaction",
+  "source": "M9.2 C3 Figure 3.2.1 caption spacing"
+ },
+ {
+  "op": "replace",
+  "match": "At this stage, the system analyzes the patient’s movements and determi",
+  "old": "functionality .",
+  "new": "functionality.",
+  "source": "M9.2 C3 3.2 layer 3 stray space"
+ },
+ {
+  "op": "replace",
+  "match": "These outputs provide measurable data that can be used to evaluate the",
+  "old": "support clinical decision-making.",
+  "new": "inform the therapist’s own decisions.",
+  "source": "M9.2 C3 3.2 layer 5"
+ },
+ {
+  "op": "split_para",
+  "match": "The Level 1 Data Flow Diagram expands the Context Diagram",
+  "at": "It also introduces the system’s database as a central data store",
+  "source": "M9.2 C3 3.5.3 Level 1 DFD split into paragraphs"
+ },
+ {
+  "op": "split_para",
+  "match": "It also introduces the system’s database as a central data store",
+  "at": "This level of representation provides a more detailed view",
+  "source": "M9.2 C3 3.5.3 Level 1 DFD split into paragraphs"
+ },
+ {
+  "op": "insert_after",
+  "match": "Scope of Clinical Application:",
+  "text": "**Single-Camera Tracking:** One camera measures movement in one plane only, so the webcam must be placed to the side of or in front of the patient depending on the exercise. Exercises that the camera cannot follow are performed without tracking.",
+  "source": "M9.3 E6 C1-23 (D9) new Limitation 8"
+ },
+ {
+  "op": "insert_after",
+  "match": "Single-Camera Tracking:",
+  "text": "**Medical Clearance:** The system supports active exercise only. Patients must be cleared by a physician for active movement before using it.",
+  "source": "M9.3 E6 C1-23 (D9) new Limitation 9"
+ },
+ {
+  "op": "insert_after",
+  "match": "Posture Alignment:",
+  "text": "**Range of Motion (ROM):**\nThe angle through which a joint moves during an exercise. In this study, the prescribed target angle is the basis for judging each repetition.",
+  "source": "M9.3 E8 C1-27 (D9) new term"
+ },
+ {
+  "op": "insert_after",
+  "match": "Range of Motion (ROM):",
+  "text": "**Repetition:**\nOne complete performance of an exercise movement. In this study, the system counts a repetition only when the target range is reached with acceptable posture.",
+  "source": "M9.3 E8 C1-27 (D9) new term"
+ },
+ {
+  "op": "insert_after",
+  "match": "Adherence Report:",
+  "text": "**Session:**\nOne sitting in which a patient performs the prescribed exercises. In this study, each session is recorded and sent to the therapist dashboard.",
+  "source": "M9.3 E8 C1-27 (D9) new term"
+ },
+ {
+  "op": "insert_after",
+  "match": "One sitting in which a patient performs the prescribed exercises",
+  "text": "**Patient Code:**\nA short identifier assigned to each patient (for example, P-001). In this study, it is the only identifier that leaves the therapist dashboard, including in exports, reports, and the VR application.",
+  "source": "M9.3 E8 C1-27 (D9, DEC-027) new term"
+ }
+]

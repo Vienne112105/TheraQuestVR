@@ -122,7 +122,10 @@ CREATE TABLE IF NOT EXISTS session (
   pain_before    INTEGER,                          -- 0-10
   pain_after     INTEGER,
   soreness_over_2h INTEGER,                        -- 1 = soreness lasted more than 2 hours after exercise
-  swelling_cm    REAL                              -- swelling increase with exercise
+  swelling_cm    REAL,                             -- swelling increase with exercise
+  -- M10.5 Patient Lock: times the exercise paused because someone other than the patient took over
+  other_person_pauses  INTEGER NOT NULL DEFAULT 0,
+  other_person_seconds INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS performance_record (

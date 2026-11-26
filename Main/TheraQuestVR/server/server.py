@@ -756,7 +756,9 @@ MIGRATIONS = {
                 ("archived_at", "TEXT")],                                   # NULL = active (DEC-014)
     "session": [("pain_before", "INTEGER"), ("pain_after", "INTEGER"),
                 ("soreness_over_2h", "INTEGER"), ("swelling_cm", "REAL"),
-                ("session_uuid", "TEXT")],                                  # idempotency key from Unity
+                ("session_uuid", "TEXT"),                                   # idempotency key from Unity
+                ("other_person_pauses", "INTEGER NOT NULL DEFAULT 0"),      # M10.5 Patient Lock
+                ("other_person_seconds", "INTEGER NOT NULL DEFAULT 0")],
     "protocol_phase": [("rom_goal", "TEXT"), ("other_exercises", "TEXT"),
                        ("check_soreness", "INTEGER NOT NULL DEFAULT 0"), ("max_swelling_cm", "REAL")],
     "exercise": [("measure", "TEXT"), ("view", "TEXT"), ("position", "TEXT"),
@@ -1923,6 +1925,8 @@ def save_session(con, body):
     source = source or "unknown"     # uploads from clients older than M4.3; never counted as webcam data
     counted = source in COUNTED_SOURCES
     rep_events = _rep_events(body.get("rep_events"))
+    other_pauses = _int_field(body, "other_person_pauses", 0, 1000)      # M10.5: pauses because someone other than the patient took over
+    other_seconds = _int_field(body, "other_person_seconds", 0, 86400)
     points = _int_field(body, "points", 0, 100000)
     stars = _int_field(body, "stars", 0, 3)
 
@@ -1934,9 +1938,10 @@ def save_session(con, body):
         return v if v >= 0 else None
 
     sid = con.execute("""INSERT INTO session(patient_id, program_id, started_at, ended_at, input_source, points, stars, status,
-                         pain_before, pain_after, session_uuid) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                         pain_before, pain_after, session_uuid, other_person_pauses, other_person_seconds)
+                         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                       (pid, prog["program_id"], started, ended, source, points, stars, status,
-                       pain("pain_before"), pain("pain_after"), session_uuid)).lastrowid
+                       pain("pain_before"), pain("pain_after"), session_uuid, other_pauses, other_seconds)).lastrowid
 
     notes = []
     if ignored:
@@ -2104,7 +2109,7 @@ def dashboard(con, patient_id, session_limit=SESSION_PAGE):
     since = (date.today() - timedelta(days=13)).isoformat()
     sessions = con.execute("""
         SELECT s.session_id, s.started_at, s.input_source, s.points, s.stars, s.status, s.pain_before, s.pain_after,
-               s.soreness_over_2h, s.swelling_cm,
+               s.soreness_over_2h, s.swelling_cm, s.other_person_pauses, s.other_person_seconds,
                COALESCE(SUM(r.valid_reps),0) AS valid, COALESCE(SUM(r.attempts),0) AS attempts,
                CASE WHEN SUM(r.attempts)>0 THEN SUM(r.avg_accuracy*r.attempts)/SUM(r.attempts) ELSE 0 END AS accuracy,
                CASE WHEN SUM(r.attempts)>0 THEN SUM(r.mean_angle_error*r.attempts)/SUM(r.attempts) ELSE 0 END AS mean_err

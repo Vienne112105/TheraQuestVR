@@ -74,15 +74,16 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M8.6 | M8 | done | Dashboard Visual Refresh |
 | M8.7 | M8 | active | Dashboard Hidden Data |
 | M9 | — | active | Manuscript Finalization & Polish |
-| M9.1 | M9 | done | Manuscript Audit |
+| M9.1 | M9 | active | Manuscript Audit |
 | M9.2 | M9 | done | Language and Flow Edit |
 | M9.3 | M9 | active | Sync with the Built System |
-| M9.4 | M9 | planned | Figures and Screenshots |
+| M9.4 | M9 | active | Figures and Screenshots |
 | M10 | — | active | XR Environment & VR Integration |
 | M10.1 | M10 | done | XR Origin Rig & Quest Link Lifecycle |
 | M10.2 | M10 | done | Controller Input & Ray Menus |
 | M10.3 | M10 | active | Comfort Locomotion in the Rig |
 | M10.4 | M10 | planned | Headset Panels & Rendering |
+| M10.5 | M10 | TBF | Patient Lock (one tracked body) |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -596,12 +597,12 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 ## M9 — Manuscript Finalization & Polish
 
 - **Status:** active (started 2026-11-16)
-- **Objective:** Make the existing capstone manuscript (Chapters 1 to 3 and its lists; working copy `Research/THERAQUEST- MANUSCRIPT.md`) read as finished and describe the system as it is actually built (approved by the human 2026-11-16). No new chapters. Section 3.9 Data Analysis and all results and metrics are out of scope. The master is the human's Google Doc / Word file, so every edit is also delivered as a change list (DEC-029).
+- **Objective:** Make the existing capstone manuscript (Chapters 1 to 3 and its lists; working copy `Research/THERAQUEST- MANUSCRIPT.md`) read as finished and describe the system as it is actually built (approved by the human 2026-11-16). No new chapters. Section 3.9 Data Analysis and all results and metrics are out of scope. Since 2026-11-22 the master is the newest numbered Word draft in `Research/` (Draft 2.2 from the human, then 2.3, …); edits are delivered as Word tracked changes in a copy, with the per-chapter change list as the record, and the `.md` is frozen as a reference (DEC-031, superseding DEC-029).
 - **Success criteria:**
   - `Research/M9-audit.md` has no open item except those the human chose to leave.
   - The human approved Chapters 1, 2 and 3 and the figure set.
-  - Section 3.9 and the embedded image lines of the `.md` are byte-identical to the start.
-  - A change list exists for every chapter so the master can be brought in line.
+  - Section 3.9 and the embedded image lines of the `.md` are byte-identical to the start; in the Word drafts, Section 3.9 text and equations and the images are unchanged (`Research/tools/redline.py guard` content hashes).
+  - Every approved edit is in the newest Word draft as a tracked change, and a change list with sources exists for every chapter.
   - Research aims, objectives, benchmark targets, participants and instruments are changed only with the human's yes; no invented citations, numbers or results.
 - **Children:** `M9.1` Manuscript Audit; `M9.2` Language and Flow Edit; `M9.3` Sync with the Built System; `M9.4` Figures and Screenshots.
 - **Plan:** `docs/superpowers/plans/2026-11-16-m9-manuscript-finalization.md` (repository root; holds the rules, the first-read findings and the verification commands). Order M9.1 → M9.2 → M9.3 → M9.4; review by chapter; one chapter per session.
@@ -610,7 +611,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** none changed; all `brain/systems` files are read as the reference for M9.3.
 
 ### M9.1 — Manuscript Audit
-- **Status:** done (2026-11-16: audit in `Research/M9-audit.md`, 138 items; the human answered D1 to D15; only the real dates for D3 are still to be supplied)
+- **Status:** active (reopened 2026-11-25 by the human to run the audit again; first run done 2026-11-16: audit in `Research/M9-audit.md`, 138 items; the human answered D1 to D15; only the real dates for D3 are still to be supplied)
 - **Objective:** List every place where the manuscript text, figures and tables disagree with the built system or have structure or language problems, before anything is edited.
 - **Deliverables:** `Research/M9-audit.md` with one table per chapter (ID, section, quoted text, problem type, proposed action) and one list of open decisions for the human (tense of Chapter 3, the 2.3 numbering, title-page date and timeline, how much new system detail to add, which figures to redraw, keep or drop). The human first confirms that the 9 October `.md` still matches the master, or re-exports it.
 - **Completion criteria:** the manuscript is not edited in this child; the human has read the audit and answered the open decisions.
@@ -626,15 +627,15 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Systems:** none changed
 
 ### M9.3 — Sync with the Built System
-- **Status:** active (paused by the human 2026-11-17 while M10 runs; nothing edited yet)
+- **Status:** active (paused 2026-11-17 for M10, resumed by the human 2026-11-22: Chapter 1 synced and delivered with all M9.2 edits in `Research/THERAQUEST- MANUSCRIPT DRAFT 2.3.docx` as tracked changes, waiting for the human's review in Word; Chapters 2 and 3 next)
 - **Objective:** The manuscript describes the system that exists.
-- **Deliverables:** every system-mismatch item from the audit resolved in 1.1, 1.3, 1.5, 1.6, 3.2 to 3.7 and 3.10 (single external webcam and 2D angles, tethered Quest Link with desktop fallback, MediaPipe Pose and OpenCV, SQLite, therapist desktop app, first-person view, patient code and name rule, encrypted backup, actual timeline), each checked against [[00_PROJECT]], [[30_DECISIONS]], the systems files and the code, and appended to the chapter change list with its source.
-- **Completion criteria:** every system-mismatch item is closed or marked kept by the human; items that change a research claim were applied only after the human's yes; hash checks unchanged; the human approves.
+- **Deliverables:** every system-mismatch item from the audit resolved in 1.1, 1.3, 1.5, 1.6, 3.2 to 3.7 and 3.10 (single external webcam and 2D angles, tethered Quest Link with desktop fallback, MediaPipe Pose and OpenCV, SQLite, therapist desktop app, first-person view, patient code and name rule, encrypted backup, actual timeline), each checked against [[00_PROJECT]], [[30_DECISIONS]], the systems files and the code, appended to the chapter change list with its source, and applied to the newest Word draft as tracked changes with `Research/tools/redline.py` (DEC-031).
+- **Completion criteria:** every system-mismatch item is closed or marked kept by the human; items that change a research claim were applied only after the human's yes; `validate.py --author Claude` passes, the reject view equals the previous draft and the `redline.py guard` content hashes are unchanged; the human approves in Word.
 - **Dependencies:** M9.2 (same file)
 - **Systems:** none changed
 
 ### M9.4 — Figures and Screenshots
-- **Status:** planned
+- **Status:** active (started 2026-11-26 by the human, from Draft 2.12; the D3 dates for the Gantt figure are still to come)
 - **Objective:** Figures, tables and their lists match the text and the built system.
 - **Deliverables:** for each figure the audit marks as not matching, a corrected version built from the real system saved in `Research/Figures/figures/` beside the old one for the human to keep or replace; screenshots only where the human wants them (throwaway database, patient codes only, DEC-027); captions, List of Figures and List of Tables updated; a placement list (figure number, caption, after which paragraph) for the master. The base64 image lines in the `.md` are not regenerated.
 - **Completion criteria:** every figure and table label in the body matches its list entry and the reverse; the human approves the figure set.
@@ -652,7 +653,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
   - The comfort invariants in [[VRClinicExperience]] hold: the game never moves or turns the headset view on its own; only the instant re-center does.
   - First-person exercise view, default heights, HUD, coach window and subtitles (DEC-021) behave as before on the new rig.
   - All EditMode tests pass; the headset frame rate stays comfortable under URP (DEC-028).
-- **Children:** `M10.1` XR Origin Rig & Quest Link Lifecycle; `M10.2` Controller Input & Ray Menus; `M10.3` Comfort Locomotion in the Rig; `M10.4` Headset Panels & Rendering.
+- **Children:** `M10.1` XR Origin Rig & Quest Link Lifecycle; `M10.2` Controller Input & Ray Menus; `M10.3` Comfort Locomotion in the Rig; `M10.4` Headset Panels & Rendering; `M10.5` Patient Lock (one tracked body).
 - **Done when:** all children are done and the human has run a session in the headset on the new rig.
 - **Dependencies:** access to a Meta Quest headset and a VR-ready PC; HW.1 (Link installed and set as the OpenXR runtime). HW.2 tests the result of M10. M8.4 and M8.5 touch the same panels: do not run them in a parallel session with M10.4.
 - **Note:** the human's uncommitted changes already add `com.unity.xr.interaction.toolkit` 3.6.1, `com.unity.xr.hands` 1.9.0, `com.unity.xr.compositionlayers` 2.6.1, XR Management 4.7.0, `Assets/XRI/` and changed OpenXR settings (seen 2026-11-17). The human chose to commit them as they are (7bf9360, 2026-11-17). XR Hands and Composition Layers stay unused until M10.4 decides on Composition Layers.
@@ -689,6 +690,15 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Completion criteria:** the human can read every panel standing, seated and lying without strain; the headset frame rate stays at the Link refresh rate through a session, or the cost is recorded with the setting that was lowered.
 - **Dependencies:** M10.1; M8.2 approval (room look); not in parallel with M8.4 or M8.5
 - **Systems:** VRClinicExperience, AvatarCoach
+
+### M10.5 — Patient Lock (one tracked body)
+- **Status:** TBF (built 2026-11-26, not committed; waiting for the human check with two people in front of the webcam. Requested by the human 2026-11-26 after the physical therapist said the exercise must be done by the patient and not by another person)
+- **Objective:** The tracker remembers the first body it sees in a session and pauses the session when a different body takes its place or enters the exercise area, until the first body is tracked again.
+- **Deliverables:** `tracker/` looks for up to two bodies (now `num_poses=1`); the first body found at session start is locked with a simple signature (body proportions and position); a "different person" status goes to the game with the other tracker data; the game pauses the exercise (reps kept, same path as the tracking-loss pause) and shows a short message; it resumes only when the locked body is tracked again; the therapist dashboard notes the pause; a person who is only in view (a supervising staff member or relative standing behind or beside) does not pause the session; tests with a recorded two-person landmark sequence (existing record and replay) and EditMode/server tests for the pause and resume.
+- **Completion criteria:** with the locked patient exercising, a second person walking into view does not pause; the second person taking the patient's place pauses the session; the patient returning resumes it; reps are kept; all suites pass; the human checks it with two people in front of the webcam.
+- **Dependencies:** M10 tracker and Link work are untouched; touches `tracker/`, `ExerciseEvaluation` and the pause path in the game. Not in parallel with M8.4 or M8.5 on the HUD files.
+- **Systems:** MotionTracking, ExerciseEvaluation, SessionOrchestration
+- **Manuscript:** Section 1.5, 3.6.3 and 3.7.3 describe it only after it is built (M9.3).
 
 ## HW — Hardware Integration & Field Validation (unscheduled)
 

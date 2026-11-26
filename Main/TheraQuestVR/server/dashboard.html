@@ -2904,7 +2904,8 @@ function renderSessionHistory() {
         <i aria-hidden="true" data-lucide="${s.status === 'complete' ? 'check' : 'clock'}" style="width:12px;height:12px"></i>
         ${esc(s.status)}
       </span>
-      <div class="attention-sources">${esc(sourceLabel(s.input_source))}</div></td>
+      <div class="attention-sources">${esc(sourceLabel(s.input_source))}</div>
+      ${s.other_person_pauses ? `<div class="attention-sources" style="color:var(--red)">Paused ${+s.other_person_pauses}× for another person (${+s.other_person_seconds}s)</div>` : ""}</td>
       <td>${s.valid} / ${s.attempts} reps</td>
       <td style="font-weight:600;color:var(--teal)">${s.accuracy}%</td>
       <td>${formatPainNotes(s)}</td>

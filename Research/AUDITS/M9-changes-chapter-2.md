@@ -71,3 +71,25 @@ In the master, regenerate the table of contents after the edits so page numbers 
 ## D. Moved to M9.3 (system wording — not changed in this pass)
 
 C2-14 (2.2.5 tethered cabling and "standalone HMD units", D4, with the one-sentence explanation you asked for), C2-21 (2.3.3 Flow Theory "adaptive difficulty levels", D8; also "adaptive activities" in the 2.3 opening). C2-15 is a no-action note (literature wording about cloud dashboards).
+
+## Applied in Draft 2.3 (2026-11-22)
+
+`THERAQUEST- MANUSCRIPT DRAFT 2.2.docx` is now the master (DEC-031). Every row of Parts A and B above is in `THERAQUEST- MANUSCRIPT DRAFT 2.3.docx` as a Word tracked change (author "Claude"); accept or reject them in Word. Record: `M9-edits-draft-2.3.json`.
+
+- **Already done by you in Draft 2.2:** the four theory headings 2.3.1 to 2.3.4, so those rows were skipped. The figure captions (2.3.4 to 2.3.7 → 2.3.1 to 2.3.4) and the List of Figures (Self-Determination row deleted, the rest renumbered) were still old and are changed.
+- **C8 answered:** the Flow Theory figure is in the master as a floating image (the `.md` export had lost it).
+- **Contents:** refreshed in Word on 2026-11-23 as a tracked change; TAM, DeLone and McLean and Self-Determination Theory are gone.
+
+## E. Second audit, Chapter 2 (applied 2026-11-25 in Draft 2.6)
+
+Source: `Research/AUDITS/M9-audit-2.md` (N2-1 to N2-5). Built on `Research/MANUSCRIPT DRAFT/THERAQUEST- MANUSCRIPT DRAFT 2.5.docx`; edit list `Research/MANUSCRIPT DRAFT/M9-edits-draft-2.6.json`; result `THERAQUEST- MANUSCRIPT DRAFT 2.6.docx` (Word tracked changes, author Claude).
+
+| # | Audit ID | Section | Original | New | Reason |
+|---|----------|---------|----------|-----|--------|
+| E1 | N2-1 (D4) | 2.2.5 | standalone-headset wording | already in Draft 2.4 (Quest Link sentence) | no change needed |
+| E2 | N2-2 (D8) | 2.3 opening, 2.3.3 | automatic difficulty | already in Draft 2.4 (therapist-approved progression) | no change needed |
+| E3 | N2-3 | 2.2.5 para 4 | "range-of-motion validation, adaptive difficulty scaling, and instant corrective prompts" | "range-of-motion validation, and instant corrective prompts" | TheraQuest VR has no automatic difficulty scaling (D8); the sentence read like a feature. The citations stay. |
+| E4 | N2-4 | 2.3 opening, Figure 2.3.1 caption, 2.3.1 | "Schmidt & Lee, 2011" (3 places) | "Schmidt et al., 2018" | Your answer 2026-11-25; matches the reference entry (6th ed., 2018). |
+| E5 | N2-5 | 2.2.3, Table 1, References | "Navea et al. (2025a)" | "Navea et al. (2025)" | No 2025b entry remains (D12). |
+
+Checks: reject view equals Draft 2.5; Section 3.9 and image hashes unchanged; Word opens the file (138 pages, 447 revisions).

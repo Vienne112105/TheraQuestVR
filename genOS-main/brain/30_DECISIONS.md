@@ -45,8 +45,9 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 | DEC-026 | accepted | 2026-11-12 | Which Limb Is Measured, Resting Baseline and Rep Timing |
 | DEC-027 | accepted | 2026-11-12 | Patient Records Hold Name and Code; Only the Code Leaves the Dashboard |
 | DEC-028 | accepted | 2026-11-14 | The Game Renders with URP |
-| DEC-029 | accepted | 2026-11-16 | The Manuscript Master Is the Google Doc / Word File; the Repo Copy Is a Working Copy |
+| DEC-029 | superseded | 2026-11-16 | The Manuscript Master Is the Google Doc / Word File; the Repo Copy Is a Working Copy |
 | DEC-030 | accepted | 2026-11-17 | The VR Client Moves to the XR Interaction Toolkit, Controllers Only |
+| DEC-031 | accepted | 2026-11-22 | Manuscript Edits Go into the Word Draft as Tracked Changes |
 
 ---
 
@@ -270,7 +271,7 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Supersedes:** none (the Built-in workaround noted under DEC-018 ends with M8.1)
 
 ### DEC-029: The Manuscript Master Is the Google Doc / Word File; the Repo Copy Is a Working Copy
-- **Status:** accepted
+- **Status:** superseded (by DEC-031, 2026-11-22: the hand-applied change-list workflow ended; its Section 3.9 and research-claim rules carry over)
 - **Date:** 2026-11-16
 - **Reason:** At the M9 kickoff the human said the capstone manuscript they submit lives in a Google Doc / Word file. `Research/THERAQUEST- MANUSCRIPT.md` is an export of it (9 October 2026) with the figures embedded as base64 image lines. The human also chose to leave Section 3.9 Data Analysis and all results and metrics out of M9, and to review edits by chapter.
 - **Impact:** Agents edit only the repo `.md` and must deliver every edit as a per-chapter change list (`Research/M9-changes-chapter-N.md`: section, original text, new text, reason) so the human can apply it to the master by hand. New or corrected figures are delivered as image files plus a placement list; the base64 image lines in the `.md` are never edited or regenerated. Section 3.9 is not edited during M9; problems found there are only reported. Research aims, objectives, benchmark targets, participants and instruments change only with the human's yes. If the master has moved on since the export, the human re-exports before the audit (M9.1).
@@ -282,3 +283,10 @@ Keep the Index in sync with entries below. Do not leave blank placeholder rows.
 - **Reason:** The human asked for a milestone on the Unity XR environment and the game's VR integration and had already added the XR Interaction Toolkit 3.6.1, XR Hands and Composition Layers packages to the project. Until now the game read `UnityEngine.XR` devices directly and used no toolkit ([[VRClinicExperience]]). Asked on 2026-11-17, the human chose controllers plus the XRI rig (no hand tracking) and chose to wait for a headset instead of building on the XR Device Simulator.
 - **Impact:** M10 in [[50_ROADMAP]] replaces the hand-written rig, input reads and locomotion with an XR Origin, input actions, ray-pointed menus and XRI locomotion. Desktop fallback (DEC-002), the first-person view and default heights (DEC-021), the URP comfort ban list (DEC-028) and the invariants in [[VRClinicExperience]] stay in force. Hand tracking stays a future change; the XR Hands package is removed in M10.1 unless the human wants it kept, and Composition Layers stays only if M10.4 needs it. M10 does not start until a Meta Quest is available. HW.2 tests the M10 result.
 - **Supersedes:** none (ends the "No XR Interaction Toolkit" note in [[VRClinicExperience]] once M10.1 is built)
+
+### DEC-031: Manuscript Edits Go into the Word Draft as Tracked Changes
+- **Status:** accepted
+- **Date:** 2026-11-22
+- **Reason:** On 2026-11-22 the human uploaded `Research/THERAQUEST- MANUSCRIPT DRAFT 2.2.docx` as the actual manuscript draft. It matched the original `.md` export except for three changes of the human's own (Objective 4c "System Usability (SUS)", the four theory headings renumbered 2.3.1 to 2.3.4, and five floating figures the export had lost), so none of the approved M9.2 edits had reached the master. Asked how to use it, the human chose to have every edit delivered as Word tracked changes in a copy of the docx.
+- **Impact:** The newest numbered draft docx in `Research/` is the master. Agents never edit a draft in place: they write the edits with their sources to an edit list (`Research/M9-edits-draft-N.json`) and apply it with `Research/tools/redline.py` onto a copy, which becomes the next draft (Draft 2.3 holds all M9.2 edits and the M9.3 Chapter 1 sync). Every change is a tracked insertion or deletion by author "Claude"; the human accepts or rejects in Word. Checks before handing over: the docx skill's `validate.py --author Claude`, the reject view equals the previous draft, and the content hashes from `redline.py guard` (Section 3.9 text and equations, the images in order, the media set) are unchanged. Byte hashes are not used because Word rewrites the whole XML whenever it saves. The per-chapter change lists stay as the record with sources; the `.md` is frozen as a reference and no longer edited. Kept from DEC-029: Section 3.9 is not edited in M9, and research aims, objectives, benchmarks, participants, instruments, ethics wording and dates change only with the human's yes. Formatting fixes and the contents refresh are done through Word itself (COM, Track Changes on); Word records them under the signed-in Office account, so their author is reset to Claude in the XML afterwards.
+- **Supersedes:** DEC-029

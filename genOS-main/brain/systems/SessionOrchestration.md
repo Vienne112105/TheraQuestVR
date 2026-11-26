@@ -33,6 +33,7 @@ Coordinates the patient workout lifecycle: patient profile selection, prescripti
 - The input source is locked for the whole session; walking is disabled while an exercise runs.
 - A session interrupted by quitting the app is queued as ended early, not lost.
 - The tutorial is never scored or saved: it plays before every session's first exercise, can be skipped, and the session's time starts after it.
+- Patient Lock (M10.5): a webcam session pauses (counting stops, the 3-2-1 and the "complete" moment wait, one short message) while another person has the patient's place, and resumes only when the locked patient is tracked again. The pause is latched in `PatientGate`, which also counts pauses and seconds; the upload carries `other_person_pauses` and `other_person_seconds` (no identity), the server stores them on the session and the dashboard session list notes them. Keyboard and simulated input have no patient to lock.
 
 ## Notes
 - Seamlessly falls back to simulated/keyboard motion mode when webcam tracking is unavailable.

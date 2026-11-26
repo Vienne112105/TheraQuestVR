@@ -48,6 +48,7 @@ namespace TheraQuest
         bool awaitingReady;          // patient is getting into the start position for the next exercise
         float autoReadyTimer;        // simulated mode continues on its own
         LiveState lastState;
+        readonly PatientGate patientGate = new PatientGate();   // pauses the exercise while another person has the patient's place (M10.5)
         readonly Countdown countdown = new Countdown();   // 3-2-1 before each exercise (M5.4)
         float celebrateTimer;        // "exercise complete" moment before the next exercise (M5.4)
         const float CelebrateSeconds = 3.5f;
@@ -395,6 +396,14 @@ namespace TheraQuest
 
         void RunExercise(ExerciseDef ex, float dt)
         {
+            if (WebcamLockPaused(dt))
+            {
+                // Counting stops, reps already counted stay, the 3-2-1 and the "complete" moment wait (M10.5)
+                CurrentEval?.TrackingPaused(awaitingReady || celebrateTimer > 0f ? 0f : dt);
+                repMessageTimer = 0f;
+                hud.SetFeedback("Only the patient can do the exercise\n<size=34>Paused until the patient is back in view</size>", Tone.Warn);
+                return;
+            }
             if (celebrateTimer > 0f)
             {
                 // "Exercise complete" moment, then the next exercise's get-ready card (frozen while paused)
@@ -475,6 +484,13 @@ namespace TheraQuest
             }
         }
 
+        bool WebcamLockPaused(float dt)
+        {
+            patientGate.Tick(receiver != null ? receiver.Latest : null, motion.source == InputSource.Webcam,
+                             receiver != null && receiver.IsReceiving, dt);
+            return patientGate.Paused;
+        }
+
         /// <summary>
         /// Get-ready camera line (M6.3): with the webcam, whether the camera is placed right for this exercise and, if
         /// not, the one thing to fix first. Start still works, so a patient is never stuck on it.
@@ -525,6 +541,7 @@ namespace TheraQuest
             }
             index = 0;
             celebrateTimer = 0f;
+            patientGate.Reset();
             countdown.Cancel();
             game = new GamificationManager(program.patient.badges);
             game.BadgeUnlocked += code =>
@@ -690,6 +707,8 @@ namespace TheraQuest
                 ended_at = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss", System.Globalization.CultureInfo.InvariantCulture),
                 ended_early = endedEarly,
                 input_source = sessionSource,
+                other_person_pauses = patientGate.Pauses,
+                other_person_seconds = Mathf.RoundToInt(patientGate.PausedSeconds),
                 points = game.Points,
                 badges_earned = new List<string>(game.EarnedThisSession)
             };

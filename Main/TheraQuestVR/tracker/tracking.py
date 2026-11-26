@@ -26,6 +26,7 @@ Coordinates are MediaPipe's normalised 0..1 image coordinates; times are seconds
 import math
 from collections import deque
 
+from patient_lock import PatientLock
 from angles import (JOINTS, L_ANKLE, L_ELBOW, L_HIP, L_KNEE, L_SHOULDER, L_WRIST, MIN_VISIBILITY, R_ANKLE, R_ELBOW,
                     R_HIP, R_KNEE, R_SHOULDER, R_WRIST, empty_packet, limb_directions, measure)
 
@@ -265,9 +266,12 @@ class PoseTracker:
         self._near = None
         self._sides = {}
         self.state = POSE_LOST
+        self.lock = None                # PatientLock (M10.5), created by the first update_bodies
 
     def reset(self):
-        """Forget everything (the camera was lost): no estimate survives this."""
+        """Forget everything (the camera was lost): no estimate survives this. The locked patient is remembered."""
+        if self.lock is not None:
+            self.lock.camera_lost()
         for track in self.tracks:
             track.reset()
         self._last_t = None
@@ -298,6 +302,22 @@ class PoseTracker:
             self._bad_since = None
         elif self._bad_since is None:
             self._bad_since = t
+
+    def update_bodies(self, bodies, t, aspect=1.0):
+        """One frame with up to two detected bodies (patient_lock.Body). Only the locked patient's body is tracked and
+        scored; another body is never measured (M10.5). aspect: image width / height."""
+        if self.lock is None:
+            self.lock = PatientLock()
+        idx, _ = self.lock.update(bodies, t, aspect)
+        if idx is None:
+            self.update(None, t)
+        else:
+            self.update(bodies[idx].pts, t, bodies[idx].world)
+
+    def relock(self):
+        """The next body found becomes the patient (a new session, or the patient was never the one locked)."""
+        if self.lock is not None:
+            self.lock.reset()
 
     def _pose_state(self):
         verified = max(sum(self.tracks[i].reliable for i in idxs) for idxs in CORE.values())
@@ -397,6 +417,9 @@ class PoseTracker:
                     self._sides[name] = "L" if packet["L"][name] == packet[name] else "R"
 
         packet["trackingState"] = self.state
+        if self.lock is not None:
+            packet["patient"] = self.lock.status     # locking | ok | away | different (M10.5)
+            packet["bodies"] = self.lock.bodies
         # Display only (M6.4): which way the upper arms and thighs point in 3D, from verified landmarks
         if verified and self._world is not None:
             for side, dirs in (limb_directions(self._world, lambda i: self.tracks[i].reliable) or {}).items():

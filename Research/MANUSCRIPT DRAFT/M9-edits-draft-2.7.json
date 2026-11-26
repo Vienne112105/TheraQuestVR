@@ -1,0 +1,204 @@
+[
+ {
+  "op": "replace",
+  "match": "standalone VR HMDs, external camera sensors",
+  "old": "(e.g., standalone VR HMDs, external camera sensors)",
+  "new": "(e.g., a VR headset connected to the computer by Quest Link, an external webcam)",
+  "source": "M9.3 Ch3 N3-1 (D4)"
+ },
+ {
+  "op": "replace",
+  "match": "onto the target standalone VR hardware",
+  "old": "the target standalone VR hardware and therapist workstation environments",
+  "new": "the target computer, the VR headset connected to it by Quest Link, and the therapist workstation environments",
+  "source": "M9.3 Ch3 N3-1 (D4)"
+ },
+ {
+  "op": "replace",
+  "match": "visual/audio feedback delivery, gamified",
+  "old": "markerless joint tracking, pose classification, exercise",
+  "new": "markerless joint tracking, joint angle measurement, exercise",
+  "source": "M9.3 Ch3 N3-2 (D15)"
+ },
+ {
+  "op": "replace",
+  "match": "feedback delivery, and adherence tracking, while",
+  "old": "joint tracking, pose classification, exercise",
+  "new": "joint tracking, joint angle measurement, exercise",
+  "source": "M9.3 Ch3 N3-2 (D15)"
+ },
+ {
+  "op": "replace",
+  "match": "The system shall track user adherence and performance at the session level",
+  "old": "This focuses on session completion rather than long-term behavioral tracking or frequency analysis.",
+  "new": "The therapist dashboard shows this as a 14-day adherence calendar with an adherence percentage and flags for patients who need attention.",
+  "source": "M9.3 Ch3 N3-4 (D7)"
+ },
+ {
+  "op": "replace",
+  "match": "This module focuses strictly on session-level compliance",
+  "old": "focuses strictly on session-level compliance and does not analyze long-term behavioral patterns,",
+  "new": "records compliance for each session and the therapist dashboard shows it over the last 14 days as a calendar with an adherence percentage and attention flags,",
+  "source": "M9.3 Ch3 N3-5 (D7)"
+ },
+ {
+  "op": "replace",
+  "match": "The Patient entity stores personal information",
+  "old": "additional demographic attributes such as name, age, and gender",
+  "new": "the patient code (for example P-001), which is the only identifier that leaves the therapist's computer, together with the patient's name, which is stored only on the therapist's computer",
+  "source": "M9.3 Ch3 G-5 patient code, no age or gender column (DEC-027)"
+ },
+ {
+  "op": "replace",
+  "match": "The Performance Record entity stores",
+  "old": "establishing a many-to-many bridge between the Session and Exercise entities through its foreign key references.",
+  "new": "linking each session to the exercises performed in it through its foreign key references.",
+  "source": "M9.3 Ch3 N3-9 wording"
+ },
+ {
+  "op": "replace",
+  "match": "Overall, the ERD demonstrates",
+  "old": "and adherence monitoring.",
+  "new": "and adherence monitoring. The figure shows the core entities; the implemented database also holds protocols with phases and prescribed exercises, a record of every repetition, and earned badges.",
+  "source": "M9.3 Ch3 N3-7 (Q1: one sentence)"
+ },
+ {
+  "op": "replace",
+  "match": "The VR Environment Module serves as the primary interface",
+  "old": "physical gestures and head movements from the patient,",
+  "new": "the patient's body movement, received as joint angles from the motion tracking module,",
+  "source": "M9.3 Ch3 N3-10 (DEC-030)"
+ },
+ {
+  "op": "replace",
+  "match": "The Scene Renderer is responsible",
+  "old": "including hand movements, head orientation, and positional data, and forwards these to the motion tracking pipeline.",
+  "new": "including head orientation and controller input for menus and re-centering the view.",
+  "source": "M9.3 Ch3 N3-10 (DEC-030)"
+ },
+ {
+  "op": "replace",
+  "match": "The outputs of this module include the fully rendered immersive scene",
+  "old": "raw user movement data sent to the motion tracking module, ",
+  "new": "",
+  "source": "M9.3 Ch3 N3-10 (DEC-030)"
+ },
+ {
+  "op": "replace",
+  "match": "The Motion Tracking Module is responsible for capturing",
+  "old": "It receives input from three sources: camera sensors such as built-in VR cameras or external webcams, positional data from VR tracking hardware including controllers and headset orientation, and raw video frames streamed continuously during the session.",
+  "new": "It receives its input from an external webcam, which streams raw video frames continuously during the session.",
+  "source": "M9.3 Ch3 N3-11 (D5)"
+ },
+ {
+  "op": "replace",
+  "match": "The Frame Preprocessor normalizes",
+  "old": "The Frame Preprocessor normalizes and denoises each incoming video frame to ensure consistent image quality before analysis.",
+  "new": "The Frame Preprocessor resizes a copy of each incoming video frame to the size used for detection.",
+  "source": "M9.3 Ch3 N3-12 tracker.py resizes, does not denoise"
+ },
+ {
+  "op": "replace",
+  "match": "The Frame Preprocessor",
+  "old": "positions of key joints and body parts within each frame. The Joint Angle Calculator",
+  "new": "positions of key joints and body parts within each frame. The Landmark Smoother steadies the detected landmarks over time and carries them through short gaps when tracking is briefly lost. The Joint Angle Calculator",
+  "source": "M9.3 Ch3 N3-12 (OneEuro and Kalman in tracking.py)"
+ },
+ {
+  "op": "replace",
+  "match": "The Frame Preprocessor",
+  "old": " The Movement Classifier compares the detected gesture patterns against known exercise types to determine which movement the patient is currently performing.",
+  "new": "",
+  "source": "M9.3 Ch3 N3-13 (D15)"
+ },
+ {
+  "op": "replace",
+  "match": "The Progression Controller manages",
+  "old": "manages the advancement of rehabilitation difficulty and exercise sequencing, adjusting the level or complexity of subsequent tasks in response to the patient's demonstrated performance.",
+  "new": "tracks the patient's experience points and level and, when the criteria set for the current phase are met, recommends the next phase to the therapist, who decides whether to approve it.",
+  "source": "M9.3 Ch3 N3-14 (D8)"
+ },
+ {
+  "op": "replace",
+  "match": "The outputs of this module include the session score",
+  "old": "a next-level trigger that advances the exercise difficulty when performance thresholds are met,",
+  "new": "a next-phase recommendation sent to the therapist when performance thresholds are met,",
+  "source": "M9.3 Ch3 N3-14 (D8)"
+ },
+ {
+  "op": "replace",
+  "match": "The Feedback Decision Engine determines",
+  "old": "produces voice instructions and sound responses delivered through the headset's audio output, reinforcing the visual cues with spoken guidance.",
+  "new": "produces sound responses delivered through the headset's audio output, reinforcing the visual cues, and every instruction is also shown as a subtitle.",
+  "source": "M9.3 Ch3 N3-15 FeedbackManager has sounds only"
+ },
+ {
+  "op": "replace",
+  "match": "The outputs of this module include visual overlays",
+  "old": "corrective guidance text that is also logged to the performance database for clinical reference.",
+  "new": "the posture fault found in each repetition, which is also logged to the performance database for clinical reference.",
+  "source": "M9.3 Ch3 N3-15 rep_event.fault"
+ },
+ {
+  "op": "replace",
+  "match": "The system requires a VR headset",
+  "old": "such as the Meta Quest, to provide",
+  "new": "such as the Meta Quest connected to the computer by Quest Link, to provide",
+  "source": "M9.3 Ch3 N3-1 (D4)"
+ },
+ {
+  "op": "replace",
+  "match": "A computer system is necessary",
+  "old": "and handle the integration of VR and computer vision components.",
+  "new": "and handle the integration of VR and computer vision components. The computer runs the motion tracker, the game and the therapist application together.",
+  "source": "M9.3 Ch3 N3-16"
+ },
+ {
+  "op": "replace",
+  "match": "The system also requires camera sensors",
+  "old": "The system also requires camera sensors to capture user movements for motion tracking. These sensors, which may include built-in VR tracking cameras or external webcams, are used",
+  "new": "The system also requires an external webcam to capture user movements for motion tracking. The webcam is used",
+  "source": "M9.3 Ch3 N3-16 (D5)"
+ },
+ {
+  "op": "replace",
+  "match": "An adequate physical space is required",
+  "old": "This space also contributes to accurate motion tracking by minimizing environmental interference.",
+  "new": "This space also contributes to accurate motion tracking by minimizing environmental interference. Because the headset hides the room and is connected to the computer by a cable, the cable is kept clear of the patient and each session is supervised, as described in the Limitations in Section 1.5.",
+  "source": "M9.3 Ch3 G-3 cable and supervision"
+ },
+ {
+  "op": "replace",
+  "match": "For motion tracking and analysis, the system uses",
+  "old": "computer vision libraries such as OpenCV or MediaPipe, or any similar libraries. These tools provide functionalities for detecting and interpreting human body movements, including pose estimation and gesture recognition, which are essential",
+  "new": "computer vision libraries, namely OpenCV and MediaPipe Pose. These tools provide functionalities for detecting and interpreting human body movements, including pose estimation, which is essential",
+  "source": "M9.3 Ch3 N3-17"
+ },
+ {
+  "op": "insert_after",
+  "match": "The testing process also includes debugging and error correction.",
+  "text": "Automated test suites also cover the server, the therapist's login and authorization rules, the motion tracker, the exercise evaluation and the Unity game. Recorded landmark sequences can be replayed through the tracker and the evaluation, so that a test can be repeated exactly.",
+  "source": "M9.3 Ch3 N3-19 (Q2: two sentences, no numbers)"
+ },
+ {
+  "op": "replace",
+  "match": "A total of 5 to 10 physical therapy patients",
+  "old": "5 to 10 physical therapy patients will participate",
+  "new": "5 to 10 physical therapy patients in the active-recovery stage, cleared by a physician for active exercise, will participate",
+  "source": "M9.3 Ch3 G-1 stage, same as Chapter 1"
+ },
+ {
+  "op": "replace",
+  "match": "Expert evaluation of system outputs is conducted",
+  "old": "is conducted by licensed physical therapists",
+  "new": "is the review procedure in which licensed physical therapists use the evaluation statements above",
+  "source": "M9.3 Ch3 N3-21"
+ },
+ {
+  "op": "replace",
+  "match": "The final component of the framework presents",
+  "old": "presents the system outcomes, which include:",
+  "new": "presents the expected system outcomes, which include:",
+  "source": "M9.3 Ch3 N3-23 (Q4)"
+ }
+]

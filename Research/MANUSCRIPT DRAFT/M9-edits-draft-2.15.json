@@ -1,0 +1,9 @@
+[
+ {
+  "op": "replace",
+  "match": "The Physical Therapist entity serves as the root of the database structure",
+  "old": "area of specialization",
+  "new": "professional license number (license_no)",
+  "source": "M9.4 open item: 3.5.2 text matched to schema.sql and the redrawn ERD (physical_therapist has license_no, no specialization); human yes 2026-11-26"
+ }
+]
