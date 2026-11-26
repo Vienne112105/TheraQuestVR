@@ -106,6 +106,8 @@ namespace TheraQuest
         public float trunkLean;
         public float elbowDrift;
         public string trackingState;   // tracking | degraded | reacquiring | lost (DEC-022)
+        public string patient;         // Patient Lock (M10.5): locking | ok | away | different; empty from an older tracker
+        public int bodies;             // bodies the tracker can see (the patient and anyone else in view)
         public AngleSet estL;          // angles from estimated landmarks: for display only, never scored
         public AngleSet estR;
         public AngleSet L = new AngleSet();
@@ -116,6 +118,9 @@ namespace TheraQuest
 
         /// <summary>Nobody is in the camera's view (DEC-022 whole-pose state "lost", or no person at all).</summary>
         public bool PersonLost => !visible || trackingState == "lost";
+
+        /// <summary>Another person has taken the patient's place (M10.5): the exercise pauses until the patient is back.</summary>
+        public bool DifferentPerson => patient == "different";
 
         /// <param name="operatedSide">"L", "R", or "" for the best-seen side</param>
         public AngleSet For(string operatedSide) => operatedSide == "L" ? L : operatedSide == "R" ? R : this;
@@ -270,6 +275,8 @@ namespace TheraQuest
         public string input_source;
         public int points;
         public int stars;
+        public int other_person_pauses;   // M10.5: times the exercise paused because someone other than the patient took over
+        public int other_person_seconds;
         public List<string> badges_earned = new List<string>();
         public List<ExerciseResult> exercises = new List<ExerciseResult>();
         public List<RepEvent> rep_events = new List<RepEvent>();

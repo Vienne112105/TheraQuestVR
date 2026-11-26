@@ -1,0 +1,16 @@
+# Graphify scope: only project source under Main/TheraQuestVR counts as code.
+genOS-main/
+.agents/
+.cursor/
+.obsidian/
+Research/
+graphify-out/
+
+# Unity: third-party packs and generated folders
+Main/TheraQuestVR/unity/Assets/LuceedStudio/
+Main/TheraQuestVR/unity/Assets/TextMesh Pro/
+Main/TheraQuestVR/unity/Assets/XR/
+Main/TheraQuestVR/unity/Packages/
+Main/TheraQuestVR/unity/ProjectSettings/
+Main/TheraQuestVR/unity/Library/
+Main/TheraQuestVR/unity/Temp/

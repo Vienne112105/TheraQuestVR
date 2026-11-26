@@ -103,6 +103,8 @@ namespace TheraQuest
                 case LiveState.Holding: return ($"Hold steady… {Mathf.CeilToInt(ex.holdSeconds - ev.HoldTime)}s", Tone.Good);
                 case LiveState.OnTarget:
                     return (ex.holdSeconds > 0f ? "Hold complete! Now lower slowly" : "Perfect spot! Now lower slowly", Tone.Good);
+                case LiveState.Lowering:
+                    return ("Great! Now lower slowly to the start", Tone.Good);
                 case LiveState.Rising:
                     float left = ex.targetAngle - ev.CurrentAngle;
                     return (numbers ? $"{Mathf.RoundToInt(left)}° to target" : left < ex.targetAngle * 0.2f ? "Almost there!" : "Higher! Keep going", Tone.Warn);

@@ -636,6 +636,25 @@ class CountedSourceTests(ServerTestCase):
     def dash(self, pid):
         return self.call("GET", f"/api/patients/{pid}/dashboard", headers=self.auth)[1]
 
+    def test_other_person_pauses_reach_the_dashboard(self):
+        """M10.5 Patient Lock: the dashboard notes sessions that paused because someone other than the patient took over."""
+        pid, vr = self.new_patient()
+        base = self.session_body(pid, [], started_at="2026-10-20T09:00:00", ended_at="2026-10-20T09:20:00")
+        s1, out1 = self.call("POST", "/api/vr/sessions",
+                             dict(base, session_uuid="lock-1", other_person_pauses=2, other_person_seconds=45), vr)
+        s2, out2 = self.call("POST", "/api/vr/sessions", dict(base, session_uuid="lock-2"), vr)   # an older client: no fields
+        self.assertEqual((s1, s2), (201, 201))
+        rows = {s["session_id"]: s for s in self.dash(pid)["sessions"]}
+        self.assertEqual((rows[out1["session_id"]]["other_person_pauses"], rows[out1["session_id"]]["other_person_seconds"]), (2, 45))
+        self.assertEqual(rows[out2["session_id"]]["other_person_pauses"], 0)
+        self.assertEqual(self.call("POST", "/api/vr/sessions",
+                                   dict(base, session_uuid="lock-3", other_person_pauses="x"), vr)[0], 400)
+
+    def test_session_table_has_the_patient_lock_columns(self):
+        with server.db() as con:
+            cols = {r[1] for r in con.execute("PRAGMA table_info(session)")}
+        self.assertLessEqual({"other_person_pauses", "other_person_seconds"}, cols)
+
     def test_practice_session_does_not_complete_the_day(self):
         pid, vr = self.new_patient()
         self.upload(pid, vr, 1, source="simulated")
@@ -715,6 +734,62 @@ class CountedSourceTests(ServerTestCase):
         self.assertEqual({s["input_source"] for s in sessions}, {"keyboard", "webcam"})
         _, rows = self.call("GET", f"/api/patients/{pid}/export?format=json&kind=sessions", headers=self.auth)
         self.assertTrue(all("input_source" in r for r in rows))
+
+
+class HiddenDataTests(ServerTestCase):
+    """M8.7: the dashboard payload behind the calendar, phase history and per-exercise table."""
+
+    new_patient, upload = AttentionFlagTests.new_patient, AttentionFlagTests.upload
+
+    def dash(self, pid):
+        return self.call("GET", f"/api/patients/{pid}/dashboard", headers=self.auth)[1]
+
+    def test_per_exercise_stats_count_sessions_and_best_from_counted_only(self):
+        pid, vr = self.new_patient()
+        self.upload(pid, vr, 3, accuracy=70, unsafe=1)
+        self.upload(pid, vr, 2, accuracy=90)
+        self.upload(pid, vr, 1, accuracy=99, unsafe=5, source="keyboard")
+        rows = self.dash(pid)["byExercise"]
+        self.assertTrue(rows)
+        for r in rows:
+            self.assertEqual(r["sessions"], 2, r)
+            self.assertEqual(r["best"], 90.0, r)
+            self.assertEqual(r["accuracy"], 80.0, r)
+            self.assertEqual(r["unsafe"], 1, r)
+
+    def test_per_exercise_stats_empty_patient(self):
+        pid, _ = self.new_patient()
+        for r in self.dash(pid)["byExercise"]:
+            self.assertEqual((r["sessions"], r["best"], r["unsafe"]), (0, 0, 0), r)
+
+    def test_phase_history_names_the_approving_clinician(self):
+        pid, _ = self.new_patient()
+        con = server.db()
+        phase = con.execute("SELECT phase_id FROM protocol_phase WHERE vr_allowed=1 LIMIT 1").fetchone()[0]
+        con.close()
+        self.assertEqual(self.call("POST", f"/api/patients/{pid}/phase", {"phase_id": phase, "note": "ok"}, self.auth)[0], 200)
+        self.assertEqual(self.call("DELETE", f"/api/patients/{pid}/protocol", headers=self.auth)[0], 200)
+        hist = self.dash(pid)["phaseHistory"]
+        self.assertEqual([h["approvedBy"] for h in hist[:2]], ["Physical Therapist"] * 2)
+        self.assertIsNone(hist[0]["phase"])
+        self.assertTrue(hist[1]["phase"])
+
+    def test_calendar_marks_days_before_enrolment(self):
+        pid, _ = self.new_patient()
+        cal = self.dash(pid)["calendar"]
+        self.assertEqual(len(cal), 14)
+        self.assertTrue(cal[-1]["enrolled"])
+        self.assertFalse(cal[0]["enrolled"])
+        self.assertTrue(all(d["status"] in ("rest", "pending") for d in cal))
+
+    def test_old_phase_history_rows_have_no_approver(self):
+        pid, _ = self.new_patient()
+        con = server.db()
+        con.execute("INSERT INTO phase_history(patient_id, phase_id, changed_at, note) VALUES (?,NULL,'2026-01-01T00:00:00','old')",
+                    (pid,))
+        con.commit()
+        con.close()
+        self.assertIsNone(self.dash(pid)["phaseHistory"][0]["approvedBy"])
 
 
 class PatientNameTests(ServerTestCase):

@@ -5,7 +5,7 @@ namespace TheraQuest
     /// <summary>
     /// Walk around the clinic, on the laptop or in the headset. Put it on the camera Rig.
     ///   Desktop: W A S D to walk (Shift = faster), Q / E or Left / Right to turn,
-    ///            hold the right mouse button and move the mouse to look around.
+    ///            move the mouse to look around (in a menu, hold the right mouse button).
     ///   Quest:   left thumbstick to walk, right thumbstick to turn (snap 30° or smooth, from Settings).
     /// Walking follows the direction you look. Walls and furniture with colliders block you, and you
     /// stay inside the room. The exercise station is where the rig starts; R / Y brings you back to it.
@@ -18,8 +18,11 @@ namespace TheraQuest
         public float bodyRadius = 0.25f;
         public float mouseSensitivity = 0.15f;
 
-        /// <summary>While true (menus open), the player can't move.</summary>
+        /// <summary>While true (menus open), the player can't move or turn.</summary>
         [HideInInspector] public bool locked;
+        /// <summary>While true (an exercise is running), the player stays on the exercise spot but can still turn and look
+        /// around: the view is theirs, the automatic pan to the limb is only a starting point (human request 2026-11-14).</summary>
+        [HideInInspector] public bool walkLocked;
 
         static readonly float[] Speeds = { 0.9f, 1.5f, 2.3f };
         Vector3 stationPos;
@@ -38,7 +41,7 @@ namespace TheraQuest
         {
             if (locked) return;
             float dt = Time.deltaTime;
-            Walk(dt);
+            if (!walkLocked) Walk(dt);
             TurnAndLook(dt);
         }
 

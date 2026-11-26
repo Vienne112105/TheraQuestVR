@@ -11,7 +11,7 @@ namespace TheraQuest.EditorTools
     /// <summary>
     /// Menu: TheraQuest → Set Up OpenXR (M4.3, DEC-002).
     /// Turns on the OpenXR loader for Windows (Standalone) with "Initialize XR on Startup" and the
-    /// Oculus Touch controller profile, so Quest Link works in Play mode and in a built player.
+    /// Quest controller profiles (Touch, Touch Plus, Touch Pro), so Quest Link works in Play mode and in a built player.
     /// Without a headset, OpenXR fails to start and the app stays in desktop mode.
     /// Also runs from the command line: -executeMethod TheraQuest.EditorTools.OpenXRSetup.RunBatch
     /// </summary>
@@ -36,11 +36,11 @@ namespace TheraQuest.EditorTools
         {
             if (!AssetDatabase.IsValidFolder(Folder)) AssetDatabase.CreateFolder("Assets", "XR");
 
-            if (!EditorBuildSettings.TryGetConfigObject(XRGeneralSettings.k_SettingsKey, out XRGeneralSettingsPerBuildTarget perTarget) || perTarget == null)
+            if (!EditorBuildSettings.TryGetConfigObject(XRGeneralSettings.settingsKey, out XRGeneralSettingsPerBuildTarget perTarget) || perTarget == null)
             {
                 perTarget = ScriptableObject.CreateInstance<XRGeneralSettingsPerBuildTarget>();
                 AssetDatabase.CreateAsset(perTarget, Folder + "/XRGeneralSettingsPerBuildTarget.asset");
-                EditorBuildSettings.AddConfigObject(XRGeneralSettings.k_SettingsKey, perTarget, true);
+                EditorBuildSettings.AddConfigObject(XRGeneralSettings.settingsKey, perTarget, true);
             }
 
             if (!perTarget.HasSettingsForBuildTarget(Group)) perTarget.CreateDefaultSettingsForBuildTarget(Group);
@@ -48,7 +48,7 @@ namespace TheraQuest.EditorTools
             if (!perTarget.HasManagerSettingsForBuildTarget(Group)) perTarget.CreateDefaultManagerSettingsForBuildTarget(Group);
             general.InitManagerOnStart = true;
 
-            var manager = general.AssignedSettings;
+            var manager = general.Manager;
             if (manager == null)
             {
                 Debug.LogError("[TheraQuest] No XR manager settings for Standalone.");
@@ -63,19 +63,24 @@ namespace TheraQuest.EditorTools
 
             UnityEditor.XR.OpenXR.Features.FeatureHelpers.RefreshFeatures(Group);
             var openxr = OpenXRSettings.GetSettingsForBuildTargetGroup(Group);
-            var touch = openxr != null ? openxr.GetFeature<OculusTouchControllerProfile>() : null;
-            if (touch == null)
-            {
-                Debug.LogError("[TheraQuest] Oculus Touch Controller Profile not found in OpenXR settings.");
+            // Quest 2 (Touch), Quest 3 and 3S (Touch Plus) and Quest Pro (Touch Pro) controllers (M10.1)
+            if (!Enable<OculusTouchControllerProfile>(openxr) | !Enable<MetaQuestTouchPlusControllerProfile>(openxr) |
+                !Enable<MetaQuestTouchProControllerProfile>(openxr))
                 return false;
-            }
-            touch.enabled = true;
 
             EditorUtility.SetDirty(general);
             EditorUtility.SetDirty(manager);
             EditorUtility.SetDirty(openxr);
             EditorUtility.SetDirty(perTarget);
             AssetDatabase.SaveAssets();
+            return true;
+        }
+
+        static bool Enable<T>(OpenXRSettings openxr) where T : UnityEngine.XR.OpenXR.Features.OpenXRFeature
+        {
+            var f = openxr != null ? openxr.GetFeature<T>() : null;
+            if (f == null) { Debug.LogError("[TheraQuest] " + typeof(T).Name + " not found in OpenXR settings."); return false; }
+            f.enabled = true;
             return true;
         }
     }

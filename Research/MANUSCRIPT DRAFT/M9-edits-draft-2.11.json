@@ -1,0 +1,23 @@
+[
+ {
+  "op": "replace",
+  "match": "to protect the rights, safety, and well-being of all participants. Before participation",
+  "old": "to protect the rights,",
+  "new": "Ethical guidelines are strictly observed throughout this study to protect the rights,",
+  "source": "M9.3 G-6 3.10 opening sentence (human yes 2026-11-26)"
+ },
+ {
+  "op": "replace",
+  "match": "Confidentiality and data privacy are strictly maintained",
+  "old": "Confidentiality and data privacy are strictly maintained throughout the study. Personal information and collected data, including performance records and adherence reports, are securely stored and used solely for research purposes. Participant identities are anonymized in all reports and publications to protect their privacy.",
+  "new": "Confidentiality and data privacy are strictly maintained throughout the study, in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173). Personal information and collected data, including performance records and adherence reports, are stored only on the computer at the research site and are used solely for research purposes. Participant names are recorded only with consent and are shown only on the therapist's dashboard. Each patient is identified by a patient code (for example, P-001) in all exports, reports and the VR application, and backups of the data are encrypted.",
+  "source": "M9.3 D10 / N3-22 data privacy (human yes 2026-11-26)"
+ },
+ {
+  "op": "replace",
+  "match": "proceeds to the Log In step",
+  "old": "The process begins when the user starts the system and proceeds to the Log In step. After entering login details, the system validates the user's credentials to confirm access. Once validated, the system determines whether the user is a Patient or a Physical Therapist. This decision point separates the system into two major workflows based on the role of the authenticated user.",
+  "new": "The process begins when the user starts the system. The physical therapist signs in to the therapist dashboard with a password, and the system validates these credentials before granting access. The patient does not sign in with a password: the VR application loads the program assigned by the therapist using the patient code, on the same computer. These two entry points separate the system into two major workflows, one for the Patient and one for the Physical Therapist.",
+  "source": "M9.3 D11 / N3-6 login wording 3.6.1 (human yes 2026-11-26)"
+ }
+]

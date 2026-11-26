@@ -11,7 +11,7 @@ Usage:
   python tracker.py --record        # also save the landmarks (no images) to recordings/<date-time>.jsonl
   python tracker.py --replay FILE   # no camera: send a recording to Unity as if it were live (--fast: no waiting)
 
-Press Q in the preview window to quit.
+Press Q in the preview window to quit, R to lock onto a new patient (the first body found is the patient, M10.5).
 """
 import argparse
 import hashlib
@@ -25,6 +25,7 @@ import time
 import urllib.request
 
 import recording
+from patient_lock import Body, DIFFERENT
 from tracking import POSE_LOST, POSE_TRACKING, PoseTracker, landmark_confidence
 
 # Pinned model version "1" (not "latest"), so every install runs the same model.
@@ -284,7 +285,7 @@ def run_fake(sock, addr):
             "shoulderElevSigned": round(92 * wave, 1),
             "hipElevSigned": round(47 * wave, 1),
         }
-        packet = {"ts": round(t, 3), "visible": True, "side": "R", "trackingState": POSE_TRACKING, **angles,
+        packet = {"ts": round(t, 3), "visible": True, "side": "R", "trackingState": POSE_TRACKING, "patient": "ok", "bodies": 1, **angles,
                   "trunkLean": 3.0, "elbowDrift": 8.0, "L": angles, "R": angles}
         send(sock, addr, packet)
         time.sleep(1 / 30)
@@ -303,14 +304,15 @@ def run_replay(sock, addr, path, fast):
 
 
 def raw_landmarks(result):
-    """MediaPipe's first pose as plain tuples for a recording: 2D (x, y, visibility, presence) and
-    3D world (x, y, z, visibility, presence); None for each one that is missing."""
-    pose = world = None
-    if result.pose_landmarks:
-        pose = [(l.x, l.y, l.visibility, l.presence) for l in result.pose_landmarks[0]]
-    if getattr(result, "pose_world_landmarks", None):
-        world = [(l.x, l.y, l.z, l.visibility, l.presence) for l in result.pose_world_landmarks[0]]
-    return pose, world
+    """MediaPipe's poses (up to two bodies, M10.5) as plain tuples for a recording: a list of
+    (2D [(x, y, visibility, presence)], 3D world [(x, y, z, visibility, presence)] or None), empty when nobody is found."""
+    out = []
+    worlds = getattr(result, "pose_world_landmarks", None) or []
+    for k, lms in enumerate(result.pose_landmarks or []):
+        pose = [(l.x, l.y, l.visibility, l.presence) for l in lms]
+        world = [(l.x, l.y, l.z, l.visibility, l.presence) for l in worlds[k]] if k < len(worlds) else None
+        out.append((pose, world))
+    return out
 
 
 def run_camera(sock, addr, cam_index, model_kind, mirror, record_path=None):
@@ -331,7 +333,7 @@ def run_camera(sock, addr, cam_index, model_kind, mirror, record_path=None):
             vision.PoseLandmarkerOptions(
                 base_options=mp_python.BaseOptions(model_asset_path=model_path),
                 running_mode=vision.RunningMode.VIDEO,
-                num_poses=1,
+                num_poses=2,                 # the patient and one other body (Patient Lock, M10.5)
                 min_pose_detection_confidence=0.5,
                 min_pose_presence_confidence=0.5,
                 min_tracking_confidence=0.5,
@@ -392,17 +394,19 @@ def run_camera(sock, addr, cam_index, model_kind, mirror, record_path=None):
             ts = last_ts + 1
         last_ts = ts
         result = landmarker.detect_for_video(image, ts)
-        raw_pose, raw_world = raw_landmarks(result)
+        found = raw_landmarks(result)
         if record_path:
             if recorder is None:
                 recorder = recording.Recorder(record_path, w, h, model_kind)
-            recorder.frame(ts / 1000, raw_pose, raw_world)
+            if found:
+                recorder.frame(ts / 1000, found[0][0], found[0][1], found[1:])
+            else:
+                recorder.frame(ts / 1000, None, None)
 
-        # Landmark Tracking: trust, smoothing, short-term prediction (tracking.py, DEC-022)
-        pts = None
-        if raw_pose is not None:
-            pts = [(x, y, landmark_confidence(v, p)) for x, y, v, p in raw_pose]
-        pose.update(pts, ts / 1000, raw_world)
+        # Landmark Tracking: trust, smoothing, short-term prediction (tracking.py, DEC-022). Only the locked
+        # patient's body is tracked; any other body is never measured (patient_lock.py, M10.5).
+        bodies = [Body([(x, y, landmark_confidence(v, p)) for x, y, v, p in lm], wd) for lm, wd in found]
+        pose.update_bodies(bodies, ts / 1000, w / h)
         if pose.should_redetect(ts / 1000):
             # MediaPipe re-detects by itself when it finds nobody; a pose it keeps reporting but we
             # can't track may be a bad lock, so restart it to force a fresh detection.
@@ -418,7 +422,10 @@ def run_camera(sock, addr, cam_index, model_kind, mirror, record_path=None):
         # Mirror only the preview (detection runs on the raw frame so left/right stay correct)
         if mirror:
             frame = cv2.flip(frame, 1)
-        if packet["trackingState"] == POSE_TRACKING:
+        if packet.get("patient") == DIFFERENT:
+            cv2.putText(frame, "Another person - paused until the patient is back (R: new patient)", (20, 40),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (60, 60, 255), 2)
+        elif packet["trackingState"] == POSE_TRACKING:
             draw_text(cv2, frame, packet)
         else:
             text = "No person detected - step into view" if packet["trackingState"] == POSE_LOST else "Move back into view"
@@ -432,8 +439,12 @@ def run_camera(sock, addr, cam_index, model_kind, mirror, record_path=None):
         if w > PREVIEW_WIDTH:
             frame = cv2.resize(frame, (PREVIEW_WIDTH, round(h * PREVIEW_WIDTH / w)), interpolation=cv2.INTER_AREA)
         cv2.imshow("TheraQuest tracker (Q to quit)", frame)
-        if cv2.waitKey(1) & 0xFF in (ord("q"), ord("Q")):
+        key = cv2.waitKey(1) & 0xFF
+        if key in (ord("q"), ord("Q")):
             break
+        if key in (ord("r"), ord("R")):
+            pose.relock()
+            print("Patient lock cleared: the next body found is the patient.")
 
     if grabber is not None:
         grabber.stop().release()

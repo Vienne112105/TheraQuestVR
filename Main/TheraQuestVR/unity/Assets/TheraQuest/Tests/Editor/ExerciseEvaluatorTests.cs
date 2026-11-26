@@ -29,6 +29,26 @@ namespace TheraQuest.Tests
         }
 
         [Test]
+        public void ComingBackDown_AfterTheTarget_IsLowering_WithGoodGuidance()
+        {
+            var ev = new ExerciseEvaluator(Ex());
+            for (float a = 0; a <= 90; a += 5) ev.Update(a, null, Dt);      // up to the target
+            ev.Update(70f, null, Dt);                                         // on the way back down, below the band
+            Assert.AreEqual(LiveState.Lowering, ev.State);
+            var (text, tone) = FeedbackManager.LiveMessage(ev, null);
+            Assert.AreEqual(Tone.Good, tone);
+            StringAssert.Contains("lower", text);
+        }
+
+        [Test]
+        public void StillShortOfTheTarget_IsRising()
+        {
+            var ev = new ExerciseEvaluator(Ex());
+            for (float a = 0; a <= 70; a += 5) ev.Update(a, null, Dt);
+            Assert.AreEqual(LiveState.Rising, ev.State);
+        }
+
+        [Test]
         public void RepOnTargetIsValidAndAccurate()
         {
             var ev = new ExerciseEvaluator(Ex());
@@ -677,7 +697,8 @@ namespace TheraQuest.Tests
             StringAssert.Contains("2026-10-20", ProgressViews.ProgressPage(p, true, ProgressViews.ProgressTab.Sessions));
             // Tab 3: badges are cards drawn by the menu; the text is the count above them, and each card says how to earn it
             string badges = ProgressViews.ProgressPage(p, true, ProgressViews.ProgressTab.Badges);
-            StringAssert.Contains("1</b> of 7 badges earned", badges);
+            StringAssert.Contains(ProgressViews.Headline("1") + " of 7 badges earned", badges);   // the count is the headline (M8.5)
+            StringAssert.StartsWith(ProgressViews.Headline("Level 2"), profile);
             StringAssert.DoesNotContain("2026-10-20", badges);
             foreach (var code in GamificationManager.BadgeNames.Keys) Assert.IsNotEmpty(ProgressViews.BadgeHint(code), code);
             Assert.AreEqual("", ProgressViews.BadgeHint("mystery"));

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.XR;
 
 namespace TheraQuest
 {
@@ -34,7 +33,7 @@ namespace TheraQuest
         RectTransform pillsBlock, meterBlock, holdBlock, repsBlock, tilesBlock;
         float leftH = 900f;
         string leftLayoutKey;
-        int dotsShown = -1, filledShown, lastScore;
+        int dotsShown = -1, filledShown;
 
         // right card
         TextMeshProUGUI questCount;
@@ -51,7 +50,7 @@ namespace TheraQuest
         UIKit.CardRef bubbleCard;
         Bounce bubbleBounce;
         float bubbleH = -1f;
-        TextMeshProUGUI bubbleIconTxt, feedbackTxt, popTxt, sumTitle, sumBody, sumStars;
+        TextMeshProUGUI bubbleIconTxt, feedbackTxt, popTxt, sumTitle, sumBody, sumStars, sumHeadline, sumCaption;
         GameObject summary;
         UIKit.CardRef sumCard;
         RectTransform sumXpRow, sumBadgeRow;
@@ -67,6 +66,8 @@ namespace TheraQuest
         System.Action sumOnLevelUp, sumOnBadge;
         string lastFeedback = "";
         float popTimer;
+        // Feedback motion (M8.3): the hold ring round the target star (null when its sprite is missing), the combo tile
+        Image holdRing, comboTile;
         Vector2 popStart;
 
         sealed class QuestRow { public Image bg, circle, barFill; public TextMeshProUGUI mark, name, count; }
@@ -76,7 +77,12 @@ namespace TheraQuest
         bool viewPlaced;
 
         // Coach window and side mirror (M5.8)
-        const float CoachW = 640f, CoachH = 740f, CoachPicture = 592f, CoachGap = 18f, MirrorSize = 520f;
+        // M8.4: both pictures sit in the same navy frame (FramedPicture), inset FrameInset px from the card's fill
+        const float CoachW = 640f, CoachH = 740f, FrameInset = 16f, FrameWidth = 6f, CoachFrame = 592f,
+                    CoachPicture = CoachFrame - 2f * FrameWidth, CoachGap = 18f, MirrorSize = 520f;
+        /// <summary>The quest card's height while minimised during a session (when the coach window shows under it).</summary>
+        // Rows, the hint under them and the same bottom margin as the open card
+        public const float QuestMinimisedH = 110f + 72f + 8f + NextRowH + UIKit.Gap.Medium + UIKit.TypeSize.Caption + UIKit.Gap.Large + 8f;
         RawImage coachPicture, mirrorPicture;
         TextMeshProUGUI coachWord, coachCaption;
         RectTransform coachWordChip;
@@ -86,7 +92,8 @@ namespace TheraQuest
         /// <summary>Keeps a calm message on screen instead of letting it fade (the tutorial's steps).</summary>
         [HideInInspector] public bool holdBubble;
 
-        const float GlassAlpha = 0.55f;      // see-through cards
+        // Nearly solid cards: at 0.55 the floor showed through and small grey text washed out (human request 2026-11-24)
+        public const float GlassAlpha = 0.9f, BubbleAlpha = 0.95f;
         const float BubbleShowSeconds = 6f;  // calm messages fade after this long
         CanvasGroup bubbleGroup;
         float bubbleChangedAt;
@@ -96,6 +103,9 @@ namespace TheraQuest
         UIKit.CardRef questCard;
         readonly List<GameObject> questFullOnly = new List<GameObject>();
         TextMeshProUGUI questHint;
+        Image nextBg;                       // "NEXT" row under the current exercise while the quest card is minimised
+        TextMeshProUGUI nextTag, nextName;
+        const float NextRowH = 56f;
         bool? questOpenByUser;
         bool questRunning;
         float questH = 900f;
@@ -114,6 +124,7 @@ namespace TheraQuest
             BuildMirror();
             // Move the panels into an overlay that follows the camera, and draw them on top of the scene
             view = new GameObject("View HUD").transform;
+            View = view;
             foreach (var c in new[] { leftCanvas, rightCanvas, bubbleCanvas, summaryCanvas, coachCanvas, mirrorCanvas })
             {
                 c.transform.SetParent(view, false);
@@ -123,29 +134,69 @@ namespace TheraQuest
             bubbleChangedAt = Time.unscaledTime;
         }
 
+        void OnEnable()
+        {
+            HeadTracking.Recentered += Replace;
+            XrMode.Changed += OnXrChanged;
+        }
+
+        void OnDisable()
+        {
+            HeadTracking.Recentered -= Replace;
+            XrMode.Changed -= OnXrChanged;
+        }
+
         void OnDestroy() { if (view != null) Destroy(view.gameObject); }
+
+        bool placedLying;
+
+        /// <summary>The world-space overlay the HUD panels sit on (the subtitles join it in the headset).</summary>
+        public static Transform View { get; private set; }
+
+        void Replace() { viewPlaced = false; }
+
+        void OnXrChanged(XrModeLogic.Change c)
+        {
+            if (c == XrModeLogic.Change.HeadsetBack || c == XrModeLogic.Change.HeadsetConnected) viewPlaced = false;
+        }
+
+        /// <summary>Puts the panels in front of where the patient looks now, level (lying down: tilted up toward the ceiling).</summary>
+        void PlaceViewInFront(Transform ct)
+        {
+            float yaw = ct.eulerAngles.y;
+            if (lyingView)
+            {
+                float rigYaw = ct.parent != null ? ct.parent.eulerAngles.y : 0f;
+                view.SetPositionAndRotation(ct.position, Quaternion.Euler(-65f, rigYaw, 0f));
+            }
+            else view.SetPositionAndRotation(ct.position, Quaternion.Euler(0f, yaw, 0f));
+            placedLying = lyingView;
+            viewPlaced = true;
+        }
 
         void LateUpdate()
         {
             var cam = Camera.main;
             if (cam == null) return;
-            bool headset = XRSettings.isDeviceActive;
+            bool headset = XrMode.InHeadset;
             var ct = cam.transform;
-            if (headset && lyingView)
+            if (headset)
             {
-                float rigYaw = ct.parent != null ? ct.parent.eulerAngles.y : 0f;
-                view.SetPositionAndRotation(ct.position, Quaternion.Euler(-65f, rigYaw, 0f));
+                // In the headset the panels stay put in the room (M10.1): they ride on the rig, so walking and turning
+                // carry them, but moving the head does not. They are put in front of the patient again only at an
+                // instant re-center, when the headset is put on, or when the lying view changes.
+                var head = cam.GetComponent<HeadTracking>();
+                var rig = head != null ? head.Rig : ct.parent;
+                if (view.parent != rig) { view.SetParent(rig, true); viewPlaced = false; }
+                if (lyingView != placedLying) viewPlaced = false;
+                if (!viewPlaced) PlaceViewInFront(ct);
             }
-            else if (headset && viewPlaced)
+            else
             {
-                // Lazy follow in VR: stays level and catches up smoothly (a face-locked panel is uncomfortable)
-                float k = 1f - Mathf.Exp(-5f * Time.unscaledDeltaTime);
-                view.position = Vector3.Lerp(view.position, ct.position, Mathf.Min(1f, k * 2f));
-                view.rotation = Quaternion.Slerp(view.rotation, Quaternion.Euler(0f, ct.eulerAngles.y, 0f), k);
+                if (view.parent != null) view.SetParent(null, true);
+                view.SetPositionAndRotation(ct.position, ct.rotation);   // laptop: locked to the screen
+                viewPlaced = false;
             }
-            else if (headset) view.SetPositionAndRotation(ct.position, Quaternion.Euler(0f, ct.eulerAngles.y, 0f));
-            else view.SetPositionAndRotation(ct.position, ct.rotation);   // laptop: locked to the screen
-            viewPlaced = true;
             UpdateQuestCard();
             UpdateBubbleFade();
             LayoutView(cam, headset);
@@ -153,7 +204,10 @@ namespace TheraQuest
 
         [Header("Readability & Scale")]
         [Tooltip("Scale factor for HUD floating cards in world metres (increased from 0.00055 to 0.00092 for clear readability).")]
-        [SerializeField, Range(0.0006f, 0.0016f)] public float hudScale = 0.00092f;
+        [SerializeField, Range(0.0006f, 0.0016f)] public float hudScale = DefaultHudScale;
+        /// <summary>HUD distance and scale, and where the summary sits relative to them (VRClinicExperience invariants).</summary>
+        public const float DefaultHudScale = 0.00092f, HeadsetDistance = 1.65f,
+                           SummaryDepth = 0.95f, SummaryScale = 1.1f, SummaryHeadsetLift = 0.1f;
 
         /// <summary>Places the panels at the edges of the view, leaving the centre (the coach) clear.</summary>
         void LayoutView(Camera cam, bool headset)
@@ -163,15 +217,17 @@ namespace TheraQuest
             float d, x, y, bubbleY, yaw;
             if (headset)
             {
-                d = 1.45f;
-                x = 0.90f;
-                y = 0.06f;
-                bubbleY = 0.66f;
+                // Pushed out from 1.45 m (human request 2026-11-19); the offsets scale with it to keep the same directions
+                d = HeadsetDistance;
+                float k = d / 1.45f;
+                x = 0.90f * k;
+                y = 0.06f * k;
+                bubbleY = 0.66f * k;
                 yaw = 24f;
             }
             else
             {
-                d = 1.15f;
+                d = 1.35f;   // was 1.15 m (human request 2026-11-19: a bit further)
                 float halfH = d * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
                 float halfW = halfH * cam.aspect, margin = 0.035f;
                 x = Mathf.Max(card.x * 0.55f, halfW - margin - card.x / 2f);
@@ -185,7 +241,7 @@ namespace TheraQuest
             float rightY = top - questH * scale / 2f;
             Place(rightCanvas, new Vector3(x, rightY, d), yaw, scale);
             Place(bubbleCanvas, new Vector3(0f, bubbleY, d), 0f, scale);
-            Place(summaryCanvas, new Vector3(0f, headset ? 0.1f : 0f, d * 0.95f), 0f, scale * 1.1f);
+            Place(summaryCanvas, new Vector3(0f, headset ? SummaryHeadsetLift : 0f, d * SummaryDepth), 0f, scale * SummaryScale);
             Place(coachCanvas, new Vector3(x, top - (questH + CoachGap + CoachH / 2f) * scale, d), yaw, scale);
             float mirrorY = headset ? -0.3f : -d * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) + (MirrorSize * 0.5f + 40f) * scale;
             Place(mirrorCanvas, new Vector3(0f, mirrorY, d), 0f, scale);
@@ -209,8 +265,7 @@ namespace TheraQuest
         {
             leftCanvas = UIKit.Canvas(transform, "HUD Left", Vector3.zero, 0f, new Vector2(640, 900));
             var c = leftCanvas.transform;
-            leftCard = UIKit.Card(c, new Vector2(640, 900), UIKit.Cream, UIKit.Teal);
-            leftCard.Glass(GlassAlpha);
+            leftCard = UIKit.Window(c, new Vector2(640, 900), GlassAlpha);
             var card = leftCard.fill.transform;
 
             levelTxt = UIKit.Pill(card, new Vector2(28, -36), new Vector2(180, 56), UIKit.Purple, "LEVEL 1", 30, UIKit.White);
@@ -221,9 +276,10 @@ namespace TheraQuest
             pillsBlock = Group(card, "Pills");
             setTxt = UIKit.Pill(pillsBlock, new Vector2(28, 0), new Vector2(180, 52), UIKit.Orange, "GET READY", 24, UIKit.White);
             setPill = (Image)setTxt.transform.parent.GetComponent<Graphic>();
-            sideTxt = UIKit.Pill(pillsBlock, new Vector2(216, 0), new Vector2(200, 52), UIKit.Blue, "", 24, UIKit.White);
+            // Wide enough for "RIGHT SHOULDER" at the same size as "GET READY"
+            sideTxt = UIKit.Pill(pillsBlock, new Vector2(216, 0), new Vector2(250, 52), UIKit.Blue, "", 24, UIKit.White);
             sidePill = (Image)sideTxt.transform.parent.GetComponent<Graphic>();
-            cadenceTxt = UIKit.Pill(pillsBlock, new Vector2(424, 0), new Vector2(172, 52), UIKit.Teal, "SMOOTH", 22, UIKit.White);
+            cadenceTxt = UIKit.Pill(pillsBlock, new Vector2(474, 0), new Vector2(122, 52), UIKit.Teal, "SMOOTH", 22, UIKit.White);
             cadencePill = (Image)cadenceTxt.transform.parent.GetComponent<Graphic>();
             cadencePill.gameObject.SetActive(false);
 
@@ -238,6 +294,8 @@ namespace TheraQuest
             stopTxt = Label(meterBlock, new Vector2(0, -MeterTop - MeterH - 6), new Vector2(90, 26), 20, UIKit.Red, TextAnchor.UpperCenter, FontStyle.Bold);
             stopTxt.text = "STOP";
             starTxt = UIKit.Stroke(Label(meterBlock, new Vector2(0, 6), new Vector2(80, 70), 60, UIKit.Yellow, TextAnchor.MiddleCenter, FontStyle.Bold), 3f);
+            holdRing = FeedbackMotion.HoldRing(meterBlock, new Vector2(HoldRingSize, HoldRingSize));
+            if (holdRing != null) { holdRing.transform.SetSiblingIndex(starTxt.transform.GetSiblingIndex()); holdRing.enabled = false; }
             starTxt.text = "★";
 
             // Hold / rest bar (only shown for hold exercises and rests)
@@ -255,11 +313,14 @@ namespace TheraQuest
 
             // Points and combo tiles
             tilesBlock = Group(card, "Tiles");
+            // Both tiles: white label and number, the number outlined in a darker shade of its tile
             pointsTile = Box(tilesBlock, new Vector2(28, 0), new Vector2(276, 140), UIKit.Yellow, "Points tile");
-            Label(pointsTile.transform, new Vector2(20, -14), new Vector2(240, 30), 24, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold).text = "POINTS";
-            scoreTxt = Label(pointsTile.transform, new Vector2(20, -46), new Vector2(240, 80), 62, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
+            Label(pointsTile.transform, new Vector2(20, -14), new Vector2(240, 30), 24, UIKit.White, TextAnchor.UpperLeft, FontStyle.Bold).text = "POINTS";
+            scoreTxt = UIKit.Stroke(Label(pointsTile.transform, new Vector2(20, -46), new Vector2(240, 80), 62, UIKit.White, TextAnchor.UpperLeft, FontStyle.Bold),
+                                    UIKit.Darker(UIKit.Yellow), 3f);
             UIKit.Bouncy(pointsTile);
-            var comboTile = Box(tilesBlock, new Vector2(320, 0), new Vector2(276, 140), UIKit.Pink, "Combo tile");
+            comboTile = Box(tilesBlock, new Vector2(320, 0), new Vector2(276, 140), UIKit.Pink, "Combo tile");
+            UIKit.Bouncy(comboTile);
             Label(comboTile.transform, new Vector2(20, -14), new Vector2(240, 30), 24, UIKit.White, TextAnchor.UpperLeft, FontStyle.Bold).text = "COMBO";
             comboTxt = UIKit.Stroke(Label(comboTile.transform, new Vector2(20, -46), new Vector2(240, 80), 62, UIKit.White, TextAnchor.UpperLeft, FontStyle.Bold),
                                     UIKit.Darker(UIKit.Pink), 3f);
@@ -322,8 +383,7 @@ namespace TheraQuest
         {
             rightCanvas = UIKit.Canvas(transform, "HUD Right", Vector3.zero, 0f, new Vector2(640, 900));
             var c = rightCanvas.transform;
-            questCard = UIKit.Card(c, new Vector2(640, 900), UIKit.Cream, UIKit.Orange);
-            questCard.Glass(GlassAlpha);
+            questCard = UIKit.Window(c, new Vector2(640, 900), GlassAlpha);
             var card = questCard.fill.transform;
             Label(card, new Vector2(28, -36), new Vector2(400, 56), 44, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold).text = "Today's quest";
             questCount = UIKit.Pill(card, new Vector2(440, -36), new Vector2(156, 52), UIKit.Teal, "0 / 0", 28, UIKit.White);
@@ -334,11 +394,21 @@ namespace TheraQuest
             qr.pivot = new Vector2(0, 1);
             qr.anchoredPosition = new Vector2(20, -110);
 
+            // What comes after the current exercise, shown when the card is minimised (the open card lists them all)
+            nextBg = Box(questRoot, Vector2.zero, new Vector2(584, NextRowH), UIKit.Row, "Next row");
+            nextTag = UIKit.Pill(nextBg.transform, new Vector2(12, -10), new Vector2(104, 36), UIKit.Orange, "NEXT", 20, UIKit.White);
+            nextName = Label(nextBg.transform, new Vector2(132, -4), new Vector2(440, NextRowH - 8), 26, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
+            nextName.enableAutoSizing = true;   // long names shrink to fit
+            nextName.fontSizeMin = UIKit.TypeSize.Caption - 2;
+            nextName.overflowMode = TextOverflowModes.Ellipsis;
+            nextBg.gameObject.SetActive(false);
+
             // Badges sit right below the last exercise (SetQuest moves them)
             badgesBlock = Group(card, "Badges");
             questFullOnly.Add(badgesBlock.gameObject);
-            Label(badgesBlock, new Vector2(28, 0), new Vector2(300, 40), 30, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold).text = "Badges";
-            badgeCount = Label(badgesBlock, new Vector2(28, 0), new Vector2(568, 40), 26, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
+            // Same section label as HOW FAR and REPS on the left card
+            Label(badgesBlock, new Vector2(28, 0), new Vector2(300, 40), UIKit.SectionLabelSize, UIKit.Muted, TextAnchor.UpperLeft, FontStyle.Bold).text = "BADGES";
+            badgeCount = Label(badgesBlock, new Vector2(28, 0), new Vector2(568, 40), UIKit.SectionLabelSize, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
             int b = 0;
             foreach (var code in GamificationManager.BadgeNames.Keys)
             {
@@ -361,7 +431,7 @@ namespace TheraQuest
                 badgeChips.Add(chip);
                 badgeIcons.Add(icon);
             }
-            questHint = Label(card, new Vector2(28, -838), new Vector2(568, 40), 22, UIKit.Muted);
+            questHint = Label(card, new Vector2(28, -838), new Vector2(568, 40), UIKit.TypeSize.Caption, UIKit.Muted);
         }
 
         void BuildBanner()
@@ -374,15 +444,16 @@ namespace TheraQuest
             var hr = (RectTransform)holder;
             hr.anchorMin = hr.anchorMax = hr.pivot = new Vector2(0, 1);
             hr.sizeDelta = new Vector2(1200, 150);
-            bubbleCard = UIKit.Card(holder, new Vector2(1200, 150), UIKit.Cream, UIKit.Teal);
-            bubbleCard.Glass(GlassAlpha + 0.1f);
+            bubbleCard = UIKit.Window(holder, new Vector2(1200, 150), BubbleAlpha);
             bubbleFill = bubbleCard.fill;
             bubbleBounce = UIKit.Bouncy(hr);
             var f = bubbleFill.transform;
-            bubbleIcon = Box(f, new Vector2(18, -26), new Vector2(92, 92), UIKit.Teal, "Icon");
-            bubbleIconTxt = Label(bubbleIcon.transform, Vector2.zero, new Vector2(92, 92), 56, UIKit.White, TextAnchor.MiddleCenter, FontStyle.Bold);
-            // Text starts below the strip on top of the card
-            feedbackTxt = Label(f, new Vector2(128, -34), new Vector2(1040, 100), 42, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
+            bubbleIcon = Box(f, new Vector2(BubbleIconX, -26), new Vector2(BubbleIcon, BubbleIcon), UIKit.Teal, "Icon");
+            bubbleIconTxt = Label(bubbleIcon.transform, Vector2.zero, new Vector2(BubbleIcon, BubbleIcon), 48, UIKit.White, TextAnchor.MiddleCenter, FontStyle.Bold);
+            bubbleIconTxt.verticalAlignment = VerticalAlignmentOptions.Geometry;   // the glyph's own shape centred in the circle
+            feedbackTxt = Label(f, new Vector2(BubbleTextX, -34), new Vector2(BubbleTextW, 100), 42, UIKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
+            feedbackTxt.verticalAlignment = VerticalAlignmentOptions.Geometry;     // centred on the letters, like the menu title
+            LayoutBubble(150f);
 
             popTxt = UIKit.Stroke(Label(c, new Vector2(0, -170), new Vector2(1200, 110), 84, UIKit.Yellow, TextAnchor.MiddleCenter, FontStyle.Bold),
                                  UIKit.Darker(UIKit.Yellow, 0.45f), 4f);
@@ -391,48 +462,111 @@ namespace TheraQuest
             popTxt.text = "";
         }
 
+        // Summary card (M8.5 hierarchy): title, stars, one headline number, then the details, XP row, new badges and a
+        // caption. Sizes and gaps from the UIKit scale; SummaryHeight is shared with the comfort-view EditMode test.
+        public const float SummaryWidth = 900f;
+        const float SumTextW = 764f, SumTitleY = 40f, SumStarsY = 112f, SumHeadlineY = 244f, SumHeadlineH = 64f,
+                    SumDetailsY = SumHeadlineY + SumHeadlineH + UIKit.Gap.Small, SumXpRowH = 52f, SumBadgesH = 44f, SumCaptionH = 34f;
+
         void BuildSummary()
         {
-            var c = summaryCanvas = UIKit.Canvas(transform, "Summary", Vector3.zero, 0f, new Vector2(900, 640));
+            var c = summaryCanvas = UIKit.Canvas(transform, "Summary", Vector3.zero, 0f, new Vector2(SummaryWidth, 640));
             c.sortingOrder = 10;
             summary = c.gameObject;
-            sumCard = UIKit.Card(c.transform, new Vector2(900, 640), UIKit.Cream, UIKit.Yellow);
+            sumCard = UIKit.Window(c.transform, new Vector2(SummaryWidth, 640), 0.97f);
             var card = sumCard.fill.transform;
-            sumTitle = UIKit.Stroke(Label(card, new Vector2(0, -50), new Vector2(884, 90), 72, UIKit.Orange, TextAnchor.UpperCenter, FontStyle.Bold), 3f);
-            sumStars = UIKit.Stroke(Label(card, new Vector2(0, -130), new Vector2(884, 140), 124, UIKit.Yellow, TextAnchor.UpperCenter, FontStyle.Bold), 4f);
+            float inner = SummaryWidth - 16f, textX = (inner - SumTextW) / 2f;
+            sumTitle = UIKit.Stroke(Label(card, new Vector2(0, -SumTitleY), new Vector2(inner, 84), UIKit.TypeSize.Title, UIKit.Orange, TextAnchor.UpperCenter, FontStyle.Bold), 3f);
+            sumStars = UIKit.Stroke(Label(card, new Vector2(0, -SumStarsY), new Vector2(inner, 130), UIKit.TypeSize.Hero, UIKit.Yellow, TextAnchor.UpperCenter, FontStyle.Bold), 4f);
             UIKit.Bouncy(sumStars);
-            sumBody = Label(card, new Vector2(60, -280), new Vector2(764, 160), 34, UIKit.Ink, TextAnchor.UpperCenter);
+            sumHeadline = Label(card, new Vector2(0, -SumHeadlineY), new Vector2(inner, SumHeadlineH), UIKit.TypeSize.Heading, UIKit.Ink, TextAnchor.UpperCenter, FontStyle.Bold);
+            sumBody = Label(card, new Vector2(textX, -SumDetailsY), new Vector2(SumTextW, 160), UIKit.TypeSize.Body, UIKit.Ink, TextAnchor.UpperCenter);
             // XP row and badge reveal along the bottom of the card
             sumXpRow = Group(card, "XP row");   // placed below the body text by LayoutSummary
-            sumLevel = UIKit.Pill(sumXpRow, new Vector2(60, 0), new Vector2(170, 52), UIKit.Purple, "LEVEL 1", 28, UIKit.White);
+            sumLevel = UIKit.Pill(sumXpRow, new Vector2(60, 0), new Vector2(170, SumXpRowH), UIKit.Purple, "LEVEL 1", UIKit.TypeSize.Label, UIKit.White);
             Box(sumXpRow, new Vector2(246, -13), new Vector2(SumXpW, 26), UIKit.Track, "Summary XP track");
             sumXpFill = Box(sumXpRow, new Vector2(246, -13), new Vector2(26, 26), UIKit.Yellow, "Summary XP fill");
-            sumXpGain = Label(sumXpRow, new Vector2(246, 26), new Vector2(SumXpW, 34), 24, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
+            sumXpGain = Label(sumXpRow, new Vector2(246, 26), new Vector2(SumXpW, 34), UIKit.TypeSize.Caption, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
             sumBadgeRow = Group(card, "New badges");
-            sumBadges = Label(sumBadgeRow, new Vector2(60, 0), new Vector2(764, 60), 30, UIKit.Ink, TextAnchor.UpperCenter, FontStyle.Bold);
+            sumBadges = Label(sumBadgeRow, new Vector2(textX, 0), new Vector2(SumTextW, 60), UIKit.TypeSize.Body, UIKit.Ink, TextAnchor.UpperCenter, FontStyle.Bold);
             UIKit.Bouncy(sumBadges);
+            sumCaption = Label(card, Vector2.zero, new Vector2(inner, SumCaptionH), UIKit.TypeSize.Caption, UIKit.Muted, TextAnchor.UpperCenter);
             summary.SetActive(false);
         }
+
+        /// <summary>The summary card's height for details this tall, with or without a new-badges row.</summary>
+        public static float SummaryHeight(float detailsH, bool badges) =>
+            SumXpTop(detailsH) + SumXpRowH + (badges ? UIKit.Gap.Large + SumBadgesH : 0f) + UIKit.Gap.Large + SumCaptionH + UIKit.Gap.Large;
+
+        // Room for the "+XP" label above the bar
+        static float SumXpTop(float detailsH) => SumDetailsY + detailsH + 54f;
 
         void BuildCoachWindow()
         {
             coachCanvas = UIKit.Canvas(transform, "Coach Window", Vector3.zero, 0f, new Vector2(CoachW, CoachH));
-            var card = UIKit.Card(coachCanvas.transform, new Vector2(CoachW, CoachH), UIKit.Cream, UIKit.Green);
-            card.Glass(GlassAlpha);
-            coachPicture = Picture(card.fill.transform, new Vector2(16, -32), CoachPicture, "Coach picture");
-            coachWord = UIKit.Pill(coachPicture.transform, Vector2.zero, new Vector2(250, 52), UIKit.Orange, "", 26, UIKit.White);
+            var card = UIKit.Window(coachCanvas.transform, new Vector2(CoachW, CoachH), GlassAlpha);
+            coachPicture = FramedPicture(card.fill.transform, CoachW - 16f, CoachFrame, CoachBackdropEdge, "Coach picture");
+            // The word guide (M8.4): larger, with a navy outline like the arrow's
+            coachWord = UIKit.Pill(coachPicture.transform, Vector2.zero, new Vector2(250, WordChipH), UIKit.Orange, "", 30, UIKit.White);
             coachWordChip = (RectTransform)coachWord.transform.parent;
-            coachCaption = Label(card.fill.transform, new Vector2(24, -632), new Vector2(576, 84), 28, UIKit.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
+            UIKit.Stroke(coachWordChip.GetComponent<Image>(), UIKit.Navy, 3f);
+            coachCaption = Label(card.fill.transform, new Vector2(24, -32f - CoachFrame - 8f), new Vector2(576, 84), 28, UIKit.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
             coachCanvas.gameObject.SetActive(false);
         }
 
         void BuildMirror()
         {
             mirrorCanvas = UIKit.Canvas(transform, "Side Mirror", Vector3.zero, 0f, new Vector2(MirrorSize, MirrorSize));
-            var card = UIKit.Card(mirrorCanvas.transform, new Vector2(MirrorSize, MirrorSize), UIKit.Cream, UIKit.Teal);
-            card.Glass(GlassAlpha);
-            mirrorPicture = Picture(card.fill.transform, new Vector2(16, -32), MirrorSize - 48f, "Side view");
+            var card = UIKit.Window(mirrorCanvas.transform, new Vector2(MirrorSize, MirrorSize), GlassAlpha);
+            mirrorPicture = FramedPicture(card.fill.transform, MirrorSize - 16f, MirrorSize - 64f, MirrorBackdropEdge, "Side view");
             mirrorCanvas.gameObject.SetActive(false);
+        }
+
+        // ---- The picture frame shared by the coach window and the side mirror (M8.4)
+        const float WordChipH = 60f;
+        /// <summary>Colour the soft backdrop fades to at the picture's rim (the centre keeps the camera's own background).</summary>
+        static readonly Color CoachBackdropEdge = new Color(UIKit.Blue.r, UIKit.Blue.g, UIKit.Blue.b, 0.30f),
+                              MirrorBackdropEdge = new Color(0f, 0f, 0f, 0.40f);
+        static Texture2D softEdge;
+
+        /// <summary>
+        /// A square picture centred across the card's fill (fillW wide), 32 px below its top, in a navy rounded frame,
+        /// with a soft radial backdrop over the picture: clear in the middle, fading to edgeTint toward the rim, so the
+        /// figure stands in a soft pool of light. Children added to the returned picture draw above the backdrop.
+        /// </summary>
+        static RawImage FramedPicture(Transform fill, float fillW, float frameSize, Color edgeTint, string name)
+        {
+            var frame = Box(fill, new Vector2((fillW - frameSize) / 2f, -32f), new Vector2(frameSize, frameSize), UIKit.Navy, name + " frame");
+            float inner = frameSize - 2f * FrameWidth;
+            var window = Box(frame.transform, new Vector2(FrameWidth, -FrameWidth), new Vector2(inner, inner), Color.white, name + " mask");
+            window.gameObject.AddComponent<Mask>().showMaskGraphic = false;   // rounded corners for the picture
+            var pic = Picture(window.transform, Vector2.zero, inner, name);
+            var backdrop = Picture(pic.transform, Vector2.zero, inner, name + " backdrop");
+            backdrop.texture = SoftEdge;
+            backdrop.color = edgeTint;
+            return pic;
+        }
+
+        /// <summary>White with alpha rising from the middle to the corners (smooth, no banding at 128 px).</summary>
+        static Texture2D SoftEdge
+        {
+            get
+            {
+                if (softEdge != null) return softEdge;
+                const int n = 128;
+                softEdge = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "Soft backdrop edge" };
+                var px = new Color32[n * n];
+                for (int y = 0; y < n; y++)
+                    for (int x = 0; x < n; x++)
+                    {
+                        float dx = (x + 0.5f) / n * 2f - 1f, dy = (y + 0.5f) / n * 2f - 1f;
+                        float a = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.45f, 1.35f, Mathf.Sqrt(dx * dx + dy * dy)));
+                        px[y * n + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(a * 255f));
+                    }
+                softEdge.SetPixels32(px);
+                softEdge.Apply(false, true);
+                return softEdge;
+            }
         }
 
         static RawImage Picture(Transform parent, Vector2 pos, float size, string name)
@@ -453,7 +587,7 @@ namespace TheraQuest
         /// The coach window (M5.8), or none when there is no picture or the full quest list needs the room.
         /// The word floats by the arrow's middle (arrow: 0-1 on the picture, 0,0 = bottom left).
         /// </summary>
-        public void SetCoachWindow(Texture picture, string word, Vector2 arrow, string caption)
+        public void SetCoachWindow(Texture picture, string word, Vector2 arrow, string caption, Vector2[] path = null, Rect? body = null)
         {
             bool on = picture != null && !QuestOpen;
             if (coachCanvas.gameObject.activeSelf != on) coachCanvas.gameObject.SetActive(on);
@@ -461,13 +595,56 @@ namespace TheraQuest
             coachPicture.texture = picture;
             coachCaption.text = caption;
             coachWord.text = word;
-            // Outside the arrow's curve, away from the coach in the middle, so it never hides the arrow
-            Vector2 away = arrow - new Vector2(0.5f, 0.5f);
-            arrow += (away.sqrMagnitude > 1e-4f ? away.normalized : Vector2.up) * 0.14f;
+            // The chip is as wide as its word (a fixed 250 px chip was too big to sit near the arrow)
+            float width = Mathf.Clamp(coachWord.GetPreferredValues(word ?? "").x + 48f, 140f, 320f);
+            if (!Mathf.Approximately(coachWordChip.sizeDelta.x, width))
+            {
+                coachWordChip.sizeDelta = new Vector2(width, coachWordChip.sizeDelta.y);
+                coachWord.rectTransform.sizeDelta = new Vector2(width, coachWord.rectTransform.sizeDelta.y);
+            }
             Vector2 chip = coachWordChip.sizeDelta;
+            Vector2 centre = PlaceWordChip(chip / CoachPicture, arrow, path, body ?? new Rect(0.3f, 0.1f, 0.4f, 0.8f));
             coachWordChip.anchoredPosition = new Vector2(
-                Mathf.Clamp(arrow.x * CoachPicture - chip.x / 2f, 6f, CoachPicture - chip.x - 6f),
-                -Mathf.Clamp((1f - arrow.y) * CoachPicture - chip.y / 2f, 6f, CoachPicture - chip.y - 6f));
+                Mathf.Clamp(centre.x * CoachPicture - chip.x / 2f, 6f, CoachPicture - chip.x - 6f),
+                -Mathf.Clamp((1f - centre.y) * CoachPicture - chip.y / 2f, 6f, CoachPicture - chip.y - 6f));
+        }
+
+        /// <summary>
+        /// Where the word chip goes in the window picture (centre, 0-1, y up): one of the spots around the edge that touches
+        /// neither the arrow's path nor the coach's body, the one nearest the arrow's tip. If every spot is crowded, the one
+        /// with the least overlap. (It used to sit on a fixed offset from the arrow's middle, which landed on the arrow or
+        /// the coach's hand, or got pushed against the edge.)
+        /// </summary>
+        public static Vector2 PlaceWordChip(Vector2 size, Vector2 arrowMiddle, Vector2[] path, Rect body)
+        {
+            var points = path != null && path.Length > 0 ? path : new[] { arrowMiddle };
+            Vector2 tip = points[points.Length - 1];
+            const float margin = 0.03f, pad = 0.04f;
+            float hx = size.x / 2f + margin, hy = size.y / 2f + margin;
+            var spots = new List<Vector2>();
+            const int steps = 6;   // a grid of spots across the picture, edge to edge
+            for (int iy = 0; iy <= steps; iy++)
+                for (int ix = 0; ix <= steps; ix++)
+                    spots.Add(new Vector2(Mathf.Lerp(hx, 1f - hx, ix / (float)steps), Mathf.Lerp(hy, 1f - hy, iy / (float)steps)));
+            Vector2 best = spots[0]; float bestScore = float.MaxValue;
+            foreach (var c in spots)
+            {
+                var rect = new Rect(c.x - size.x / 2f - pad, c.y - size.y / 2f - pad, size.x + 2f * pad, size.y + 2f * pad);
+                int hits = 0;
+                for (int i = 0; i < points.Length; i++)
+                {
+                    if (rect.Contains(points[i])) hits++;
+                    if (i > 0 && rect.Contains((points[i] + points[i - 1]) / 2f)) hits++;
+                }
+                float bodyOverlap = 0f;
+                float ox = Mathf.Min(rect.xMax, body.xMax) - Mathf.Max(rect.xMin, body.xMin);
+                float oy = Mathf.Min(rect.yMax, body.yMax) - Mathf.Max(rect.yMin, body.yMin);
+                if (ox > 0f && oy > 0f) bodyOverlap = ox * oy;
+                // Overlap is far worse than distance; among clear spots take the nearest to the arrow's tip
+                float score = hits * 10f + bodyOverlap * 200f + Vector2.Distance(c, tip);
+                if (score < bestScore) { bestScore = score; best = c; }
+            }
+            return best;
         }
 
         /// <summary>The side mirror (M5.8), or none.</summary>
@@ -545,7 +722,7 @@ namespace TheraQuest
 
             // Hold or rest bar
             bool resting = ev != null && ev.Resting, hold = ex.holdSeconds > 0f;
-            holdBlock.gameObject.SetActive(resting || hold);
+            UIKit.Show(holdBlock, resting || hold);
             if (resting)
             {
                 holdLabel.text = $"REST {Mathf.CeilToInt(ev.RestRemaining)}s";
@@ -564,7 +741,7 @@ namespace TheraQuest
             // Cadence / tempo indicator
             if (ev != null && (state == LiveState.Rising || state == LiveState.OnTarget || state == LiveState.Holding))
             {
-                cadencePill.gameObject.SetActive(true);
+                UIKit.Show(cadencePill, true);
                 if (ev.RepDuration > 0f && ev.RepDuration < 0.85f && ex.targetAngle >= 30f)
                 {
                     UIKit.PillColor(cadenceTxt, UIKit.Orange);
@@ -578,7 +755,17 @@ namespace TheraQuest
             }
             else
             {
-                cadencePill.gameObject.SetActive(false);
+                UIKit.Show(cadencePill, false);
+            }
+
+            // Hold ring round the target star: fills while holding in the band (M8.3)
+            if (holdRing != null)
+            {
+                float fill = FeedbackMotion.HoldFill(state, ev != null ? ev.HoldTime : 0f, ex.holdSeconds);
+                holdRing.enabled = fill > 0f;
+                holdRing.fillAmount = fill;
+                var star = starTxt.rectTransform;
+                holdRing.rectTransform.anchoredPosition = star.anchoredPosition + new Vector2(star.sizeDelta.x - HoldRingSize, HoldRingSize - star.sizeDelta.y) / 2f;
             }
 
             // Rep dots for this set
@@ -589,8 +776,6 @@ namespace TheraQuest
             filledShown = filled;
             repsCount.text = $"{filled} / {ex.reps}";
 
-            if (score > lastScore) UIKit.Bouncy(pointsTile).Punch(0.08f);
-            lastScore = score;
             scoreTxt.text = score.ToString();
             comboTxt.text = $"×{mult:0.0}";
             LayoutLeft();
@@ -637,7 +822,7 @@ namespace TheraQuest
                 row.mark.color = finished || current ? UIKit.White : UIKit.Ink;
                 row.mark.fontSize = Mathf.RoundToInt(cs * 0.55f);
                 row.name.text = ex.name;
-                row.name.fontSizeMax = rowH < 60 ? 23 : 27;
+                row.name.fontSizeMax = rowH < 60 ? UIKit.TypeSize.Caption : UIKit.TypeSize.Label;
                 row.name.rectTransform.anchoredPosition = new Vector2(cs + 26, -6);
                 row.name.rectTransform.sizeDelta = new Vector2(420 - cs, rowH - 22);
                 row.count.text = $"{v}/{ex.TotalReps}";
@@ -649,14 +834,27 @@ namespace TheraQuest
             }
             questCount.text = $"{done} / {exs.Count}";
             foreach (var go in questFullOnly) go.SetActive(open);
+            // The exercise after this one (or a note that this is the last)
+            int next = focus + 1;
+            bool hasNext = next < exs.Count;
+            UIKit.Show(nextBg, !open && exs.Count > 0);
+            if (!open && exs.Count > 0)
+            {
+                nextBg.rectTransform.anchoredPosition = new Vector2(0, -(rowH + gap));
+                var tint = hasNext ? UIKit.Orange : UIKit.Green;
+                nextBg.color = new Color(tint.r, tint.g, tint.b, 0.14f);
+                UIKit.PillColor(nextTag, tint);
+                nextTag.text = hasNext ? "NEXT" : "LAST";
+                nextName.text = hasNext ? exs[next].name : "Last one, then your summary";
+            }
             var k = ControlHints.Current;
-            questHint.text = open ? $"{k.Quest} = hide   ·   {k.Back} = menu   ·   {k.Recenter} = back to your spot" : $"{k.Quest} = show all exercises";
+            questHint.text = open ? $"{k.Quest} hide   ·   {k.Back} menu   ·   {k.Recenter} back to your spot" : $"{k.Quest} show all exercises";   // same "key action" form as the menu footer
             // Open: badges right below the last exercise and the card just tall enough (no empty space)
             float rowsEnd = 110f + exs.Count * (rowH + gap) - gap;
             badgesBlock.anchoredPosition = new Vector2(0, -(rowsEnd + 26f));
-            float hintY = open ? rowsEnd + 26f + 46f + 64f + 22f : 110f + rowH + 14f;
+            float hintY = open ? rowsEnd + 26f + 46f + 64f + UIKit.Gap.Medium : 110f + rowH + 8f + NextRowH + UIKit.Gap.Medium;
             questHint.rectTransform.anchoredPosition = new Vector2(28, -hintY);
-            questOpenH = rowsEnd + 26f + 46f + 64f + 22f + 30f + 34f;
+            questOpenH = rowsEnd + 26f + 46f + 64f + UIKit.Gap.Medium + UIKit.TypeSize.Caption + UIKit.Gap.Large + 8f;
         }
 
         static int FirstUnfinished(IList<ExerciseDef> exs, IList<ExerciseEvaluator> evs)
@@ -674,7 +872,7 @@ namespace TheraQuest
                 questOpenByUser = !QuestOpen;
                 SetQuest(lastExs, lastEvs, lastActive, questRunning);
             }
-            float target = QuestOpen ? questOpenH : 110f + 72f + 70f;
+            float target = QuestOpen ? questOpenH : QuestMinimisedH;
             questH = Mathf.Lerp(questH, target, 1f - Mathf.Exp(-12f * Time.unscaledDeltaTime));
             if (Mathf.Abs(questH - target) < 0.5f) questH = target;
             rightCanvas.GetComponent<RectTransform>().sizeDelta = new Vector2(640f, questH);
@@ -695,7 +893,7 @@ namespace TheraQuest
             r.mark = Label(r.circle.transform, Vector2.zero, new Vector2(52, 52), 28, UIKit.White, TextAnchor.MiddleCenter, FontStyle.Bold);
             r.name = Label(r.bg.transform, new Vector2(78, -6), new Vector2(380, 50), 27, UIKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
             r.name.enableAutoSizing = true;   // shrink long names to fit the row
-            r.name.fontSizeMin = 16;
+            r.name.fontSizeMin = UIKit.TypeSize.Caption - 2;
             r.name.overflowMode = TextOverflowModes.Ellipsis;
             r.count = Label(r.bg.transform, new Vector2(450, -8), new Vector2(120, 50), 24, UIKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
             var track = Box(r.bg.transform, new Vector2(78, -54), new Vector2(420, 10), UIKit.Track, "Bar");
@@ -709,8 +907,9 @@ namespace TheraQuest
         {
             feedbackTxt.text = text;
             var c = FeedbackManager.ToneColor(tone);
-            var fillColor = tone == Tone.Neutral ? UIKit.Cream : Color.Lerp(UIKit.Cream, c, 0.28f);
-            fillColor.a = GlassAlpha + 0.1f;
+            // Same cream glass as every other window: only the icon carries the tone (consistency, human request 2026-11-19)
+            var fillColor = UIKit.Cream;
+            fillColor.a = BubbleAlpha;
             bubbleFill.color = fillColor;
             bubbleIcon.color = tone == Tone.Neutral ? UIKit.Teal : c;
             bubbleIconTxt.text = tone == Tone.Good ? "✓" : tone == Tone.Neutral ? "☺" : "!";
@@ -722,6 +921,23 @@ namespace TheraQuest
             FitBubble();
         }
 
+        // Icon and message share one centre line, with the menu logo's gap between them (human request 2026-11-19)
+        // Icon: the menu logo mark's size, lined up with the strip's left end; text ends where the strip ends.
+        // The card's fill is 8 units inside the card on every side, so the fill is (card - 16) tall.
+        const float BubbleIcon = 80f, BubbleIconX = UIKit.StripInset, BubbleStripBottom = 28f, BubbleFillInset = 16f;
+        const float BubbleTextX = BubbleIconX + BubbleIcon + MenuController.LogoGap,
+                    BubbleTextW = 1200f - BubbleFillInset - BubbleTextX - UIKit.StripInset;
+
+        /// <summary>Centres the icon and the message on the same line in the space below the header strip.</summary>
+        void LayoutBubble(float h)
+        {
+            float cy = -(BubbleStripBottom + (h - BubbleFillInset - BubbleStripBottom) / 2f);   // equal space above and below
+            bubbleIcon.rectTransform.anchoredPosition = new Vector2(BubbleIconX, cy + BubbleIcon / 2f);
+            float textH = h - 52f;
+            feedbackTxt.rectTransform.sizeDelta = new Vector2(BubbleTextW, textH);
+            feedbackTxt.rectTransform.anchoredPosition = new Vector2(BubbleTextX, cy + textH / 2f);
+        }
+
         /// <summary>Grows or shrinks the bubble so every line of the message fits inside it.</summary>
         void FitBubble()
         {
@@ -730,51 +946,72 @@ namespace TheraQuest
             if (Mathf.Abs(h - bubbleH) < 1f) return;
             bubbleH = h;
             bubbleCard.Resize(new Vector2(1200, h));
-            feedbackTxt.rectTransform.sizeDelta = new Vector2(1040, h - 52f);
-            bubbleIcon.rectTransform.anchoredPosition = new Vector2(18, -(h - 16f - 92f) / 2f - 6f);
+            LayoutBubble(h);
             popStart = new Vector2(popStart.x, -(h + 20f) - 55f);   // +points pop just below the bubble (its pivot is its centre)
         }
 
         public void Pop(string text, bool good)
         {
             popTxt.text = text;
-            popTxt.color = good ? UIKit.Yellow : UIKit.Lighter(UIKit.Navy, 0.35f);
-            UIKit.Stroke(popTxt, UIKit.Darker(popTxt.color, 0.45f), 4f);   // pop-ups: a darker outline that follows the colour
+            // Pop-ups float over the room: gold with a darker outline, or navy with a white outline (never pale text
+            // that melts into the light floor, human request 2026-11-24)
+            popTxt.color = good ? UIKit.Yellow : UIKit.Navy;
+            UIKit.Stroke(popTxt, good ? UIKit.Darker(popTxt.color, 0.45f) : UIKit.White, 4f);
             popTimer = 1f;
-            UIKit.Bouncy(popTxt).Punch(0.35f);
+            if (good) UIKit.Bouncy(popTxt).Punch(0.35f);   // no bounce for a missed or unsafe rep (M8.3)
         }
 
-        public void ShowSummary(string title, int stars, string body)
+        const float HoldRingSize = 104f;
+
+        /// <summary>
+        /// A rep's feedback motion (M8.3): the points tile punches for a good rep and the combo tile pulses when the
+        /// streak grows. A missed, faulty or unsafe rep gets neither (see FeedbackMotion.ForRep).
+        /// </summary>
+        public void RepMoment(FeedbackMotion.RepEffects fx)
+        {
+            if (fx.reward) UIKit.Bouncy(pointsTile).Punch(0.08f);
+            if (fx.comboPulse && comboTile != null) UIKit.Bouncy(comboTile).Punch(0.06f);
+        }
+
+        /// <summary>Hold complete (M8.3): a sparkle pops round the target star (none when its sprite is missing).</summary>
+        public void HoldComplete() => FeedbackMotion.UiSparkle(starTxt.rectTransform, HoldRingSize * 1.6f, UIKit.Yellow);
+
+        /// <summary>Shows the summary: title, stars, the one headline number, the details and a small caption line.</summary>
+        public void ShowSummary(string title, int stars, string headline, string body, string caption)
         {
             sumTitle.text = title;
             sumStars.text = new string('★', stars) + $"<color={UIKit.HexLocked}>{new string('★', 3 - stars)}</color>";
+            sumHeadline.text = headline;
             sumBody.text = body;
+            sumCaption.text = caption;
             sumBadgeCodes.Clear();
             sumBadges.text = "";
             LayoutSummary();
-            summary.SetActive(true);
+            UIKit.Show(summary, true);
             UIKit.Bouncy(sumStars).Punch(0.3f);
         }
 
         /// <summary>Fits the summary card to its body text, and keeps a badge row only when there are new badges.</summary>
         void LayoutSummary()
         {
-            float bodyH = Mathf.Max(40f, sumBody.preferredHeight);
-            sumBody.rectTransform.sizeDelta = new Vector2(764, bodyH);
-            float y = 280f + bodyH + 54f;   // room for the "+XP" label above the bar
+            float bodyH = string.IsNullOrEmpty(sumBody.text) ? 0f : sumBody.preferredHeight;
+            sumBody.rectTransform.sizeDelta = new Vector2(SumTextW, Mathf.Max(1f, bodyH));
+            float y = SumXpTop(bodyH);
             sumXpRow.anchoredPosition = new Vector2(0, -y);
-            y += 52f;
+            y += SumXpRowH;
             bool badges = sumBadgeCodes.Count > 0;
             sumBadgeRow.gameObject.SetActive(badges);
             if (badges)
             {
-                y += 24f;
+                y += UIKit.Gap.Large;
                 sumBadgeRow.anchoredPosition = new Vector2(0, -y);
-                y += 44f;
+                y += SumBadgesH;
             }
-            float h = y + 44f;
-            ((RectTransform)summaryCanvas.transform).sizeDelta = new Vector2(900f, h);
-            sumCard.Resize(new Vector2(900f, h));
+            y += UIKit.Gap.Large;
+            sumCaption.rectTransform.anchoredPosition = new Vector2(0, -y);
+            float h = SummaryHeight(bodyH, badges);
+            ((RectTransform)summaryCanvas.transform).sizeDelta = new Vector2(SummaryWidth, h);
+            sumCard.Resize(new Vector2(SummaryWidth, h));
         }
 
         /// <summary>
@@ -819,6 +1056,7 @@ namespace TheraQuest
                         sumLevelShown = true;
                         sumLevel.text = $"LEVEL {sumXp.toLevel}";
                         UIKit.Bouncy(sumLevel.transform.parent as RectTransform).Punch(0.35f);
+                        if (FeedbackMotion.LevelUpReveal(sumXp)) FeedbackMotion.UiSparkle(sumLevel.transform.parent as RectTransform, 300f, UIKit.Yellow);
                         Pop($"LEVEL UP!  {sumXp.toLevel}", true);
                         sumOnLevelUp?.Invoke();
                     }
@@ -833,12 +1071,13 @@ namespace TheraQuest
                 sumBadgeT = 0.7f;
                 sumBadges.text = ProgressViews.NewBadgesLine(sumBadgeCodes.GetRange(0, sumBadgesShown), sumBadgeCodes.Count);
                 UIKit.Bouncy(sumBadges).Punch(0.25f);
+                if (FeedbackMotion.BadgeReveal(sumBadgesShown, sumBadgeCodes.Count)) FeedbackMotion.UiSparkle(sumBadges.rectTransform, 260f, UIKit.Yellow);
                 sumOnBadge?.Invoke();
             }
         }
 
-        public void HideSummary() { summary.SetActive(false); sumXpT = -1f; }
-        public bool SummaryVisible => summary.activeSelf;
+        public void HideSummary() { UIKit.Show(summary, false); sumXpT = -1f; }
+        public bool SummaryVisible => summary.activeSelf && (!summary.TryGetComponent<PanelFade>(out var f) || f.Showing);
 
         void Update()
         {

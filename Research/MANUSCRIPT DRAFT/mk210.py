@@ -1,0 +1,3 @@
+﻿import json
+E=[{"op":"replace","match":"This module records compliance for each session","old":"was carried out as required.","new":"was carried out as required. The therapist dashboard flags a patient for attention when pain rises or exercises go past the safe limit, when sessions are missed, or when accuracy drops.","source":"M9.3 attention-flag sentence (human yes 2026-11-26; PT answer 7: complications and missed exercises)"}]
+json.dump(E,open("M9-edits-draft-2.10.json","w"),indent=1,ensure_ascii=False)

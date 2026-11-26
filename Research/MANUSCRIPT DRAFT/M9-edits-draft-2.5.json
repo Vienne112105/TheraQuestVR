@@ -1,0 +1,93 @@
+[
+ {
+  "op": "replace",
+  "match": "April 2026",
+  "exact": true,
+  "old": "April 2026",
+  "new": "December 2026",
+  "source": "M9.3 Part G G1 (N1-3) title-page date, human answer 2026-11-25"
+ },
+ {
+  "op": "replace",
+  "match": "Scope of Clinical Application:",
+  "old": "such as neurological or cardiopulmonary rehabilitation.",
+  "new": "such as neurological or cardiopulmonary rehabilitation. Patient participants are outpatient or subacute orthopedic patients in the active-recovery stage who have been cleared by a physician for active, low-to-moderate-load exercise. Patients who are limited to passive movement or who may not bear weight are not included.",
+  "source": "M9.3 Part G G2 (G-1) patient stage"
+ },
+ {
+  "op": "replace",
+  "match": "1. VR Application Development:",
+  "old": "tailored to common physical therapy exercises.",
+  "new": "tailored to common physical therapy exercises. The prototype includes 29 camera-tracked exercises for the shoulder, elbow, hip, knee and ankle, performed standing, seated or lying (Table 1.5.1). Each is measured as one joint angle from either the front or the side of the patient.",
+  "source": "M9.3 Part G G3 (G-2) exercise sentence"
+ },
+ {
+  "op": "insert_table_after",
+  "match": "6. Participants:",
+  "like": "Table 1. Summary of the Reviewed Related Literature",
+  "template": "Focus / Topic",
+  "caption": "Table 1.5.1. Exercises included in the prototype",
+  "header": [
+   "Region",
+   "Number",
+   "Examples",
+   "Postures",
+   "Camera view"
+  ],
+  "rows": [
+   [
+    "Shoulder",
+    "8",
+    "Shoulder abduction, active shoulder elevation, full can (scaption), scaption hold, wall slide, shoulder extension, supine flexion with cane, active forward reach",
+    "Standing; lying (supine flexion)",
+    "Front (abduction, scaption, scaption hold); side (others)"
+   ],
+   [
+    "Elbow",
+    "3",
+    "Elbow flexion, biceps curl, wall push-up",
+    "Standing",
+    "Side"
+   ],
+   [
+    "Hip",
+    "6",
+    "Standing hip abduction, side-lying hip abduction, hip extension, straight leg raise, standing march, hip flexion hold",
+    "Standing; lying; side-lying",
+    "Front (abduction); side (others)"
+   ],
+   [
+    "Knee",
+    "9",
+    "Seated knee extension, quad extension hold, sit to stand, heel slide, hamstring curl, mini squat, mini lunge, wall slides, wall squat hold",
+    "Seated; standing; lying",
+    "Side"
+   ],
+   [
+    "Ankle",
+    "3",
+    "Ankle pump, seated heel raise, standing heel raise",
+    "Seated; standing; lying",
+    "Side"
+   ]
+  ],
+  "source": "M9.3 Part G G3 (G-2) Table 1.5.1 from LIBRARY in server.py"
+ },
+ {
+  "op": "insert_row_before",
+  "match": "Table 1",
+  "exact": true,
+  "cells": [
+   "Table 1.5.1",
+   "Exercises included in the prototype"
+  ],
+  "source": "M9.3 Part G G3 List of Tables row"
+ },
+ {
+  "op": "insert_after",
+  "match": "Medical Clearance:",
+  "like": "Medical Clearance:",
+  "text": "**Patient Safety:** The system warns and stops counting when a movement passes the safe limit the therapist set, and pauses the exercise when the patient is no longer in view of the camera or when the headset is taken off. Many exercises are done seated, lying down, or standing while holding a chair. Users should be provided with an obstruction-free area in which to exercise, and each session should be supervised by a trained staff member or, where that is not possible, by a relative or companion, so that assistance is available should any complication arise.",
+  "source": "M9.3 Part G G4 (G-3) safety limitation, human wording 2026-11-25"
+ }
+]

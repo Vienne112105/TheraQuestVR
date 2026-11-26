@@ -12,7 +12,7 @@ namespace TheraQuest
     /// The rounded-corner sprite is generated at runtime (no image assets needed).
     /// World-space canvases use 1000 canvas units = 1 metre.
     /// </summary>
-    public static class UIKit
+    public static partial class UIKit
     {
         // Palette (human choice 2026-10-26): every panel and text colour is one of these five, or a tint of one.
         //   Navy #1D3557, Blue #277DA1, Orange #F3722C, Green #43AA8B, Off-white #F8F9FA.
@@ -236,7 +236,12 @@ namespace TheraQuest
         static bool IsWhite(Color c) => c.r > 0.95f && c.g > 0.95f && c.b > 0.95f;
 
         /// <summary>9-sliced rounded rectangle, 36 canvas units corner radius. Small boxes become pills and circles.</summary>
-        public static Sprite Rounded => rounded != null ? rounded : (rounded = MakeRounded(96, 36));
+        public static Sprite Rounded => rounded != null ? rounded : (rounded = MakeRounded(96, CornerRadius));
+        public const int CornerRadius = 36;
+
+        /// <summary>Sliced-image multiplier that keeps the corners at most half the box's short side (round ends).</summary>
+        public static float RoundMultiplier(Vector2 size) =>
+            Mathf.Max(1f, CornerRadius / Mathf.Max(1f, Mathf.Min(size.x, size.y) * 0.5f));
 
         static Sprite MakeRounded(int size, int radius)
         {
@@ -286,6 +291,9 @@ namespace TheraQuest
             {
                 img.sprite = Rounded;
                 img.type = Image.Type.Sliced;
+                // Thin boxes (the windows' header strip, pills, bars): shrink the corners to half the short side so
+                // the ends are true half circles, not squashed flat ovals (human request 2026-11-19)
+                img.pixelsPerUnitMultiplier = RoundMultiplier(size);
             }
             img.raycastTarget = false;
             ApplyOnTop(img, parent);
@@ -313,6 +321,25 @@ namespace TheraQuest
             }
         }
 
+        /// <summary>Every floating window's top strip has this one colour (design consistency, human request 2026-11-19).</summary>
+        public static Color WindowStrip => Accent;
+        /// <summary>The header strip's distance from the window's left edge; content that lines up with it uses this.</summary>
+        public const float StripInset = 24f;
+
+        /// <summary>
+        /// A floating window: the same strip, soft outline and faint shadow on every one (menu, HUD cards, coach bubble,
+        /// coach window, side view, summary); only how see-through the fill is differs.
+        /// </summary>
+        public static CardRef Window(Transform parent, Vector2 size, float fillAlpha, string name = "Panel")
+        {
+            var c = Card(parent, size, Cream, WindowStrip, name);
+            c.Glass(fillAlpha);
+            return c;
+        }
+
+        /// <summary>A small grey capitals label over a section of a card ("HOW FAR", "REPS", "BADGES").</summary>
+        public const int SectionLabelSize = 24;
+
         public static CardRef Card(Transform parent, Vector2 size, Color fill, Color strip, string name = "Panel")
         {
             var c = new CardRef
@@ -321,7 +348,7 @@ namespace TheraQuest
                 outline = Box(parent, Vector2.zero, size, Outline, name + " outline", true),
             };
             c.fill = Box(parent, new Vector2(8, -8), size - new Vector2(16, 16), fill, name, true);
-            c.strip = Box(c.fill.transform, new Vector2(24, -14), new Vector2(size.x - 64, 14), strip, "Strip", true);
+            c.strip = Box(c.fill.transform, new Vector2(StripInset, -14), new Vector2(size.x - 64, 14), strip, "Strip", true);
             return c;
         }
 
@@ -360,7 +387,12 @@ namespace TheraQuest
         public static TextMeshProUGUI Pill(Transform parent, Vector2 pos, Vector2 size, Color color, string text, int fontSize, Color textColor)
         {
             var bg = Box(parent, pos, size, color, "Pill", true);
-            var t = Label(bg.transform, Vector2.zero, size, fontSize, textColor, TextAnchor.MiddleCenter, FontStyle.Bold);
+            var t = Label(bg.transform, new Vector2(10, 0), size - new Vector2(20, 0), fontSize, textColor, TextAnchor.MiddleCenter, FontStyle.Bold);
+            // One line always: long words shrink instead of wrapping out of the pill ("RIGHT SHOULDER")
+            t.textWrappingMode = TextWrappingModes.NoWrap;
+            t.enableAutoSizing = true;
+            t.fontSizeMin = 14;
+            t.fontSizeMax = fontSize;
             t.text = text;
             if (IsWhite(textColor)) Stroke(t, Darker(color), 2f);
             return t;
@@ -419,6 +451,155 @@ namespace TheraQuest
         {
             var b = c.gameObject.GetComponent<Bounce>();
             return b != null ? b : c.gameObject.AddComponent<Bounce>();
+        }
+
+        // Panel transitions (M8.3): one short fade plus a slight scale, in unscaled time so pause never freezes them.
+        // VR comfort: 0.25 s or shorter, only the panel moves (never the view), and a panel is fully usable at its end.
+        public const float TransitionMin = 0.15f, TransitionMax = 0.25f, TransitionDefault = 0.2f;
+
+        /// <summary>A transition length kept inside the comfort limits (0.15 to 0.25 s).</summary>
+        public static float TransitionSeconds(float seconds) => Mathf.Clamp(seconds, TransitionMin, TransitionMax);
+
+        /// <summary>
+        /// Shows or hides a panel with the short fade and scale (hiding deactivates it at the end). Use it instead of
+        /// SetActive for menus, HUD cards, pop-ups, the summary and the Progress page. Without animate it snaps.
+        /// </summary>
+        public static PanelFade Show(Component panel, bool visible, bool animate = true, float seconds = TransitionDefault)
+        {
+            if (panel == null) return null;
+            var f = panel.GetComponent<PanelFade>();
+            if (f == null) f = panel.gameObject.AddComponent<PanelFade>();
+            f.Play(visible, animate, seconds);
+            return f;
+        }
+
+        /// <inheritdoc cref="Show(Component, bool, bool, float)"/>
+        public static PanelFade Show(GameObject panel, bool visible, bool animate = true, float seconds = TransitionDefault) =>
+            panel == null ? null : Show(panel.transform, visible, animate, seconds);
+    }
+
+    /// <summary>
+    /// Fades a panel in or out through a CanvasGroup and scales it slightly around its centre (see UIKit.Show).
+    /// Time is unscaled; Step() advances it so tests can drive it without Play mode.
+    /// </summary>
+    public class PanelFade : MonoBehaviour
+    {
+        /// <summary>A hidden panel starts this big and grows to full size as it fades in.</summary>
+        public const float StartScale = 0.96f;
+
+        CanvasGroup group;
+        Vector3 baseScale = Vector3.one;
+        Vector2 lastShift, lastWritten;
+        bool written;
+        float t, duration = UIKit.TransitionDefault;
+        bool showing = true, running;
+
+        public bool Running => running;
+        public bool Showing => showing;
+        public float Duration => duration;
+
+        public CanvasGroup Group
+        {
+            get
+            {
+                if (group == null) group = GetComponent<CanvasGroup>();
+                if (group == null) group = gameObject.AddComponent<CanvasGroup>();
+                return group;
+            }
+        }
+
+        /// <summary>0 = hidden look, 1 = fully shown, for a transition <paramref name="elapsed"/> seconds in.</summary>
+        public static float Progress(float elapsed, float seconds, bool showing)
+        {
+            float p = Mathf.Clamp01(elapsed / UIKit.TransitionSeconds(seconds));
+            p = 1f - (1f - p) * (1f - p);   // ease out: quick start, gentle stop
+            return showing ? p : 1f - p;
+        }
+
+        public void Play(bool visible, bool animate, float seconds)
+        {
+            if (!running) baseScale = transform.localScale;   // the layout may have rescaled it since last time
+            bool active = gameObject.activeSelf;
+            if (!running && active == visible)
+            {
+                showing = visible;
+                if (visible) Apply(1f);   // already shown: make sure it is at full look
+                return;
+            }
+            // Continue from the current look when reversing mid-way, so the panel never jumps
+            float from = running ? Group.alpha : (active ? 1f : 0f);
+            showing = visible;
+            duration = UIKit.TransitionSeconds(seconds);
+            // The time at which the eased look equals the current one (inverse of the ease-out in Progress)
+            t = (1f - Mathf.Sqrt(1f - Mathf.Clamp01(showing ? from : 1f - from))) * duration;
+            if (visible) gameObject.SetActive(true);
+            // Snap when asked, or when nothing would drive it (a parent is hidden, so Update never runs)
+            if (!animate || !gameObject.activeInHierarchy) { SkipToEnd(); return; }
+            running = true;
+            Apply(Progress(t, duration, showing));
+        }
+
+        /// <summary>Fades an already shown panel in again from its hidden look (e.g. a new menu page).</summary>
+        public void Replay(float seconds = UIKit.TransitionDefault)
+        {
+            if (running && !showing) return;   // fading out: leave it
+            if (!running) baseScale = transform.localScale;
+            showing = true;
+            duration = UIKit.TransitionSeconds(seconds);
+            t = 0f;
+            if (!gameObject.activeInHierarchy) { SkipToEnd(); return; }
+            running = true;
+            Apply(0f);
+        }
+
+        /// <summary>Jumps to the end state now: fully shown and clickable, or hidden and inactive.</summary>
+        public void SkipToEnd()
+        {
+            running = false;
+            Apply(1f);
+            // Hidden panels keep their full look, so a plain SetActive(true) elsewhere still shows them normally
+            if (!showing) gameObject.SetActive(false);
+        }
+
+        /// <summary>Advances the transition by <paramref name="dt"/> seconds (unscaled).</summary>
+        public void Step(float dt)
+        {
+            if (!running) return;
+            t += Mathf.Max(0f, dt);
+            if (t >= duration) { SkipToEnd(); return; }
+            Apply(Progress(t, duration, showing));
+        }
+
+        void Update() => Step(Time.unscaledDeltaTime);
+
+        void OnDisable()
+        {
+            // Turned off by someone else mid-fade: leave it at its full look for next time
+            if (running) { running = false; showing = true; Apply(1f); }
+        }
+
+        void Apply(float p)
+        {
+            var g = Group;
+            g.alpha = p;
+            // No clicks while it fades out (fading in stays clickable, so buttons never flash their disabled tint)
+            g.interactable = g.blocksRaycasts = showing || p >= 1f && !running;
+            // Only panels inside a canvas scale: a root canvas's scale belongs to the code that places it (laptop or
+            // headset size), so it only fades
+            if (transform is RectTransform rt && rt.parent is RectTransform)
+            {
+                float s = Mathf.Lerp(StartScale, 1f, p);
+                transform.localScale = baseScale * s;
+                // Scale about the centre whatever the pivot (panels here are anchored top-left). A layout that moved
+                // the panel since the last frame wrote an unshifted position, so that one is the base.
+                var shift = Vector2.Scale(rt.rect.size * (1f - s), new Vector2(0.5f, 0.5f) - rt.pivot);
+                shift = Vector2.Scale(shift, new Vector2(baseScale.x, baseScale.y));
+                var at = rt.anchoredPosition;
+                var basePos = written && at == lastWritten ? at - lastShift : at;
+                rt.anchoredPosition = lastWritten = basePos + shift;
+                lastShift = shift;
+                written = true;
+            }
         }
     }
 

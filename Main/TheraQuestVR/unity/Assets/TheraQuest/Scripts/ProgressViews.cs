@@ -90,6 +90,9 @@ namespace TheraQuest
         /// <summary>How to earn a badge ("" for an unknown code).</summary>
         public static string BadgeHint(string code) => BadgeHints.TryGetValue(code ?? "", out var h) ? h : "";
 
+        /// <summary>A page's one headline number or word, in the scale's heading size.</summary>
+        public static string Headline(string text) => $"<size={UIKit.TypeSize.Heading}><b>{text}</b></size>";
+
         /// <summary>Rich text for one tab of the Progress page on the main menu.</summary>
         public static string ProgressPage(ProgramResponse p, bool online, ProgressTab tab)
         {
@@ -104,7 +107,8 @@ namespace TheraQuest
                     int earned = 0;
                     var gallery = Gallery(prog, p.patient.badges);
                     foreach (var b in gallery) if (b.earned) earned++;
-                    sb.Append($"<b>Level {xp.toLevel}</b>   {Mathf.RoundToInt(xp.toFrac * 100)}% of the way to level {xp.toLevel + 1}\n");
+                    // One headline (the level), then the details (M8.5)
+                    sb.Append($"{Headline($"Level {xp.toLevel}")}   {Mathf.RoundToInt(xp.toFrac * 100)}% of the way to level {xp.toLevel + 1}\n");
                     sb.Append($"<b>{p.patient.streak}</b> day streak\n");
                     sb.Append($"<b>{prog.completeSessions}</b> of {prog.totalSessions} sessions completed\n");
                     sb.Append($"<b>{earned}</b> of {gallery.Count} badges earned\n");
@@ -120,7 +124,7 @@ namespace TheraQuest
                             int st = Mathf.Clamp(r.stars, 0, 3);
                             string stars = $"<color={UIKit.HexGold}>{new string('★', st)}</color><color={UIKit.HexLocked}>{new string('★', 3 - st)}</color>";
                             string status = r.status == "complete" ? $"<color={UIKit.HexGood}>done</color>" : $"<color={UIKit.HexWarn}>partly done</color>";
-                            sb.Append($"{day}   {stars}   {status}   {r.valid} good reps   {r.points} points\n");
+                            sb.Append($"<color={UIKit.HexMuted}>{day}</color>   {stars}   {status}   <b>{r.valid}</b> good reps   <b>{r.points}</b> points\n");
                         }
                     break;
                 default:
@@ -129,7 +133,7 @@ namespace TheraQuest
                     int earned = 0;
                     var gallery = Gallery(prog, p.patient.badges);
                     foreach (var b in gallery) if (b.earned) earned++;
-                    sb.Append($"<b>{earned}</b> of {gallery.Count} badges earned");
+                    sb.Append($"{Headline(earned.ToString())} of {gallery.Count} badges earned");
                     break;
                 }
             }

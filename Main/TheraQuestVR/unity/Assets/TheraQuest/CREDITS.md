@@ -62,7 +62,8 @@ The icons were trimmed, scaled to fit a 128 px cell and recoloured white so the 
 
 | File | Used for | Source | Licence |
 |------|----------|--------|---------|
-| `Headset.png` | VR headset logo beside the game name on the main menu | the `vr-cardboard` glyph (U+F729) of Font Awesome Free 6.7.2 `fa-solid-900.ttf` by Fonticons, Inc., github.com/FortAwesome/Font-Awesome (6.x branch, `webfonts/`), rendered to a 256 px white PNG the game tints | SIL Open Font License 1.1, which Font Awesome applies to its font files (`FontAwesome-LICENSE.txt`; the same icon as SVG is CC BY 4.0). Downloaded 2026-10-26 |
+| `Headset.png` | VR headset logo beside the game name on the main menu (not shown since 2026-11-19: replaced by the Joint Angle logo) | the `vr-cardboard` glyph (U+F729) of Font Awesome Free 6.7.2 `fa-solid-900.ttf` by Fonticons, Inc., github.com/FortAwesome/Font-Awesome (6.x branch, `webfonts/`), rendered to a 256 px white PNG the game tints | SIL Open Font License 1.1, which Font Awesome applies to its font files (`FontAwesome-LICENSE.txt`; the same icon as SVG is CC BY 4.0). Downloaded 2026-10-26 |
+| `Resources/Logo/TheraQuestMark.png` (512 px, main menu) and `Resources/Logo/TheraQuestIcon.png` (1024 px, app icon) | The "Joint Angle" logo mark: a bent limb with an orange joint and the angle being measured, white on the brand blue rounded square. Drawn by Claude with a Python/Pillow script on 2026-11-19 and chosen by the human from three concepts (M8.2); the name beside it is set in Nunito ExtraBold (see Fonts above) | Made for this project, no third-party content |
 
 ## Coach models (`Assets/LuceedStudio`)
 
@@ -70,8 +71,11 @@ The icons were trimmed, scaled to fit a 128 px cell and recoloured white so the 
 |-------|--------|---------|
 | `Free Woman Tall.prefab`, `Free Man Tall.prefab` (and the rest of the pack, kept as imported) | "Little Guys - Free Sample" by Luceed Studio, Unity Asset Store, imported by the human through Package Manager > My Assets on 2026-10-27 | Standard Unity Asset Store EULA (no licence file in the pack) |
 
-The coach since 2026-10-27 (human request). The pack's own material uses a URP shader; this project renders with the
-Built-in pipeline, so the game draws the coach with a plain Standard material using the pack's texture.
+The coach since 2026-10-27 (human request). The pack's own URP material is used as imported (M8.1, DEC-028).
+
+| Files | Source | Licence |
+|-------|--------|---------|
+| `Resources/CoachTextures/coach_woman.png` | Repaint of the pack's `T_FreeWoman.png` (the male coach keeps the pack's own texture, human request 2026-11-14) (white top and teal shorts; the face, eyes and hair are exactly the pack's, because they share picture cells with the clothes), made with a script on 2026-11-14 (M8.2, human choice "C"; first version wrongly closed both coaches' eyes, fixed the same day). A derivative of the Little Guys textures, loaded by `CoachReskin` onto a copy of the material; a missing file keeps the pack's original look. | Same as the pack (Asset Store EULA) |
 `Resources/CoachAvatars/Free Woman Tall.asset` and `Free Man Tall.asset` are Humanoid avatars made in this project
 from the pack's models straightened to a T-pose (`TheraQuest > Build Coach T-Pose Avatars`), so the idle clips play upright.
 
@@ -83,6 +87,7 @@ Chosen by the human from previews on 2026-10-27; built into the room by `ClinicR
 |-------|--------|---------|
 | `Gym/`: `treadmill`, `rowing_machine`, `wall_mirror`, `exercise_ball`, `medicine_ball`, `yoga_mat_rolled`, `foam_roller`, `dumbbell_rack`, `weight_tree`, `weight_plate_stack`, `dumbbell`, `gym_towel_bench`, `resistance_band`, `water_bottle` (FBX) | "Low Poly Gym Pack" v1.0 by reodesuxz, reodesuxz.itch.io/low-poly-gym-pack (free download, `LowPolyGymPack_v1.0.zip`, downloaded by the human 2026-10-27) | Pack licence (`Gym/LowPolyGymPack-LICENSE.txt`): free for personal and commercial projects, no attribution required; the files must not be resold or redistributed as standalone assets, so keep this repository private or strip them before sharing it |
 | `Furniture/`: `chairCushion` (the seated-exercise chair), `loungeSofa`, `pottedPlant`, `plantSmall2`, `lampRoundFloor`, `lampSquareCeiling`, `bookcaseOpen`, `books`, `sideTable`, `coatRackStanding`, `trashcan`, `radio` (FBX) | Kenney "Furniture Kit" 2.0, kenney.nl/assets/furniture-kit (`kenney_furniture-kit.zip`, downloaded 2026-10-27) | CC0 1.0 (`Furniture/Kenney-FurnitureKit-License.txt`) |
+| `Textures/rug.png`, `Textures/rug_normal.png` (the round woven rug on the exercise spot) | Drawn procedurally by Claude with a Python/NumPy script on 2026-11-19 (M8.2, human request: smaller user area with a rug texture); teal, cream and terracotta to match the room, centre medallion marks where to stand | Made for this project, no third-party content |
 
 ## Coach animation (`Resources/CoachAnimations`)
 
@@ -93,8 +98,20 @@ Chosen by the human from previews on 2026-10-27; built into the room by `ClinicR
 
 Imported as a Humanoid clip (loop on, root baked in place) and saved on its own; the rest of the library is not in the project.
 
+## Feedback effects (`Resources/Effects`)
+
+| Files | Source | Licence |
+|-------|--------|---------|
+| `burst.png`, `ring.png`, `sparkle.png` (good-rep burst at the limb, hold ring, sparkle for hold complete, level-up and badge) | Drawn procedurally by Claude with a Python/Pillow script on 2026-11-24 (M8.3); white shapes tinted in game. The human chose "Set A soft glow" from three candidate sets on 2026-11-24 | Made for this project, no third-party content |
+
 ## Not yet recorded
 
 Assets that were in the project before M5.6 and whose source the human still has to confirm:
 the five rep sounds above. (The older coach models in `Coaches/FBX-Female` and `Coaches/FBX-male` were removed on
 2026-10-27; the coaches are the Little Guys.)
+
+## Extra coach model (`Assets/TheraQuest/Resources/Coaches/Man002_FBX`)
+
+| Files | Source | Licence |
+|-------|--------|---------|
+| `Male_002.fbx`, `CharacterTexture_BaseColor.png`, `CharacterTexture_Roughness.png` | Added by the human on 2026-11-14 as a third coach. The download folder held only a `DownloadMore.html` link to a model site's author page, so the original source is not recorded here. | **Unknown: the human to confirm the source and licence before any release.** |

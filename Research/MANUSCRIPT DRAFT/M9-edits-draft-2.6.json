@@ -1,0 +1,51 @@
+[
+ {
+  "op": "replace",
+  "match": "Incorporating automated range-of-motion validation",
+  "old": "adaptive difficulty scaling, and instant",
+  "new": "and instant",
+  "source": "M9.3 Ch2 N2-3 2.2.5: no adaptive scaling in TheraQuest VR (D8)"
+ },
+ {
+  "op": "replace",
+  "match": "Schmidt & Lee, 2011; Kluger",
+  "old": "Schmidt & Lee, 2011",
+  "new": "Schmidt et al., 2018",
+  "source": "M9.3 Ch2 N2-4 reference list has the 2018 edition"
+ },
+ {
+  "op": "replace",
+  "match": "(Based on Schmidt & Lee, 2011)",
+  "old": "Schmidt & Lee, 2011",
+  "new": "Schmidt et al., 2018",
+  "source": "M9.3 Ch2 N2-4 Figure 2.3.1 caption"
+ },
+ {
+  "op": "replace",
+  "match": "improve performance over time (Schmidt & Lee, 2011)",
+  "old": "Schmidt & Lee, 2011",
+  "new": "Schmidt et al., 2018",
+  "source": "M9.3 Ch2 N2-4 2.3.1 text"
+ },
+ {
+  "op": "replace",
+  "match": "Navea et al., 2025a; Consing",
+  "old": "Navea et al., 2025a",
+  "new": "Navea et al., 2025",
+  "source": "M9.3 Ch2 N2-5 no 2025b remains (D12)"
+ },
+ {
+  "op": "replace",
+  "match": "Navea et al. (2025a); Consing",
+  "old": "Navea et al. (2025a)",
+  "new": "Navea et al. (2025)",
+  "source": "M9.3 Ch2 N2-5 Table 1"
+ },
+ {
+  "op": "replace",
+  "match": "Gamified shoulder rehabilitation using VR",
+  "old": "(2025a)",
+  "new": "(2025)",
+  "source": "M9.3 Ch2 N2-5 reference entry"
+ }
+]

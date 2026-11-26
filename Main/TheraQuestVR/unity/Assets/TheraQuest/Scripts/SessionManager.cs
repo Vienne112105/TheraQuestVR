@@ -48,12 +48,11 @@ namespace TheraQuest
         bool awaitingReady;          // patient is getting into the start position for the next exercise
         float autoReadyTimer;        // simulated mode continues on its own
         LiveState lastState;
+        readonly PatientGate patientGate = new PatientGate();   // pauses the exercise while another person has the patient's place (M10.5)
         readonly Countdown countdown = new Countdown();   // 3-2-1 before each exercise (M5.4)
         float celebrateTimer;        // "exercise complete" moment before the next exercise (M5.4)
         const float CelebrateSeconds = 3.5f;
         readonly Tutorial tutorial = new Tutorial();      // before the first exercise of every session (M5.8)
-        float tutorialTimer;         // simulated mode moves on by itself
-        const float TutorialAutoSeconds = 3f;
         bool wasOnTarget;            // for the reach chime on limbs the patient can't see
         static ControlHints Keys => ControlHints.Current;
 
@@ -75,13 +74,20 @@ namespace TheraQuest
             if (FindAnyObjectByType<MusicPlayer>() == null) gameObject.AddComponent<MusicPlayer>();
             if (FindAnyObjectByType<Subtitles>() == null) gameObject.AddComponent<Subtitles>();
             if (FindAnyObjectByType<ClinicRoom>() == null) gameObject.AddComponent<ClinicRoom>();
-            if (mover == null && head != null && head.transform.parent != null)
+            if (mover == null && head != null && head.Rig != null)
             {
-                var rig = head.transform.parent.gameObject;
+                var rig = head.Rig.gameObject;   // the XR Origin (M10.1)
                 mover = rig.GetComponent<PlayerMover>();
                 if (mover == null) mover = rig.AddComponent<PlayerMover>();
                 mover.head = head;
+                // Controller rays for the menus in the headset (M10.2)
+                var rays = rig.GetComponent<ControllerRays>();
+                if (rays == null) rays = rig.AddComponent<ControllerRays>();
+                var origin = rig.GetComponent<Unity.XR.CoreUtils.XROrigin>();
+                rays.Build(origin != null ? origin.CameraFloorOffsetObject.transform : rig.transform);
+                rays.menuOpen = () => menu != null && menu.IsOpen;
             }
+            Subtitles.Hidden = () => menu != null && menu.IsOpen;   // captions never sit over an open menu
             if (focus == null && mover != null)
             {
                 focus = mover.GetComponent<ViewFocus>();
@@ -90,7 +96,17 @@ namespace TheraQuest
             }
         }
 
+        void OnEnable() { XrMode.Changed += OnXrChanged; }
+        void OnDisable() { XrMode.Changed -= OnXrChanged; InputHelper.FreeLook = false; }
         void OnDestroy() { Time.timeScale = 1f; AudioListener.pause = false; }
+
+        /// <summary>Headset taken off: pause the exercise (A resumes). Link lost: carry on on the laptop, reps kept (M10.1).</summary>
+        void OnXrChanged(XrModeLogic.Change change)
+        {
+            if (menu == null) return;
+            if (XrModeLogic.PausesSession(change, phase == Phase.Running, menu.IsOpen)) Pause();
+            else if (change == XrModeLogic.Change.FellBackToDesktop) Subtitles.Say(XrModeLogic.FallbackLine, 5f);
+        }
 
         /// <summary>
         /// Anti-aliasing for smooth edges instead of jagged pixels: MSAA where the pipeline allows it, plus
@@ -288,9 +304,13 @@ namespace TheraQuest
         void Update()
         {
             InputHelper.Tick();
+            XrMode.Tick();   // notices the headset being taken off or Link being lost
             float dt = Time.deltaTime;   // 0 while paused, which freezes the exercise
             // No walking during an exercise: stick drift or a bumped stick would move the patient (M4.3)
-            if (mover != null) mover.locked = menu.IsOpen || phase == Phase.Running;
+            // During exercises and on the summary: stay on the spot (in front of the summary panel), but turn and look freely
+            if (mover != null) { mover.locked = menu.IsOpen; mover.walkLocked = phase == Phase.Running || phase == Phase.Uploading || phase == Phase.Summary; }
+            // On the laptop the mouse looks around by itself; menus get the cursor back to click
+            InputHelper.FreeLook = !menu.IsOpen && !XrMode.InHeadset && Application.isFocused;
 
             var ex = Current;
             motion.Sample(ex, dt);
@@ -336,7 +356,8 @@ namespace TheraQuest
             else guide.Hide();
             hud.SetCoachWindow(inSession && ex != null && coach != null ? coach.WindowTexture : null,
                                ex != null ? FirstPersonMath.Word(FigureVisualizer.PoseOf(ex)) : "",
-                               coach != null ? coach.ArrowMiddle : Vector2.zero, ex != null ? ex.cue : "");
+                               coach != null ? coach.ArrowMiddle : Vector2.zero, ex != null ? ex.cue : "",
+                               coach != null ? coach.ArrowView : null, coach != null ? (Rect?)coach.BodyView : null);
             hud.SetMirror(guide.MirrorTexture);
             hud.SetExercise(ex, cur, motion.Angle, game != null ? game.Points : 0, game != null ? game.Multiplier : 1f);
         }
@@ -348,14 +369,13 @@ namespace TheraQuest
             if (!motion.HasReading && (cur == null || !cur.Resting)) return Tone.Warn;
             if (tutorial.Active && ex != null) return Mathf.Abs(motion.Angle - ex.targetAngle) <= ex.tolerance ? Tone.Good : Tone.Neutral;
             if (cur == null) return Tone.Neutral;
-            return cur.State == LiveState.OnTarget || cur.State == LiveState.Holding ? Tone.Good :
-                   cur.State == LiveState.TooFar || cur.State == LiveState.Fault || cur.State == LiveState.Unsafe ? Tone.Bad : Tone.Neutral;
+            return HologramLook.StateTone(cur.State);   // green (and the guide's glow) only inside tolerance (M8.4)
         }
 
         void RunTutorial(ExerciseDef ex, float dt)
         {
             if (InputHelper.BackPressed) tutorial.Skip();
-            else if (InputHelper.StartPressed || (Simulated && (tutorialTimer -= dt) <= 0f))
+            else if (InputHelper.StartPressed || tutorial.Tick(dt))   // each step moves on by itself after 3.5 s; Start moves on sooner
             {
                 feedback.PlayClick();
                 tutorial.Next();
@@ -370,13 +390,20 @@ namespace TheraQuest
         void ShowTutorialStep()
         {
             if (!tutorial.Active) return;
-            tutorialTimer = TutorialAutoSeconds;
             hud.SetFeedback($"{tutorial.Text}\n<size=34>{tutorial.Step + 1} of {Tutorial.Steps.Length} · {Keys.Start} next · {Keys.Back} skip</size>", Tone.Neutral);
-            Subtitles.Say(tutorial.Text, TutorialAutoSeconds, "Coach");
+            Subtitles.Say(tutorial.Text, Tutorial.StepSeconds, "Coach");
         }
 
         void RunExercise(ExerciseDef ex, float dt)
         {
+            if (WebcamLockPaused(dt))
+            {
+                // Counting stops, reps already counted stay, the 3-2-1 and the "complete" moment wait (M10.5)
+                CurrentEval?.TrackingPaused(awaitingReady || celebrateTimer > 0f ? 0f : dt);
+                repMessageTimer = 0f;
+                hud.SetFeedback("Only the patient can do the exercise\n<size=34>Paused until the patient is back in view</size>", Tone.Warn);
+                return;
+            }
             if (celebrateTimer > 0f)
             {
                 // "Exercise complete" moment, then the next exercise's get-ready card (frozen while paused)
@@ -457,6 +484,13 @@ namespace TheraQuest
             }
         }
 
+        bool WebcamLockPaused(float dt)
+        {
+            patientGate.Tick(receiver != null ? receiver.Latest : null, motion.source == InputSource.Webcam,
+                             receiver != null && receiver.IsReceiving, dt);
+            return patientGate.Paused;
+        }
+
         /// <summary>
         /// Get-ready camera line (M6.3): with the webcam, whether the camera is placed right for this exercise and, if
         /// not, the one thing to fix first. Start still works, so a patient is never stuck on it.
@@ -507,6 +541,7 @@ namespace TheraQuest
             }
             index = 0;
             celebrateTimer = 0f;
+            patientGate.Reset();
             countdown.Cancel();
             game = new GamificationManager(program.patient.badges);
             game.BadgeUnlocked += code =>
@@ -604,10 +639,15 @@ namespace TheraQuest
         void OnRep(RepResult r)
         {
             var ev = CurrentEval;
+            int comboBefore = game.Combo;
             int pts = game.ScoreRep(r);
             feedback.PlayRep(r);
+            // Feedback motion (M8.3): only a good, counted rep celebrates; STOP and faults keep their still red warning
+            var fx = FeedbackMotion.ForRep(r, ev.State, comboBefore, game.Combo);
             string extra = r.valid && game.Combo > 1 ? $"  ×{game.Multiplier:0.0}" : "";
-            hud.Pop($"+{pts}{extra}", r.valid);
+            hud.Pop($"+{pts}{extra}", fx.reward);
+            hud.RepMoment(fx);
+            if (fx.reward) RepBurst(ev.Exercise);
             string line;
             switch (FeedbackManager.Grade(r))
             {
@@ -629,9 +669,19 @@ namespace TheraQuest
             hud.SetQuest(program.exercises, evaluators, index, phase == Phase.Running);
         }
 
+        /// <summary>A small burst where the live limb reached the target (not for limbs behind the patient, out of view).</summary>
+        void RepBurst(ExerciseDef ex)
+        {
+            var cam = Camera.main;
+            if (ex == null || cam == null || guide == null || FirstPersonMath.BehindBody(FigureVisualizer.PoseOf(ex))) return;
+            guide.AimPoints(ex, out _, out var goal);
+            FeedbackMotion.WorldBurst(goal, cam.transform, UIKit.Yellow);
+        }
+
         void OnHoldDone(float holdTime)
         {
             feedback.PlayHoldComplete();
+            if (FeedbackMotion.HoldComplete(CurrentEval.State)) hud.HoldComplete();
             hud.Pop("★ HOLD COMPLETE! ★", true);
             Subtitles.Say("Hold complete! Return to start position.", 2f, "Chime");
         }
@@ -657,6 +707,8 @@ namespace TheraQuest
                 ended_at = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss", System.Globalization.CultureInfo.InvariantCulture),
                 ended_early = endedEarly,
                 input_source = sessionSource,
+                other_person_pauses = patientGate.Pauses,
+                other_person_seconds = Mathf.RoundToInt(patientGate.PausedSeconds),
                 points = game.Points,
                 badges_earned = new List<string>(game.EarnedThisSession)
             };
@@ -694,8 +746,10 @@ namespace TheraQuest
             {
                 // Summary (M5.5): kept short for the patient (human request 2026-10-26): totals, a safety line when
                 // needed, then the XP bar and new badges animate below. Details stay on the therapist's dashboard.
+                // M8.5 hierarchy: the points are the one headline number; the rest are details below it
+                string headline = $"<color={UIKit.HexGold}>★</color> {game.Points} points";
                 var sb = new StringBuilder();
-                sb.AppendLine($"<color={UIKit.HexGood}>✓</color>  <b>{valid}</b> good reps   ·   <color={UIKit.HexGold}>★</color>  <b>{game.Points}</b> points");
+                sb.AppendLine($"<color={UIKit.HexGood}>✓</color>  <b>{valid}</b> good reps");
                 if (unsafeReps > 0) sb.AppendLine($"<color={UIKit.HexBad}>!</color>  {unsafeReps} {(unsafeReps == 1 ? "rep" : "reps")} went past the STOP line");
                 string practice = ProgressViews.PracticeLine(sessionSource);
                 if (practice != "") sb.AppendLine($"<color={UIKit.HexMuted}>{practice}</color>");
@@ -717,14 +771,14 @@ namespace TheraQuest
                     xpAfter = xpBefore + (ProgressViews.IsCounted(sessionSource) ? game.Points : 0);   // what the server will add once sent
                     newBadges = ProgressViews.IsCounted(sessionSource) ? ProgressViews.BadgeCodes(game.EarnedThisSession) : new List<string>();
                 }
-                sb.Append($"<color={UIKit.HexMuted}>{(resp != null ? "Saved" : "Saved, sent later")}  ·  Press {Keys.Start} to continue</color>");
+                string caption = $"{(resp != null ? "Saved" : "Saved, sent later")}  ·  Press {Keys.Start} to continue";
                 if (completed)
                 {
                     feedback.PlayVictory();
                     Subtitles.Say("Quest cleared! Great work today.", 3f, "Victory fanfare");
                 }
                 else Subtitles.Say("Session ended. Your progress is saved.", 3f);
-                hud.ShowSummary(completed ? "Quest cleared!" : "Good effort!", upload.stars, sb.ToString());
+                hud.ShowSummary(completed ? "Quest cleared!" : "Good effort!", upload.stars, headline, sb.ToString().TrimEnd('\r', '\n'), caption);
                 var xp = ProgressViews.Xp(xpBefore, xpAfter);
                 hud.ShowRewards(xp, xpAfter - xpBefore, newBadges, resp == null,
                     onLevelUp: () => { feedback.PlayLevelUp(); Subtitles.Say($"Level up! You reached level {xp.toLevel}.", 2.5f, "Level-up jingle"); },

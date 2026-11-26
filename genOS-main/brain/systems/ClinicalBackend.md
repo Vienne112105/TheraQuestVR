@@ -43,7 +43,7 @@ Provides a lightweight, local-first Python REST API and SQLite persistence layer
 - The server sends no CORS headers; static files are served only from inside `static/`; the server listens on 127.0.0.1 unless started with `--host`.
 - The patient record holds a real name and a code (DEC-027). The name is stored and shown only in the therapist dashboard; exports, VR routes (`get_program(for_vr=True)`), logs and recordings carry the code only.
 - Only sessions whose `input_source` is in `COUNTED_SOURCES` (`webcam`) drive adherence, streak, readiness, flags, dashboard KPIs, XP, badges, progression and the VR progress page. Keyboard, simulated and unknown-source sessions are stored and labelled, and the upload response says `counted: false` (M7.1).
-- A phase progression cannot be applied automatically without explicit therapist confirmation logged in `phase_history`.
+- A phase progression cannot be applied automatically without explicit therapist confirmation logged in `phase_history`, with the signed-in clinician as `approved_by` (M8.7; NULL on older rows).
 - Protocol deletions and patient detachments must preserve exercise histories and use parameterized SQL queries.
 - A patient code can only read or write its own record; a VR session whose `patient_id` differs from the code's patient is refused (403), and `patient_id` 0 means "recorded offline, attribute by code".
 - Patient codes are pseudonyms, not secrets, so VR routes must stay loopback-only while the server binds `0.0.0.0` for the dashboard.

@@ -65,6 +65,25 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 | M7.2 | M7 | done | Patient Name and Code |
 | M7.3 | M7 | done | Encrypted Backup and Restore |
 | M7.4 | M7 | done | Unity Company Name |
+| M8 | — | active | Visual & UX Polish |
+| M8.1 | M8 | done | URP Migration |
+| M8.2 | M8 | done | Clinic Room Look |
+| M8.3 | M8 | active | Feedback Motion |
+| M8.4 | M8 | active | Hologram & Coach Window |
+| M8.5 | M8 | active | Menus & Summary Polish |
+| M8.6 | M8 | done | Dashboard Visual Refresh |
+| M8.7 | M8 | active | Dashboard Hidden Data |
+| M9 | — | active | Manuscript Finalization & Polish |
+| M9.1 | M9 | active | Manuscript Audit |
+| M9.2 | M9 | done | Language and Flow Edit |
+| M9.3 | M9 | active | Sync with the Built System |
+| M9.4 | M9 | active | Figures and Screenshots |
+| M10 | — | active | XR Environment & VR Integration |
+| M10.1 | M10 | done | XR Origin Rig & Quest Link Lifecycle |
+| M10.2 | M10 | done | Controller Input & Ray Menus |
+| M10.3 | M10 | active | Comfort Locomotion in the Rig |
+| M10.4 | M10 | planned | Headset Panels & Rendering |
+| M10.5 | M10 | TBF | Patient Lock (one tracked body) |
 | HW | — | planned | Hardware Integration & Field Validation |
 | HW.1 | HW | planned | Hardware Setup & Compatibility Baseline |
 | HW.2 | HW | planned | Headset Integration Test |
@@ -77,6 +96,8 @@ Do not copy milestone criteria into Progress or Backlog. Progress stores only `c
 ## Suggested sequence
 
 `M0` (done) ➔ `M1` (done: features & avatars) ➔ `M2` (done: analytics & evaluation) ➔ `M3` (done: security & hardening) ➔ `M4` (done: foundation hardening before new game & dashboard features) ➔ `M5` (done: dashboard & game experience, first-person view and tracking safeguards; their human checks moved to HW) ➔ `M6` (done: camera tracking mechanics, webcam only, no headset) ➔ `M7` (done: pre-study data readiness, backlog TASK-003..TASK-006)
+
+In progress: `M8` (active: visual and UX polish; M8.2 and M8.6 done 2026-11-24, the other children wait) and `M9` (active since 2026-11-16: manuscript finalization; the progress pointer is on M9).
 
 Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its place in the sequence is not decided (it takes the next free `M` number when scheduled).
 
@@ -501,6 +522,184 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Dependencies:** none
 - **Systems:** VRClinicExperience
 
+## M8 — Visual & UX Polish
+
+- **Status:** active (started 2026-11-14)
+- **Objective:** Make the game look and feel finished and the therapist app clearer at a glance, before the study and the hardware run (approved by the human 2026-11-14). The game moves to URP (DEC-028); the room, feedback, hologram and menus get a visual pass; the dashboard gets a visual refresh and shows data the server already sends.
+- **Success criteria:**
+  - The game renders with URP with no Built-in shaders, no pink materials and no frame-time loss against the Built-in baseline.
+  - Room, hologram, coach window, feedback effects and menus are approved by the human from before and after screenshots or Play mode.
+  - VR comfort rules hold: no motion blur, vignette, chromatic aberration, film grain, depth of field or camera shake; UI transitions 0.25 s or shorter that never move the view; red only for safety (DEC-016).
+  - The dashboard shows a patient header, the 14-day adherence calendar, phase history and per-exercise stats (counted sessions only), keeps every M5.1 accessibility rule and fits 980 × 640.
+  - Every new asset is chosen by the human, credited in `CREDITS.md` with its licence, and has a fallback when missing (DEC-015).
+- **Children:** `M8.1` URP Migration; `M8.2` Clinic Room Look; `M8.3` Feedback Motion; `M8.4` Hologram & Coach Window; `M8.5` Menus & Summary Polish; `M8.6` Dashboard Visual Refresh; `M8.7` Dashboard Hidden Data.
+- **Plan:** `docs/superpowers/plans/2026-11-14-m8-visual-and-ux-polish.md` (repository root; holds the per-child steps and tests). Game track M8.1 → M8.2 → M8.4 → M8.3 → M8.5; dashboard track M8.6 → M8.7. The two tracks share no files and may run in parallel sessions; within a track run one child at a time (M8.3 and M8.5 both edit `UIKit.cs`; M8.6 and M8.7 both edit `dashboard.html`).
+- **Done when:** all children are done.
+- **Dependencies:** M5, M7. No hardware needed; HW.2 later confirms URP in the headset.
+- **Systems:** VRClinicExperience, AvatarCoach, Gamification, TherapistDashboard
+
+### M8.1 — URP Migration
+- **Status:** done
+- **Objective:** Render the game with URP, looking at least as good as now (DEC-028).
+- **Deliverables:** one URP pipeline asset and Forward renderer (MSAA 4x, HDR, soft shadows) assigned in Graphics and every Quality level; imported model materials converted; `Hologram.shader` ported to URP HLSL; `HumanoidCoach` uses the Little Guys URP material (no `Standard` swap); runtime materials made through one URP helper; OpenXR setup re-run under URP; EditMode tests.
+- **Completion criteria:** EditMode tests that the URP asset is assigned everywhere, no material under `Assets/TheraQuest` or made at runtime uses a Built-in shader, and the hologram shader is supported; full `run_tests.py` green; Play mode (menu, get-ready, all four postures, summary, Progress page) has no pink or missing materials against before screenshots; frame time on this PC not worse than the Built-in baseline.
+- **Dependencies:** none
+- **Systems:** VRClinicExperience, AvatarCoach
+
+### M8.2 — Clinic Room Look
+- **Status:** done (2026-11-24, approved by the human). Frame time 4.16 ms in Editor Play mode vs the 4.32 ms M8.1 reference (budget 4.75 ms). Standing, seated and lying "after" screenshots taken (Assets/Screenshots/M8.2, the human folder); no "before" exists, it was never captured. Later polish asked by the human 2026-11-19 to 2026-11-23: coach 1.2 m back, panels 1.65 m away in the headset, smaller exercise area with a rug texture, arm hologram guide 1.5 in forward, one window design (UIKit.Window), Joint Angle logo and app icon, cartoon title with outline and shadow, round-ended strips, status bubble aligned and cream for every tone, return-phase guidance (Lowering state), wrapping menu subtitle. Not adopted: the gritty/flat look trial (smoother wall, brighter lights), which was never built in. Not done: the free-look test during an exercise; the human closed the milestone without it.
+- **Objective:** A calm, bright clinic whose lighting draws the eye to the exercise spot and coach window.
+- **Deliverables:** soft directional sunlight with soft shadows, warm lamps, ambient light and a reflection probe rendered after the runtime room build; floor, wall and ceiling textures chosen by the human (current colours as fallback); one Volume with neutral tonemapping, gentle grading, light bloom and SSAO; exercise spot and mat readable on the new floor.
+- **Completion criteria:** human approves before and after screenshots from the standing, seated and lying viewpoints; frame time within 10% of M8.1; room builds with every texture missing; full suite green.
+- **Dependencies:** M8.1
+- **Systems:** VRClinicExperience
+
+### M8.3 — Feedback Motion
+- **Status:** active (started 2026-11-24, in parallel with M8.4 and M8.5 by the human request; the UIKit helper was committed first so M8.5 could go ahead). Built 2026-11-24 (5bdba6c, 8240ae3, f6d75bf; effect sprites Set A soft glow chosen by the human); EditMode 212 passed; waiting for the human Play-mode check of each moment.
+- **Objective:** Make important moments feel responsive without hurting comfort.
+- **Deliverables:** one `UIKit` panel fade/scale helper (0.15 to 0.25 s, unscaled time) used by menus, HUD cards, pop-ups, summary and Progress page; small effects for a good rep, hold progress and hold complete, combo pulse, level-up and badge reveal (assets chosen by the human, static fallback); STOP and posture faults keep their instant red warning with no celebration.
+- **Completion criteria:** EditMode tests (transition limits and skip-to-end, no reward effect on STOP or unsafe reps, effects only for counted events) pass; full suite green; human checks each moment in Play mode.
+- **Dependencies:** M8.1; not in parallel with M8.5 (`UIKit.cs`)
+- **Systems:** VRClinicExperience, Gamification
+
+### M8.4 — Hologram & Coach Window
+- **Status:** active (started 2026-11-24)
+- **Objective:** The target limb, live limb and coach window are the clearest things in view.
+- **Deliverables:** reworked URP hologram (fresnel rim, soft fill, alpha clip where possible, palette colours for target and live limb, steady glow inside tolerance); framed coach window with a soft backdrop and restyled arrows and word guides; same frame for the side mirror; documented shader parameters checked in the Frame Debugger.
+- **Completion criteria:** EditMode tests (glow only when the evaluator reports in-tolerance; frames inside the comfortable field-of-view limits) pass; full suite green; human approves before and after screenshots for all four postures.
+- **Dependencies:** M8.1
+- **Systems:** VRClinicExperience, AvatarCoach
+
+### M8.5 — Menus & Summary Polish
+- **Status:** active (started 2026-11-24, in parallel with M8.3 by the human request; UIKit edits kept to a separate file, see the M8 plan)
+- **Objective:** Consistent, tidy menus that stay short.
+- **Deliverables:** named type-size and spacing scale in `UIKit` used by the main menu, Settings, Progress tabs and summary; one card and button style with distinct hover, focus and pressed states for mouse, keyboard and controller; clearer summary and Progress hierarchy with no added content; menu and HUD distances re-checked against the `VRClinicExperience` invariants.
+- **Completion criteria:** EditMode tests (button state colours distinct; menu pages fit at the smallest text preset) pass; full suite green; human Play-mode check of every menu page and the summary.
+- **Dependencies:** M8.3 (`UIKit.cs`)
+- **Systems:** VRClinicExperience, Gamification
+
+### M8.6 — Dashboard Visual Refresh
+- **Status:** done (2026-11-24, approved by the human). New theme (left sidebar, slim top bar, greeting and key-numbers strip, neutral greys) approved from before/after screenshots on 2026-11-19; Backup and Protocol library dialogs rebuilt, themed picker panels in Create protocol; clinician sign-up form. Browser check at 1440x900, 980x640 and 600x800 passed; server tests 106 pass; exe rebuilt. Commits dca99a9, 0122d06, 9556728, 7545a6c; a4f21aa stops the app reusing a server on port 8000 that uses another database file (found during the walkthrough).
+- **Objective:** The therapist sees what matters for a patient at a glance.
+- **Deliverables:** type and spacing scale in the `:root` tokens; one button, card and table style; patient chart header (code, name, protocol and phase, adherence, last session, flags); caseload table polish (flag chips, hover and focus, sticky header); Chart.js styled from tokens; before and after screenshots on a throwaway database.
+- **Completion criteria:** server tests pass; browser check at 980 × 640 and full size (no horizontal scroll, no console errors, keyboard use and dialogs as in M5.1); therapist exe rebuilt; human walkthrough in the desktop app.
+- **Dependencies:** none
+- **Systems:** TherapistDashboard
+
+### M8.7 — Dashboard Hidden Data
+- **Status:** active (started 2026-11-24). Built and checked on a throwaway database; therapist exe rebuilt; waiting for the human walkthrough in the desktop app. Server payload changes: `phase_history.approved_by`, `byExercise.sessions` and `best`, calendar `enrolled`.
+- **Objective:** Show the data the server already sends but the page hides.
+- **Deliverables:** 14-day adherence calendar on the Activity tab (status by text or icon, not colour alone); phase history timeline; per-exercise stats table from counted sessions only (M7.1); empty, loading and error states; server tests only if the payload must change.
+- **Completion criteria:** server tests pass; browser check on a throwaway database with a patient with no sessions, one with missed days and one with a phase change; exe rebuilt; human walkthrough in the desktop app.
+- **Dependencies:** M8.6 (`dashboard.html`)
+- **Systems:** TherapistDashboard
+
+## M9 — Manuscript Finalization & Polish
+
+- **Status:** active (started 2026-11-16)
+- **Objective:** Make the existing capstone manuscript (Chapters 1 to 3 and its lists; working copy `Research/THERAQUEST- MANUSCRIPT.md`) read as finished and describe the system as it is actually built (approved by the human 2026-11-16). No new chapters. Section 3.9 Data Analysis and all results and metrics are out of scope. Since 2026-11-22 the master is the newest numbered Word draft in `Research/` (Draft 2.2 from the human, then 2.3, …); edits are delivered as Word tracked changes in a copy, with the per-chapter change list as the record, and the `.md` is frozen as a reference (DEC-031, superseding DEC-029).
+- **Success criteria:**
+  - `Research/M9-audit.md` has no open item except those the human chose to leave.
+  - The human approved Chapters 1, 2 and 3 and the figure set.
+  - Section 3.9 and the embedded image lines of the `.md` are byte-identical to the start; in the Word drafts, Section 3.9 text and equations and the images are unchanged (`Research/tools/redline.py guard` content hashes).
+  - Every approved edit is in the newest Word draft as a tracked change, and a change list with sources exists for every chapter.
+  - Research aims, objectives, benchmark targets, participants and instruments are changed only with the human's yes; no invented citations, numbers or results.
+- **Children:** `M9.1` Manuscript Audit; `M9.2` Language and Flow Edit; `M9.3` Sync with the Built System; `M9.4` Figures and Screenshots.
+- **Plan:** `docs/superpowers/plans/2026-11-16-m9-manuscript-finalization.md` (repository root; holds the rules, the first-read findings and the verification commands). Order M9.1 → M9.2 → M9.3 → M9.4; review by chapter; one chapter per session.
+- **Done when:** all children are done.
+- **Dependencies:** none to start. M9.4 game screenshots need the human's approval of the M8.2 look (otherwise they are provisional).
+- **Systems:** none changed; all `brain/systems` files are read as the reference for M9.3.
+
+### M9.1 — Manuscript Audit
+- **Status:** active (reopened 2026-11-25 by the human to run the audit again; first run done 2026-11-16: audit in `Research/M9-audit.md`, 138 items; the human answered D1 to D15; only the real dates for D3 are still to be supplied)
+- **Objective:** List every place where the manuscript text, figures and tables disagree with the built system or have structure or language problems, before anything is edited.
+- **Deliverables:** `Research/M9-audit.md` with one table per chapter (ID, section, quoted text, problem type, proposed action) and one list of open decisions for the human (tense of Chapter 3, the 2.3 numbering, title-page date and timeline, how much new system detail to add, which figures to redraw, keep or drop). The human first confirms that the 9 October `.md` still matches the master, or re-exports it.
+- **Completion criteria:** the manuscript is not edited in this child; the human has read the audit and answered the open decisions.
+- **Dependencies:** none
+- **Systems:** none changed
+
+### M9.2 — Language and Flow Edit
+- **Status:** done (2026-11-17: Chapters 1, 2 and 3 approved and committed, one commit each; change lists in `Research/M9-changes-chapter-N.md`; system wording left in Part D of each list for M9.3)
+- **Objective:** Chapters 1, 2 and 3 read cleanly and consistently without any change of meaning.
+- **Deliverables:** per chapter: grammar, clarity, consistent terms (1.6 Definition of Terms is the reference), consistent tense as decided in M9.1, headings and numbering repaired, captions and contents entries matched to the lists; `Research/M9-changes-chapter-N.md` (section, original text, new text, reason). Chapter 3 skips 3.9. Chapter 2 claims about other systems get a language edit only.
+- **Completion criteria:** hash checks for Section 3.9 and the image lines unchanged; no empty headings and numbering in order; the human approves each chapter; one commit per approved chapter.
+- **Dependencies:** M9.1
+- **Systems:** none changed
+
+### M9.3 — Sync with the Built System
+- **Status:** active (paused 2026-11-17 for M10, resumed by the human 2026-11-22: Chapter 1 synced and delivered with all M9.2 edits in `Research/THERAQUEST- MANUSCRIPT DRAFT 2.3.docx` as tracked changes, waiting for the human's review in Word; Chapters 2 and 3 next)
+- **Objective:** The manuscript describes the system that exists.
+- **Deliverables:** every system-mismatch item from the audit resolved in 1.1, 1.3, 1.5, 1.6, 3.2 to 3.7 and 3.10 (single external webcam and 2D angles, tethered Quest Link with desktop fallback, MediaPipe Pose and OpenCV, SQLite, therapist desktop app, first-person view, patient code and name rule, encrypted backup, actual timeline), each checked against [[00_PROJECT]], [[30_DECISIONS]], the systems files and the code, appended to the chapter change list with its source, and applied to the newest Word draft as tracked changes with `Research/tools/redline.py` (DEC-031).
+- **Completion criteria:** every system-mismatch item is closed or marked kept by the human; items that change a research claim were applied only after the human's yes; `validate.py --author Claude` passes, the reject view equals the previous draft and the `redline.py guard` content hashes are unchanged; the human approves in Word.
+- **Dependencies:** M9.2 (same file)
+- **Systems:** none changed
+
+### M9.4 — Figures and Screenshots
+- **Status:** active (started 2026-11-26 by the human, from Draft 2.12; the D3 dates for the Gantt figure are still to come)
+- **Objective:** Figures, tables and their lists match the text and the built system.
+- **Deliverables:** for each figure the audit marks as not matching, a corrected version built from the real system saved in `Research/Figures/figures/` beside the old one for the human to keep or replace; screenshots only where the human wants them (throwaway database, patient codes only, DEC-027); captions, List of Figures and List of Tables updated; a placement list (figure number, caption, after which paragraph) for the master. The base64 image lines in the `.md` are not regenerated.
+- **Completion criteria:** every figure and table label in the body matches its list entry and the reverse; the human approves the figure set.
+- **Dependencies:** M9.3; M8.2 approval for final game screenshots
+- **Systems:** none changed
+
+## M10 — XR Environment & VR Integration
+
+- **Status:** active (started 2026-11-17; the human has a Meta Quest available)
+- **Objective:** Move the game's VR side from hand-written `UnityEngine.XR` device reads to a standard Unity XR setup built on the XR Interaction Toolkit (DEC-030): one XR Origin rig, controller input through input actions, ray-pointed menus, toolkit locomotion and headset-ready panels, with the desktop mode still working when no headset is present.
+- **Scope chosen by the human (2026-11-17):** controllers and the XRI rig. No hand tracking (it stays in [[VRClinicExperience]] Future Changes). Not built or tested on the XR Device Simulator alone: work starts when a Meta Quest is available.
+- **Success criteria:**
+  - The game runs in the headset over Quest Link on the XR Origin rig, and in desktop mode with Link off, from the same scene and build (DEC-002).
+  - Every menu and in-session action can be done with the Quest controllers by pointing and pressing; keyboard and mouse still work on the laptop.
+  - The comfort invariants in [[VRClinicExperience]] hold: the game never moves or turns the headset view on its own; only the instant re-center does.
+  - First-person exercise view, default heights, HUD, coach window and subtitles (DEC-021) behave as before on the new rig.
+  - All EditMode tests pass; the headset frame rate stays comfortable under URP (DEC-028).
+- **Children:** `M10.1` XR Origin Rig & Quest Link Lifecycle; `M10.2` Controller Input & Ray Menus; `M10.3` Comfort Locomotion in the Rig; `M10.4` Headset Panels & Rendering; `M10.5` Patient Lock (one tracked body).
+- **Done when:** all children are done and the human has run a session in the headset on the new rig.
+- **Dependencies:** access to a Meta Quest headset and a VR-ready PC; HW.1 (Link installed and set as the OpenXR runtime). HW.2 tests the result of M10. M8.4 and M8.5 touch the same panels: do not run them in a parallel session with M10.4.
+- **Note:** the human's uncommitted changes already add `com.unity.xr.interaction.toolkit` 3.6.1, `com.unity.xr.hands` 1.9.0, `com.unity.xr.compositionlayers` 2.6.1, XR Management 4.7.0, `Assets/XRI/` and changed OpenXR settings (seen 2026-11-17). The human chose to commit them as they are (7bf9360, 2026-11-17). XR Hands and Composition Layers stay unused until M10.4 decides on Composition Layers.
+
+### M10.1 — XR Origin Rig & Quest Link Lifecycle
+- **Status:** done (2026-11-23: the human passed all five headset checks on a Quest 2 over Link; fixes in 209766b)
+- **Objective:** One camera rig that works in the headset and on the laptop, and a clean start, stop and loss of the Link connection.
+- **Deliverables:** the package set agreed and committed (XR Hands removed unless the human wants it kept); an XR Origin (floor tracking origin) built by `TheraQuestSceneBuilder` and used by `HeadTracking`, `FirstPersonGuide` and `PlayerMover` in place of the current rig; instant re-center and the per-posture default height kept; `TheraQuest → Set Up OpenXR` updated for the new packages; start with Link on, start with Link off, headset taken off (session pauses) and Link lost mid-session (falls back to desktop without losing the session); EditMode tests for the rig set-up and the fallback choice.
+- **Completion criteria:** the game starts in both modes from one build; re-center and default heights give the same view as before; the existing EditMode suite passes; the human sees the room in the headset.
+- **Dependencies:** HW.1; the human's answer on the uncommitted package changes
+- **Systems:** VRClinicExperience, SessionOrchestration
+
+### M10.2 — Controller Input & Ray Menus
+- **Status:** done (2026-11-23: the human checked controllers only and keyboard and mouse only on a Quest 2 over Link; f9fa740)
+- **Note (2026-11-19, human request):** thumbsticks no longer walk; walking is keyboard only, in the headset too. Sticks turn and drive menus only, and only with a thumb on them.
+- **Objective:** Controllers drive the game through input actions, and menus are used by pointing at them.
+- **Deliverables:** an input actions asset (XRI defaults where they fit) read through `InputHelper`, replacing the direct `UnityEngine.XR` device reads; the current mapping kept (A select, B pause, Y re-center, thumbsticks for menus, walking and turning); a controller ray with the XR UI input module on the world-space menus, pause menu, settings and summary screens; visible controller models or pointers; keyboard and mouse unchanged; EditMode tests for the action mapping.
+- **Completion criteria:** main menu, settings, pause, summary and Progress page can each be completed with controllers only and with keyboard and mouse only; no script reads XR devices directly any more.
+- **Dependencies:** M10.1
+- **Systems:** VRClinicExperience, SessionOrchestration
+
+### M10.3 — Comfort Locomotion in the Rig
+- **Status:** active (next up; M10.2 done 2026-11-23)
+- **Objective:** Walking and turning use the toolkit's locomotion on the XR Origin and keep the comfort rules.
+- **Deliverables:** snap turn (30°), optional smooth turn and thumbstick walking through XRI locomotion providers, with the room boundaries of `PlayerMover`; locomotion locked during exercises; re-center to the exercise spot; settings (snap or smooth) still saved in `GameSettings`; tests for the exercise lock and the boundaries.
+- **Completion criteria:** the invariants in [[VRClinicExperience]] hold in the headset (no view movement the patient did not ask for); the patient cannot leave the room or move during an exercise.
+- **Dependencies:** M10.1, M10.2
+- **Systems:** VRClinicExperience
+
+### M10.4 — Headset Panels & Rendering
+- **Status:** planned
+- **Objective:** Everything the patient reads is sharp, comfortable and in the right place in the headset.
+- **Deliverables:** HUD, floating menus, coach window, subtitles and the lying-posture panel positions checked and corrected on the new rig; text sharpness in the headset (composition layers only if plain world-space panels are not sharp enough; otherwise the package is removed); URP settings checked in stereo (MSAA, SSAO, bloom, shadows) against the comfort ban list of DEC-028; headset frame time measured for a full session.
+- **Completion criteria:** the human can read every panel standing, seated and lying without strain; the headset frame rate stays at the Link refresh rate through a session, or the cost is recorded with the setting that was lowered.
+- **Dependencies:** M10.1; M8.2 approval (room look); not in parallel with M8.4 or M8.5
+- **Systems:** VRClinicExperience, AvatarCoach
+
+### M10.5 — Patient Lock (one tracked body)
+- **Status:** TBF (built 2026-11-26, not committed; waiting for the human check with two people in front of the webcam. Requested by the human 2026-11-26 after the physical therapist said the exercise must be done by the patient and not by another person)
+- **Objective:** The tracker remembers the first body it sees in a session and pauses the session when a different body takes its place or enters the exercise area, until the first body is tracked again.
+- **Deliverables:** `tracker/` looks for up to two bodies (now `num_poses=1`); the first body found at session start is locked with a simple signature (body proportions and position); a "different person" status goes to the game with the other tracker data; the game pauses the exercise (reps kept, same path as the tracking-loss pause) and shows a short message; it resumes only when the locked body is tracked again; the therapist dashboard notes the pause; a person who is only in view (a supervising staff member or relative standing behind or beside) does not pause the session; tests with a recorded two-person landmark sequence (existing record and replay) and EditMode/server tests for the pause and resume.
+- **Completion criteria:** with the locked patient exercising, a second person walking into view does not pause; the second person taking the patient's place pauses the session; the patient returning resumes it; reps are kept; all suites pass; the human checks it with two people in front of the webcam.
+- **Dependencies:** M10 tracker and Link work are untouched; touches `tracker/`, `ExerciseEvaluation` and the pause path in the game. Not in parallel with M8.4 or M8.5 on the HUD files.
+- **Systems:** MotionTracking, ExerciseEvaluation, SessionOrchestration
+- **Manuscript:** Section 1.5, 3.6.3 and 3.7.3 describe it only after it is built (M9.3).
+
 ## HW — Hardware Integration & Field Validation (unscheduled)
 
 - **Status:** planned (unscheduled: not yet numbered or placed in the sequence)
@@ -532,7 +731,7 @@ Unscheduled (no number yet): `HW` Hardware Integration & Field Validation; its p
 - **Objective:** Verify the VR client on the real headset (moved here from M4.3's completion criteria on 2026-10-25).
 - **Deliverables:** test run covering head tracking and recentering (Y / R), controller mapping (A select, B pause, thumbsticks for menus, walking and turning), locomotion locked during exercises, HUD and menu legibility and comfort at the configured distances, subtitles, pause and quit in the headset, and the desktop fallback with Link off; the first-person view (M5.8): default height calibration standing, seated and lying, the limbs lining up with where the patient feels their body, and the panels' position when lying; fixes for problems found.
 - **Completion criteria:** every item passes in the headset, or has a recorded fix or workaround; a session done in the headset uploads to the dashboard.
-- **Dependencies:** HW.1
+- **Dependencies:** HW.1; M10 (the test runs on the M10 rig and input, added 2026-11-17)
 - **Systems:** VRClinicExperience, SessionOrchestration
 
 ### HW.3 — Webcam and Headset Concurrent Operation

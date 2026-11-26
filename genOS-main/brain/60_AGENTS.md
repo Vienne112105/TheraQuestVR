@@ -48,6 +48,11 @@ This file tracks which specialist agents are active, deferred, or removed for th
 - **`testing-reality-checker`** (`.agents/skills/testing-reality-checker`)
   - *Purpose (M4):* Checks M4.5 so evaluation metrics come only from real, labelled inputs and synthetic output is clearly marked (DEC-011).
 
+## Milestone Agents (Active for M9 — Manuscript Finalization & Polish)
+- **`testing-reality-checker`** (`.agents/skills/testing-reality-checker`)
+  - *Purpose (M9):* Checks in M9.3 that every claim the manuscript makes about the system matches the brain and the code, and that no number or result is invented.
+- No installed agent covers academic editing. None was added (2026-11-16); the M9 plan's rules govern the language edit.
+
 ## Deferred Agents
 - none
 
@@ -58,5 +63,5 @@ This file tracks which specialist agents are active, deferred, or removed for th
 The selected 10 specialists match the interdisciplinary nature of TheraQuest VR: computer vision tracking, Unity 6 VR development, gamification design, biomechanical analysis, clinical data pipelines, and academic research evaluation.
 
 ## Last Workforce Review
-- **Date:** 2026-10-20
-- **Milestone:** M4 kickoff (security-auditor activated; testing-reality-checker assigned to M4.5)
+- **Date:** 2026-11-16
+- **Milestone:** M9 kickoff (testing-reality-checker assigned to M9.3; no academic-editing agent installed). Previous review: 2026-10-20, M4 kickoff.

@@ -46,3 +46,12 @@ Desktop.ini
 
 # Tracker landmark recordings (DEC-024): never committed
 Main/TheraQuestVR/tracker/recordings/
+
+# Graphify code graph (rebuilt locally with `graphify extract . --code-only`)
+graphify-out/
+
+# --- Unity screenshots and scene recovery (large / generated) ---
+Main/TheraQuestVR/unity/Assets/Screenshots/
+Main/TheraQuestVR/unity/Assets/Screenshots.meta
+Main/TheraQuestVR/unity/Assets/_Recovery/
+Main/TheraQuestVR/unity/Assets/_Recovery.meta

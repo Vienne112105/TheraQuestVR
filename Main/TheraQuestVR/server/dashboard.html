@@ -10,14 +10,19 @@
 
 <style>
 :root {
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --bg: #F8FAFC;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Neutral greys carry the layout; colour is kept for status and the brand mark */
+  --bg: #FAFAFA;
   --surface: #FFFFFF;
-  --border: #E2E8F0;
-  --border-subtle: #F1F5F9;
-  --text: #0F172A;
-  --text-muted: #64748B;
-  --text-light: #94A3B8;
+  --sidebar: #F7F7F8;
+  --border: #E7E7EA;
+  --border-subtle: #F1F1F3;
+  --text: #18181B;
+  --text-muted: #6B6B73;
+  --text-light: #A1A1AA;
+  --ink: #18181B;
+  --ink-hover: #2E2E33;
+  --hover: #F1F1F3;
   --teal: #0D9488;
   --teal-soft: #F0FDFA;
   --teal-border: #CCFBF1;
@@ -30,12 +35,29 @@
   --red-border: #FECACA;
   --red-strong: #B91C1C;
   --teal-dark: #0F766E;
-  --border-strong: #CBD5E1;
-  --text-2: #334155;
+  --border-strong: #D4D4D8;
+  --text-2: #3F3F46;
   --blue: #1D4ED8;
   --blue-soft: #EFF6FF;
   --blue-border: #BFDBFE;
   --focus: #0D9488;
+  /* Type scale */
+  --fs-xs: 11.5px;
+  --fs-sm: 12.5px;
+  --fs-md: 13px;
+  --fs-lg: 15px;
+  --fs-xl: 20px;
+  --fs-kpi: 22px;
+  --sidebar-w: 232px;
+  /* Spacing scale (4 px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --shadow-card: 0 1px 2px rgba(24, 24, 27, 0.04);
 }
 
 body {
@@ -48,91 +70,141 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Header & Navigation */
-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 8px 32px;
-  min-height: 64px;
+/* App shell: sidebar on the left, slim top bar and page on the right */
+.app-shell { display: flex; min-height: 100vh; }
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.sidebar {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
   box-sizing: border-box;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  align-items: center;
-  justify-content: space-between;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
   position: sticky;
   top: 0;
-  z-index: 40;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 14px 12px;
+  flex-direction: column;
+  gap: 18px;
 }
-.brand-wrap {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.sb-brand { display: flex; align-items: center; gap: 9px; padding: 2px 6px; font-size: 14px; font-weight: 600; color: var(--text); }
+.sb-logo {
+  width: 24px; height: 24px; border-radius: 6px; flex-shrink: 0;
+  background: var(--teal); color: #FFFFFF;
+  display: inline-flex; align-items: center; justify-content: center;
 }
-.brand-badge {
-  background: var(--teal-soft);
-  color: var(--teal);
-  border: 1px solid var(--teal-border);
-  font-weight: 700;
-  font-size: 13px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.brand-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
-}
-.top-nav {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-}
-.nav-link, .btn, .brand-title { white-space: nowrap; }
+.sb-group { display: flex; flex-direction: column; gap: 2px; }
+.sb-heading { font-size: var(--fs-xs); color: var(--text-muted); padding: 0 8px 4px; }
+.sb-group nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-link, .btn { white-space: nowrap; }
 .nav-link {
   font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-muted);
+  color: var(--text-2);
   text-decoration: none;
-  font-size: 13.5px;
-  font-weight: 600;
+  text-align: left;
+  font-size: var(--fs-md);
+  font-weight: 500;
   cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-  display: inline-flex;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  transition: background 0.12s ease, color 0.12s ease;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 9px;
 }
-.nav-link:hover {
-  color: var(--text);
-  background: var(--border-subtle);
+.nav-link svg { color: var(--text-muted); flex-shrink: 0; }
+.nav-link:hover { background: var(--hover); color: var(--text); }
+.nav-link.active { background: #EBEBEE; color: var(--text); font-weight: 600; }
+.nav-link.active svg { color: var(--text); }
+
+.sb-foot { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
+.sb-user {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface);
 }
-.nav-link.active {
-  color: var(--teal);
-  background: var(--teal-soft);
-  border: 1px solid var(--teal-border);
+.sb-avatar {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: #F3E8DD; color: #7C5A3A; font-size: 11px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center;
 }
+.sb-user-text { min-width: 0; flex: 1; }
+.sb-user-text div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-icon-btn {
+  font-family: inherit; background: transparent; border: 1px solid transparent; border-radius: var(--radius);
+  color: var(--text-muted); cursor: pointer; padding: 5px; display: inline-flex; align-items: center; justify-content: center;
+}
+.sb-icon-btn:hover { background: var(--hover); color: var(--text); }
+
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  min-height: 52px; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 28px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--border);
+}
+.crumb { font-size: var(--fs-md); color: var(--text-muted); display: flex; align-items: center; gap: 6px; min-width: 0; }
+.crumb b { color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crumb-link { font: inherit; background: none; border: 0; padding: 0; color: var(--text-muted); cursor: pointer; }
+.crumb-link:hover { color: var(--text); text-decoration: underline; }
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+.login-brand { display: none; }
+body:not(.authed) .login-brand { display: flex; }
+body:not(.authed) .crumb, body:not(.authed) .topbar-actions { display: none; }
 
 /* Page Layout */
 .container {
-  max-width: 1100px;
-  margin: 32px auto;
-  padding: 0 24px;
+  width: 100%;
+  max-width: 1180px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 28px 28px 40px;
 }
+
+/* Caseload page head and key numbers strip */
+.page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; margin-bottom: 20px; }
+.page-title { font-size: var(--fs-xl); font-weight: 600; letter-spacing: -0.01em; margin: 0; color: var(--text); }
+.page-sub { font-size: var(--fs-md); color: var(--text-muted); margin: 4px 0 0; }
+.kpi-strip, .summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.kpi-cell { background: var(--surface); padding: 14px 16px; min-width: 0; }
+/* Divider lines that still look right when the strip wraps: each cell draws all four edges; the outer ones are clipped */
+.kpi-cell, .summary-box { box-shadow: -1px -1px 0 var(--border), 1px 1px 0 var(--border); }
+.kpi-label { font-size: var(--fs-sm); color: var(--text-muted); }
+.kpi-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.kpi-value { font-size: var(--fs-kpi); font-weight: 500; color: var(--text); letter-spacing: -0.01em; }
+.kpi-note { font-size: var(--fs-xs); color: var(--text-muted); text-align: right; }
+.kpi-note.bad { color: var(--red); }
+.kpi-note.good { color: var(--green); }
+.callout {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: #FDF1EE; border: 1px solid #F8DCD5; border-radius: var(--radius-lg);
+  padding: 10px 12px 10px 14px; margin-bottom: 24px; font-size: var(--fs-md); color: var(--text-2);
+}
+.callout svg { color: #E0613F; flex-shrink: 0; }
+.callout .callout-text { flex: 1 1 240px; min-width: 0; }
 
 /* Standard Clinical Action Buttons */
 .btn {
   font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 600;
-  padding: 7px 16px;
-  border-radius: 6px;
+  font-size: var(--fs-md);
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: var(--radius);
   border: 1px solid transparent;
   cursor: pointer;
   display: inline-flex;
@@ -144,75 +216,72 @@ header {
   outline: none;
 }
 .btn-primary {
-  background: var(--teal);
+  background: var(--ink);
   color: #FFFFFF;
 }
 .btn-primary:hover {
-  background: var(--teal-dark);
+  background: var(--ink-hover);
   color: #FFFFFF;
 }
+.btn-primary:active, .btn-secondary:active { transform: translateY(1px); }
 .btn-secondary {
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
 }
 .btn-secondary:hover {
-  background: var(--bg);
-  border-color: var(--text-light);
+  background: var(--hover);
+  border-color: var(--border-strong);
 }
 .btn-sm {
-  padding: 5px 12px;
-  font-size: 12.5px;
+  padding: 5px 10px;
+  font-size: var(--fs-sm);
 }
 
-/* BACK BUTTON: Highlighted in solid black outline */
+/* Back button: same thin border as the other secondary buttons, a little darker so it is easy to find */
 .back-btn {
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--fs-sm);
+  font-weight: 500;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 6px;
-  border: 2px solid #000000;
-  box-shadow: 0 0 0 2px #000000;
-  background: #FFFFFF;
-  color: #000000;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
   margin-bottom: 14px;
-  transition: all 0.15s ease;
+  transition: background 0.12s ease, border-color 0.12s ease;
   outline: none;
 }
 .back-btn:hover {
-  background: #000000;
-  color: #FFFFFF;
-  border-color: #000000;
-  box-shadow: 0 0 0 2px #000000, 0 3px 8px rgba(0, 0, 0, 0.25);
-  transform: translateY(-1px);
+  background: var(--hover);
+  border-color: var(--text-light);
 }
 .back-btn:active {
-  transform: translateY(0);
+  transform: translateY(1px);
 }
 
 /* Cards & Layout */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-5);
+  margin-bottom: var(--sp-5);
+  box-shadow: var(--shadow-card);
 }
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 .card-title {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--fs-lg);
+  font-weight: 600;
   color: var(--text);
   display: flex;
   align-items: center;
@@ -245,23 +314,23 @@ header {
   gap: 16px;
 }
 .patient-code {
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--teal);
-  background: var(--teal-soft);
-  border: 1px solid var(--teal-border);
-  padding: 4px 8px;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
   border-radius: 6px;
   font-family: monospace;
   white-space: nowrap;
 }
 .patient-name {
-  font-weight: 600;
-  font-size: 15px;
+  font-weight: 500;
+  font-size: var(--fs-md);
   color: var(--text);
 }
 .patient-condition {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-muted);
 }
 
@@ -275,43 +344,35 @@ header {
   border-bottom: 1px solid var(--border);
 }
 .patient-title-h1 {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--text);
   margin: 0;
 }
 .patient-subtitle {
-  font-size: 14px;
+  font-size: var(--fs-md);
   color: var(--text-muted);
   margin-top: 3px;
 }
 
-/* Summary Grid */
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
+/* Summary Grid: shares the key-numbers strip style (.kpi-strip) */
 .summary-box {
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 18px 20px;
+  padding: 14px 16px;
+  min-width: 0;
 }
 .summary-label {
-  font-size: 11.5px;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: 400;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 .summary-value {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: var(--fs-kpi);
+  font-weight: 500;
   color: var(--text);
   margin: 6px 0;
 }
@@ -328,11 +389,12 @@ header {
   border-bottom: 1px solid var(--border);
 }
 .subtab-btn {
+  font-family: inherit;
   background: transparent;
   border: none;
-  padding: 10px 16px;
-  font-size: 13.5px;
-  font-weight: 600;
+  padding: 9px 12px;
+  font-size: var(--fs-md);
+  font-weight: 500;
   color: var(--text-muted);
   cursor: pointer;
   border-bottom: 2px solid transparent;
@@ -346,41 +408,56 @@ header {
   color: var(--text);
 }
 .subtab-btn.active {
-  color: var(--teal);
-  border-bottom-color: var(--teal);
+  color: var(--text);
+  border-bottom-color: var(--ink);
 }
 
 /* Tables */
 .clean-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13.5px;
+  font-size: var(--fs-md);
 }
 .clean-table th {
   text-align: left;
-  padding: 10px 14px;
+  padding: 9px 14px;
   color: var(--text-muted);
-  font-weight: 600;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  font-size: var(--fs-sm);
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
 .clean-table td {
-  padding: 14px;
+  padding: 11px 14px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text);
 }
+.clean-table tbody tr:hover { background: var(--bg); }
+
+/* Caseload table: sticky header (sits under the sticky page header), row hover and keyboard focus */
+.caseload-wrap { max-height: max(260px, calc(100vh - 230px)); overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.caseload-table th { position: sticky; top: 0; z-index: 2; background: var(--bg); box-shadow: 0 1px 0 var(--border); }
+.caseload-table td { vertical-align: middle; }
+.caseload-table tbody tr:focus-within { background: var(--hover); outline: 2px solid var(--focus); outline-offset: -2px; }
+.caseload-table .col-num { text-align: right; white-space: nowrap; color: var(--text-muted); }
+.flag-chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.flag-ok { color: var(--text-muted); font-size: var(--fs-sm); }
+
+/* Patient chart header strip: code, protocol and phase, adherence, last session, flags */
+.chart-meta { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); align-items: center; margin-top: var(--sp-3); font-size: var(--fs-sm); color: var(--text-muted); }
+.chart-meta .meta-item { display: inline-flex; align-items: center; gap: 6px; }
+.chart-meta .meta-item b { color: var(--text); font-weight: 700; }
 
 /* Status Badges */
 .tag-status {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font-size: var(--fs-xs);
+  font-weight: 500;
 }
 .tag-status.complete { background: var(--green-soft); color: var(--green); }
 .tag-status.incomplete { background: var(--amber-soft); color: var(--amber); }
@@ -484,8 +561,8 @@ header {
 }
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
-  border-color: var(--teal);
-  box-shadow: 0 0 0 2px var(--teal-soft);
+  border-color: var(--text-light);
+  box-shadow: 0 0 0 3px var(--hover);
 }
 .modal-header-clean {
   display: flex;
@@ -556,6 +633,45 @@ header {
   font-size: 13.5px;
 }
 .state-msg .btn { margin-top: 12px; }
+#chartEmpty { border: 1px dashed var(--border-strong); border-radius: var(--radius-lg); background: var(--bg); }
+
+/* M8.7: 14-day adherence calendar, phase history and per-exercise stats (status by icon and text, not colour alone) */
+.cal-grid { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.cal-day {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0;
+  padding: 6px 2px 7px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+  font-size: var(--fs-xs); color: var(--text-muted); text-align: center;
+}
+.cal-day .cal-dow { font-size: 10.5px; text-transform: uppercase; letter-spacing: .02em; }
+.cal-day .cal-num { font-size: var(--fs-md); font-weight: 600; color: var(--text); }
+.cal-day .cal-label { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.cal-day.complete { background: var(--green-soft); border-color: #A7F3D0; color: var(--green); }
+.cal-day.incomplete { background: var(--amber-soft); border-color: #FDE68A; color: var(--amber); }
+.cal-day.missed { background: var(--red-soft); border-color: var(--red-border); color: var(--red-strong); }
+.cal-day.pending { border-style: dashed; border-color: var(--border-strong); color: var(--text-2); }
+.cal-day.rest { background: var(--bg); border-color: var(--border-subtle); color: var(--text-light); }
+.cal-day.rest .cal-num { color: var(--text-muted); }
+.cal-day.before { background: transparent; border-style: dotted; }
+.cal-day.today { box-shadow: inset 0 0 0 1.5px var(--text-2); }
+.cal-summary { margin-top: var(--sp-3); font-size: var(--fs-sm); color: var(--text-muted); display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); }
+.cal-summary b { color: var(--text); }
+.hidden-data-row { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--sp-5); align-items: start; }
+.clean-table td.num, .clean-table th.num { text-align: right; white-space: nowrap; }
+.card-note { font-size: var(--fs-xs); color: var(--text-muted); margin-top: var(--sp-2); }
+.timeline { list-style: none; margin: 0; padding: 0; }
+.timeline li { position: relative; padding: 0 0 var(--sp-4) 22px; }
+.timeline li::before { content: ""; position: absolute; left: 5px; top: 14px; bottom: 0; width: 2px; background: var(--border); }
+.timeline li:last-child { padding-bottom: 0; }
+.timeline li:last-child::before { display: none; }
+.timeline .tl-dot {
+  position: absolute; left: 0; top: 4px; width: 12px; height: 12px; border-radius: 50%; box-sizing: border-box;
+  background: var(--surface); border: 2px solid var(--text-light);
+}
+.timeline li.current .tl-dot { background: var(--teal); border-color: var(--teal); }
+.timeline .tl-title { font-weight: 600; font-size: var(--fs-md); color: var(--text); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.timeline .tl-meta { font-size: var(--fs-sm); color: var(--text-muted); }
+.timeline .tl-note { font-size: var(--fs-sm); color: var(--text-2); margin-top: 2px; overflow-wrap: anywhere; }
+.tag-status.current { background: var(--teal-soft); color: var(--teal-dark); border-color: var(--teal-border); }
 .table-footer {
   display: flex;
   align-items: center;
@@ -601,7 +717,7 @@ header {
   transition: all 0.15s ease;
 }
 .protocol-row:hover {
-  border-color: var(--teal);
+  border-color: var(--border-strong);
   background: var(--bg);
 }
 .form-grid-2 {
@@ -619,77 +735,222 @@ header {
   border-left: 1px solid var(--border);
 }
 
+
+/* Form controls never grow past their box (inline width:100% + padding used to overflow dialogs) */
+input, select, textarea { box-sizing: border-box; max-width: 100%; }
+
+/* Dialog layout: header with icon and close, body, footer with actions */
+.dialog-v2 { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+/* Header and tabs stay put; only the panel or form scrolls, and the footer stays at the bottom */
+.dialog-v2 > * { flex-shrink: 0; }
+.dialog-v2 > [role="tabpanel"], .dialog-v2 > form { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.dialog-v2 .dlg-foot { position: sticky; bottom: 0; z-index: 1; }
+.dlg-head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+.dlg-icon { width: 32px; height: 32px; flex-shrink: 0; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; }
+.dlg-titles { flex: 1; min-width: 0; }
+.dlg-title { font-size: var(--fs-lg); font-weight: 600; color: var(--text); }
+.dlg-desc { font-size: var(--fs-sm); color: var(--text-muted); margin-top: 2px; }
+.dlg-body { display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 18px; }
+.dlg-note { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-sm); color: var(--text-2); background: var(--amber-soft); border: 1px solid #FDE7B0; border-radius: var(--radius); padding: 9px 11px; }
+.dlg-note svg { color: var(--amber); flex-shrink: 0; margin-top: 1px; }
+.dlg-hint { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 4px; }
+.dlg-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--border); background: var(--bg); border-radius: 0 0 10px 10px; }
+
+/* Protocol library dialog */
+.dlg-tabs { padding: 0 20px; margin: 0 !important; }
+.tab-count { font-size: var(--fs-xs); color: var(--text-muted); background: var(--hover); border-radius: 999px; padding: 0 7px; }
+.protocol-list { display: flex; flex-direction: column; gap: 8px; }
+.protocol-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.protocol-row-name { font-weight: 500; font-size: var(--fs-md); color: var(--text); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.protocol-row-meta { font-size: var(--fs-sm); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-quiet { background: var(--hover); border-color: var(--border); color: var(--text-muted); font-weight: 500; }
+.start-from { display: flex; flex-direction: column; }
+.start-from .form-select { max-width: 420px; }
+.dlg-section { display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px; }
+.dlg-section-title { font-size: var(--fs-md); font-weight: 600; color: var(--text); }
+.ex-pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; max-height: 180px; overflow-y: auto; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+.ex-pick { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); color: var(--text); cursor: pointer; padding: 6px 8px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); }
+.ex-pick:hover { border-color: var(--border-strong); }
+.ex-pick:has(input:checked) { border-color: var(--ink); background: var(--hover); }
+.ex-pick b { font-weight: 500; }
+.ex-pick-joint { font-size: var(--fs-xs); color: var(--text-muted); }
+
+/* Picker panel (combobox): field with a chevron, themed list panel below it */
+.combo { position: relative; }
+.combo > .form-input { padding-right: 34px; }
+.combo-toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; border: 0; border-radius: var(--radius); background: transparent; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.combo-toggle:hover { background: var(--hover); color: var(--text); }
+.combo > .form-input[aria-expanded="true"] { border-color: var(--text-light); box-shadow: 0 0 0 3px var(--hover); }
+.combo-panel { position: fixed; z-index: 120; box-sizing: border-box; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 12px 32px rgba(24, 24, 27, 0.14), 0 2px 6px rgba(24, 24, 27, 0.06); overflow: hidden; font-size: var(--fs-md); animation: comboIn 0.12s ease; }
+.combo-panel[hidden] { display: none; }
+@keyframes comboIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.combo-head { padding: 9px 12px 7px; font-size: var(--fs-xs); color: var(--text-muted); border-bottom: 1px solid var(--border-subtle); }
+.combo-list { padding: 4px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+.combo-group { padding: 8px 8px 4px; font-size: var(--fs-xs); color: var(--text-muted); }
+.combo-opt { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: var(--radius); cursor: pointer; color: var(--text); }
+.combo-opt.active { background: var(--hover); }
+.combo-opt[aria-selected="true"] .combo-opt-label { font-weight: 600; }
+.combo-opt-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.combo-opt-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-opt-meta { font-size: var(--fs-xs); color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-empty { padding: 14px 10px; color: var(--text-muted); font-size: var(--fs-sm); text-align: center; }
+.combo-foot { display: flex; gap: 12px; padding: 7px 12px; border-top: 1px solid var(--border-subtle); background: var(--bg); font-size: var(--fs-xs); color: var(--text-muted); }
+.combo-foot kbd { font-family: inherit; font-size: 10.5px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; background: var(--surface); padding: 0 4px; margin-right: 2px; color: var(--text-2); }
+.dlg-hint.warn { color: var(--amber); }
+
+/* ---- Responsive layout (window narrower or shorter than full screen) ---- */
+.toolbar { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-5); align-items: center; justify-content: space-between; margin-bottom: var(--sp-4); }
+.toolbar-search { position: relative; flex: 1 1 260px; max-width: 380px; }
+.toolbar-opts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); font-size: 13px; color: var(--text-muted); }
+.toolbar-check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.patient-header { flex-wrap: wrap; gap: var(--sp-3) var(--sp-5); }
+.patient-header > div:last-child { margin-left: auto; }
+.header-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; justify-content: flex-end; }
+.subtabs { overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+.subtab-btn { white-space: nowrap; }
+.card-header { flex-wrap: wrap; gap: var(--sp-3); }
+.card-header > div:first-child { flex: 1 1 260px; min-width: 0; }
+
+/* Short windows: do not pin the top bar, it would eat the screen */
+@media (max-height: 560px) { .topbar { position: static; } }
+
+/* Medium windows: the sidebar becomes an icon rail (labels stay readable by screen readers; buttons have titles) */
+@media (max-width: 1100px) {
+  .sidebar { width: 60px; padding: 14px 8px; align-items: center; }
+  .sidebar .sb-label {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+  .sb-heading { display: none; }
+  .sb-brand { padding: 2px 0; }
+  .sb-group { gap: 4px; width: 100%; }
+  .sb-group + .sb-group { border-top: 1px solid var(--border); padding-top: 14px; }
+  .nav-link { justify-content: center; padding: 8px; }
+  .sb-user { flex-direction: column; padding: 6px 4px; border: 0; background: transparent; gap: 6px; }
+  .sb-user-text { display: none; }
+  .topbar { padding: 8px 20px; }
+  .container { padding: 20px 20px 32px; }
+}
+@media (max-width: 1240px) {
+  .hidden-data-row { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+@media (max-width: 900px) {
+  .caseload-table .col-protocol { display: none; }
+  .card { padding: var(--sp-4); }
+  .patient-header > div:last-child { margin-left: 0; width: 100%; }
+  .header-actions { justify-content: flex-start; }
+  .rx-item { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+  .rx-item > :first-child { grid-column: 1 / -1; }
+}
+/* Phones and very narrow windows: caseload rows become cards */
+@media (max-width: 640px) {
+  .cal-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .caseload-wrap { max-height: none; border: 0; overflow: visible; }
+  .caseload-table, .caseload-table tbody, .caseload-table tr, .caseload-table td { display: block; width: 100%; box-sizing: border-box; }
+  .caseload-table thead { display: none; }
+  .caseload-table tr { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--sp-3); margin-bottom: var(--sp-3); background: var(--surface); }
+  .caseload-table td { border: 0; padding: var(--sp-1) 0; text-align: left !important; }
+  .caseload-table td.col-num::before { content: "Sessions: "; }
+  .caseload-table td:last-child .btn { width: 100%; margin-top: var(--sp-2); }
+  .toolbar-search { max-width: none; }
+}
+
 /* Narrow screens (tablets in portrait, phones) */
 @media (max-width: 760px) {
-  header { padding: 10px 16px; position: static; }   /* too tall to keep pinned on a phone */
-  .brand-title { display: none; }
-  .top-nav { flex-wrap: wrap; gap: 8px; width: 100%; }
-  .clinician-block { border-left: none; padding-left: 0; flex-wrap: wrap; }
-  .container { margin: 16px auto; padding: 0 16px; }
+  /* Phones: the rail turns into a bar across the top */
+  .app-shell { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; flex-direction: row !important; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--border); overflow: visible; }
+  .sb-group, .sb-group nav { flex-direction: row; width: auto; }
+  .sb-group + .sb-group { border-top: 0; padding-top: 0; }
+  .sb-foot { margin: 0 0 0 auto; }
+  .sb-user { flex-direction: row; padding: 0; }
+  .topbar { position: static; padding: 8px 16px; }
+  .container { padding: 16px; }
   .card { padding: 16px; }
   .card-header { flex-wrap: wrap; gap: 12px; }
-  .summary-grid { grid-template-columns: 1fr; }
   .patient-row { flex-wrap: wrap; gap: 12px; padding: 14px 12px; }
   .patient-header { flex-direction: column; gap: 12px; }
-  .subtabs { overflow-x: auto; }
-  .subtab-btn { white-space: nowrap; }
   .rx-item { grid-template-columns: 1fr 1fr; gap: 10px; }
   .rx-item > :first-child { grid-column: 1 / -1; }
   .form-grid-2 { grid-template-columns: 1fr; }
   .modal-overlay { padding: 8px; }
-  .modal-content { padding: 16px; }
+  .modal-content:not(.dialog-v2) { padding: 16px; }
   #toastContainer { left: 16px; right: 16px; bottom: 16px; }
 }
 </style>
 </head>
 <body>
 
-<!-- Header -->
-<header>
-  <div class="brand-wrap">
-    <div class="brand-badge">
-      <i aria-hidden="true" data-lucide="shield-plus" style="width:16px;height:16px"></i>
-      TheraQuest
-    </div>
-    <div class="brand-title">Therapist Monitoring &amp; Prescription Portal</div>
+<div class="app-shell">
+
+<!-- Sidebar: navigation, tools and the signed-in clinician (hidden until sign-in) -->
+<aside class="sidebar" id="topNavAuth" style="display:none" aria-label="Sidebar">
+  <div class="sb-brand">
+    <span class="sb-logo"><i aria-hidden="true" data-lucide="shield-plus" style="width:15px;height:15px"></i></span>
+    <span class="sb-label">TheraQuest</span>
   </div>
 
-  <!-- Authenticated Controls -->
-  <div class="top-nav" id="topNavAuth" style="display:none">
-    <nav aria-label="Main" style="display:flex;gap:8px;flex-wrap:wrap">
-      <button type="button" class="nav-link active" id="navCaseload" aria-current="page" onclick="showCaseload()">
-        <i aria-hidden="true" data-lucide="users" style="width:16px;height:16px" aria-hidden="true"></i>
-        Caseload Directory
+  <div class="sb-group">
+    <div class="sb-heading">Clinic</div>
+    <nav aria-label="Main">
+      <button type="button" class="nav-link active" id="navCaseload" aria-current="page" onclick="showCaseload()" title="Caseload">
+        <i aria-hidden="true" data-lucide="users" style="width:16px;height:16px"></i>
+        <span class="sb-label">Caseload</span>
       </button>
-      <button type="button" class="nav-link" id="navChart" style="display:none" onclick="showChart()">
-        <i aria-hidden="true" data-lucide="activity" style="width:16px;height:16px" aria-hidden="true"></i>
-        Patient Chart
+      <button type="button" class="nav-link" id="navChart" style="display:none" onclick="showChart()" title="Patient chart">
+        <i aria-hidden="true" data-lucide="activity" style="width:16px;height:16px"></i>
+        <span class="sb-label">Patient chart</span>
       </button>
     </nav>
-    <button class="btn btn-secondary btn-sm" onclick="openProtocolManagerModal()" title="View and manage clinical protocols">
-      <i aria-hidden="true" data-lucide="book-marked" style="width:14px;height:14px"></i>
-      Protocol Library
-    </button>
+  </div>
 
-    <!-- Clinician Identity & Sign Out -->
-    <div class="clinician-block">
-      <div style="text-align:right">
-        <div id="clinicianName" style="font-size:13px;font-weight:700;color:var(--text)"></div>
-        <div id="clinicianRole" style="font-size:11px;color:var(--text-muted)"></div>
+  <div class="sb-group">
+    <div class="sb-heading">Library</div>
+    <button type="button" class="nav-link" onclick="openProtocolManagerModal()" title="View and manage clinical protocols">
+      <i aria-hidden="true" data-lucide="book-marked" style="width:16px;height:16px"></i>
+      <span class="sb-label">Protocol library</span>
+    </button>
+  </div>
+
+  <div class="sb-group">
+    <div class="sb-heading">Data</div>
+    <button type="button" class="nav-link" onclick="openBackupModal()" title="Download an encrypted backup of all patient data">
+      <i aria-hidden="true" data-lucide="database-backup" style="width:16px;height:16px"></i>
+      <span class="sb-label">Backup</span>
+    </button>
+  </div>
+
+  <!-- Clinician identity, password and sign out -->
+  <div class="sb-foot">
+    <div class="sb-user">
+      <span class="sb-avatar" id="clinicianAvatar" aria-hidden="true"></span>
+      <div class="sb-user-text">
+        <div id="clinicianName" style="font-size:var(--fs-md);font-weight:500;color:var(--text)"></div>
+        <div id="clinicianRole" style="font-size:var(--fs-xs);color:var(--text-muted)"></div>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="openBackupModal()" title="Download an encrypted backup of all patient data">
-        <i aria-hidden="true" data-lucide="database-backup" style="width:14px;height:14px"></i>
-        Backup
+      <button type="button" class="sb-icon-btn" onclick="openPasswordModal(false)" title="Change your password" aria-label="Change password">
+        <i aria-hidden="true" data-lucide="key-round" style="width:15px;height:15px"></i>
       </button>
-      <button class="btn btn-secondary btn-sm" onclick="openPasswordModal(false)" title="Change your password">
-        <i aria-hidden="true" data-lucide="key-round" style="width:14px;height:14px"></i>
-        Password
-      </button>
-      <button class="btn btn-secondary btn-sm" onclick="logout()" title="Sign out of portal">
-        <i aria-hidden="true" data-lucide="log-out" style="width:14px;height:14px"></i>
-        Sign Out
+      <button type="button" class="sb-icon-btn" onclick="logout()" title="Sign out of portal" aria-label="Sign out">
+        <i aria-hidden="true" data-lucide="log-out" style="width:15px;height:15px"></i>
       </button>
     </div>
+  </div>
+</aside>
+
+<div class="main">
+<!-- Top bar: where you are on the left, the main action on the right -->
+<header class="topbar">
+  <div class="login-brand sb-brand">
+    <span class="sb-logo"><i aria-hidden="true" data-lucide="shield-plus" style="width:15px;height:15px"></i></span>
+    TheraQuest
+  </div>
+  <div class="crumb" id="crumb"></div>
+  <div class="topbar-actions">
+    <button type="button" class="btn btn-primary btn-sm" id="btnRegisterPatient" onclick="openNewPatientModal()">
+      <i aria-hidden="true" data-lucide="user-plus" style="width:14px;height:14px"></i>
+      Register patient
+    </button>
   </div>
 </header>
 
@@ -731,6 +992,44 @@ header {
           <i aria-hidden="true" data-lucide="log-in" style="width:16px;height:16px"></i>
           Sign In to Portal
         </button>
+        <div style="text-align:center;font-size:13px;color:var(--text-muted)">
+          New clinician? <a href="#" id="showSignupLink" onclick="showSignupForm(true);return false" style="color:var(--teal);font-weight:600">Create an account</a>
+        </div>
+      </form>
+
+      <!-- Sign up: adds a clinician login. An existing clinician must approve it with their own credentials. -->
+      <form id="signupForm" onsubmit="handleSignupSubmit(event)" style="display:none;flex-direction:column;gap:12px">
+        <div style="font-size:13px;color:var(--text-muted);line-height:1.5">
+          Create your clinician login. An existing clinician must approve it by entering their own username and password below.
+        </div>
+        <div>
+          <label for="signupName" class="form-label">Your name</label>
+          <input type="text" id="signupName" placeholder="e.g. Juan Dela Cruz, PT" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
+        </div>
+        <div>
+          <label for="signupUsername" class="form-label">Username</label>
+          <input type="text" id="signupUsername" required autocomplete="username" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
+        </div>
+        <div>
+          <label for="signupPassword" class="form-label">Password (at least 8 characters)</label>
+          <input type="password" id="signupPassword" required minlength="8" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
+        </div>
+        <div>
+          <label for="signupPassword2" class="form-label">Repeat password</label>
+          <input type="password" id="signupPassword2" required minlength="8" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
+        </div>
+        <fieldset style="border:1px solid var(--border);border-radius:6px;padding:10px 12px 12px;margin:0;display:flex;flex-direction:column;gap:10px">
+          <legend style="font-size:12px;font-weight:600;color:var(--text-muted);padding:0 4px">Approved by an existing clinician</legend>
+          <input type="text" id="signupApprover" required aria-label="Approving clinician username" placeholder="Their username" autocomplete="off" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
+          <input type="password" id="signupApproverPw" required aria-label="Approving clinician password" placeholder="Their password" autocomplete="off" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
+        </fieldset>
+        <button type="submit" id="signupBtn" class="btn btn-primary" style="padding:10px;font-size:14px;margin-top:4px">
+          <i aria-hidden="true" data-lucide="user-plus" style="width:16px;height:16px"></i>
+          Create Account
+        </button>
+        <div style="text-align:center;font-size:13px;color:var(--text-muted)">
+          Already have an account? <a href="#" onclick="showSignupForm(false);return false" style="color:var(--teal);font-weight:600">Sign in</a>
+        </div>
       </form>
 
       <!-- First-run setup: shown instead of the sign-in form until a clinician login exists -->
@@ -769,34 +1068,38 @@ header {
     <!-- ============================================================== -->
     <div id="refErr" class="alert-error" role="alert" style="display:none"></div>
     <div id="viewCaseload">
+      <div class="page-head">
+        <div>
+          <h1 class="page-title" id="greeting">Good day</h1>
+          <p class="page-sub" id="caseloadSummary"></p>
+        </div>
+      </div>
+      <div class="kpi-strip" id="kpiStrip" aria-label="Caseload at a glance"></div>
+      <div class="callout" id="attentionCallout" style="display:none"></div>
+
       <div class="card">
         <div class="card-header">
           <div>
-            <div class="card-title">
-              <i aria-hidden="true" data-lucide="folder-kanban" style="width:18px;height:18px;color:var(--teal)"></i>
-              Patient Caseload
-            </div>
+            <div class="card-title">Patient caseload</div>
             <div class="card-desc">Select a patient to review adherence trends or adjust their VR movement prescription.</div>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="openNewPatientModal()">
-            <i aria-hidden="true" data-lucide="user-plus" style="width:14px;height:14px"></i>
-            Register Patient
-          </button>
         </div>
 
-        <div style="margin-bottom:16px;position:relative;max-width:380px">
-          <i aria-hidden="true" data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-light)"></i>
-          <label for="patientFilter" class="sr-only">Search patients</label>
-          <input type="search" id="patientFilter" placeholder="Search by name, code, or diagnosis..." style="width:100%;padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
+        <div class="toolbar">
+          <div class="toolbar-search">
+            <i aria-hidden="true" data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-light)"></i>
+            <label for="patientFilter" class="sr-only">Search patients</label>
+            <input type="search" id="patientFilter" placeholder="Search by name, code, or diagnosis..." style="width:100%;padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px;box-sizing:border-box">
+          </div>
+          <div class="toolbar-opts">
+            <label class="toolbar-check"><input type="checkbox" id="showArchived" onchange="loadCaseload()"> Show archived</label>
+            <label for="caseloadSort" class="toolbar-sortlbl">Sort by</label>
+            <select id="caseloadSort" onchange="renderCaseloadList()" class="form-select" style="width:auto;padding:5px 8px">
+              <option value="attention">Needs attention first</option>
+              <option value="code">Patient code</option>
+            </select>
+          </div>
         </div>
-        <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted);margin-bottom:12px;cursor:pointer">
-          <input type="checkbox" id="showArchived" onchange="loadCaseload()"> Show archived patients
-        </label>
-        <label for="caseloadSort" style="font-size:13px;color:var(--text-muted);margin:0 0 12px 16px">Sort by</label>
-        <select id="caseloadSort" onchange="renderCaseloadList()" class="form-select" style="width:auto;display:inline-block;margin-bottom:12px;padding:5px 8px">
-          <option value="attention">Needs attention first</option>
-          <option value="code">Patient code</option>
-        </select>
 
         <div id="caseloadList" aria-live="polite"></div>
       </div>
@@ -809,15 +1112,15 @@ header {
       <div id="chartErr" class="alert-error" role="alert" style="display:none"></div>
       <div class="patient-header">
         <div>
-          <!-- BACK BUTTON: Highlighted in solid black outline -->
           <button class="back-btn" onclick="showCaseload()">
             <i aria-hidden="true" data-lucide="arrow-left" style="width:16px;height:16px"></i>
             Back to Patient Caseload
           </button>
           <h1 class="patient-title-h1" id="chartName">Patient Name</h1>
           <div class="patient-subtitle" id="chartCondition">Diagnosis · Protocol Phase</div>
+          <div class="chart-meta" id="chartMeta" aria-label="Patient summary"></div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="header-actions">
           <button type="button" class="btn btn-secondary btn-sm" onclick="openPatientEditModal()">
             <i aria-hidden="true" data-lucide="user-cog" style="width:14px;height:14px"></i>
             Edit Details
@@ -882,6 +1185,20 @@ header {
 
       <!-- Subtab 1: Activity & Clinical Analytics (Chart.js integrated) -->
       <div id="subtabActivity" role="tabpanel" aria-labelledby="tabBtnActivity">
+        <!-- M8.7: 14-day adherence calendar (counted sessions only) -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">
+                <i aria-hidden="true" data-lucide="calendar-days" style="width:18px;height:18px;color:var(--teal)"></i>
+                Adherence, Last 14 Days
+              </div>
+              <div class="card-desc">Scheduled days and whether a counted (webcam) session was done.</div>
+            </div>
+          </div>
+          <div id="adherenceCalendar"><div class="state-msg">Loading adherence…</div></div>
+        </div>
+
         <div class="card">
           <div class="card-header">
             <div>
@@ -896,6 +1213,34 @@ header {
             <canvas id="chartRomProgress" role="img" aria-label="ROM accuracy and valid repetitions per session"></canvas>
           </div>
           <div id="chartEmpty" class="state-msg" style="display:none"></div>
+        </div>
+
+        <!-- M8.7: per-exercise stats (counted sessions only) and phase history -->
+        <div class="hidden-data-row">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">
+                  <i aria-hidden="true" data-lucide="list-checks" style="width:18px;height:18px;color:var(--teal)"></i>
+                  Exercise Results
+                </div>
+                <div class="card-desc">Each prescribed exercise across all counted sessions.</div>
+              </div>
+            </div>
+            <div id="exerciseStats"><div class="state-msg">Loading exercise results…</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">
+                  <i aria-hidden="true" data-lucide="milestone" style="width:18px;height:18px;color:var(--teal)"></i>
+                  Phase History
+                </div>
+                <div class="card-desc">Protocol phases, newest first.</div>
+              </div>
+            </div>
+            <div id="phaseHistory"><div class="state-msg">Loading phase history…</div></div>
+          </div>
         </div>
 
         <!-- Session History Table -->
@@ -1023,7 +1368,9 @@ header {
       </div>
     </div>
   </div>
-</div>
+</div><!-- /.container -->
+</div><!-- /.main -->
+</div><!-- /.app-shell -->
 
 <!-- ============================================================== -->
 <!-- IN-APP MODAL: CONFIGURE & PRESCRIBE NEW MOVEMENT               -->
@@ -1175,23 +1522,41 @@ header {
 </div>
 
 <!-- IN-APP MODAL: ENCRYPTED BACKUP (TASK-018) -->
-<div id="backupModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="backupModalTitle">
-  <div class="modal-content" style="max-width: 420px">
-    <div class="card-title" id="backupModalTitle">Encrypted Backup</div>
-    <div class="card-desc" style="margin-bottom:14px">Saves all patient data to one file. Choose a backup password of at least 12 characters. If you lose it, the backup cannot be opened by anyone. Keep the file somewhere other than this PC.</div>
-    <div id="backupErr" class="alert-error" role="alert" style="display:none"></div>
-    <form id="backupForm" onsubmit="handleBackupSubmit(event)" style="display:flex;flex-direction:column;gap:12px">
-      <div>
-        <label for="bkPw" style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Backup password</label>
-        <input type="password" id="bkPw" required minlength="12" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px">
+<div id="backupModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="backupModalTitle" aria-describedby="backupModalDesc">
+  <div class="modal-content dialog-v2" style="max-width: 440px">
+    <div class="dlg-head">
+      <span class="dlg-icon" aria-hidden="true"><i data-lucide="database-backup" style="width:16px;height:16px"></i></span>
+      <div class="dlg-titles">
+        <div class="dlg-title" id="backupModalTitle">Encrypted backup</div>
+        <div class="dlg-desc" id="backupModalDesc">Saves all patient data to one encrypted file.</div>
       </div>
-      <div>
-        <label for="bkPw2" style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:4px">Repeat backup password</label>
-        <input type="password" id="bkPw2" required minlength="12" autocomplete="new-password" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13.5px">
+      <button type="button" class="modal-close-btn" onclick="closeDialog('backupModal')" aria-label="Close">
+        <i aria-hidden="true" data-lucide="x" style="width:16px;height:16px"></i>
+      </button>
+    </div>
+    <form id="backupForm" onsubmit="handleBackupSubmit(event)">
+      <div class="dlg-body">
+        <div class="dlg-note">
+          <i aria-hidden="true" data-lucide="key-round" style="width:15px;height:15px"></i>
+          <span>If you lose this password, nobody can open the backup. Keep the file somewhere other than this PC.</span>
+        </div>
+        <div id="backupErr" class="alert-error" role="alert" style="display:none;margin:0"></div>
+        <div>
+          <label for="bkPw" class="form-label">Backup password</label>
+          <input type="password" id="bkPw" class="form-input" required minlength="12" autocomplete="new-password" aria-describedby="bkPwHint">
+          <div class="dlg-hint" id="bkPwHint">At least 12 characters.</div>
+        </div>
+        <div>
+          <label for="bkPw2" class="form-label">Repeat backup password</label>
+          <input type="password" id="bkPw2" class="form-input" required minlength="12" autocomplete="new-password">
+        </div>
       </div>
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
+      <div class="dlg-foot">
         <button type="button" class="btn btn-secondary btn-sm" onclick="closeDialog('backupModal')">Cancel</button>
-        <button type="submit" class="btn btn-primary btn-sm" id="bkSaveBtn">Download Backup</button>
+        <button type="submit" class="btn btn-primary btn-sm" id="bkSaveBtn">
+          <i aria-hidden="true" data-lucide="download" style="width:14px;height:14px"></i>
+          Download backup
+        </button>
       </div>
     </form>
   </div>
@@ -1266,108 +1631,111 @@ header {
 </div>
 
 <!-- Protocol Library Modal (Browse, Add, Remove Protocols) -->
-<div id="protocolModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="protocolModalTitle">
-  <div class="modal-content" style="max-width: 800px">
-    <!-- Modal Header -->
-    <div class="modal-header-clean">
-      <div>
-        <div class="card-title" id="protocolModalTitle" style="display:flex;align-items:center;gap:8px">
-          <i aria-hidden="true" data-lucide="book-marked" style="width:20px;height:20px;color:var(--teal)"></i>
-          Rehabilitation Protocol Library
-        </div>
-        <div class="card-desc">Evidence-based clinical recovery pathways, progression criteria, and VR exercise routines.</div>
+<div id="protocolModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="protocolModalTitle" aria-describedby="protocolModalDesc">
+  <div class="modal-content dialog-v2" style="max-width: 820px">
+    <div class="dlg-head">
+      <span class="dlg-icon" aria-hidden="true"><i data-lucide="book-marked" style="width:16px;height:16px"></i></span>
+      <div class="dlg-titles">
+        <div class="dlg-title" id="protocolModalTitle">Protocol library</div>
+        <div class="dlg-desc" id="protocolModalDesc">Evidence-based recovery pathways, progression criteria and VR exercise routines.</div>
       </div>
-      <button onclick="closeProtocolModal()" class="modal-close-btn" title="Close dialog" aria-label="Close dialog">
-        <i aria-hidden="true" data-lucide="x" style="width:20px;height:20px"></i>
+      <button type="button" onclick="closeProtocolModal()" class="modal-close-btn" title="Close dialog" aria-label="Close dialog">
+        <i aria-hidden="true" data-lucide="x" style="width:16px;height:16px"></i>
       </button>
     </div>
 
     <!-- Sub-tab switchers within modal -->
-    <div class="subtabs" role="tablist" aria-label="Protocol library views" style="margin-bottom:16px">
+    <div class="subtabs dlg-tabs" role="tablist" aria-label="Protocol library views">
       <button type="button" id="modalTabProtocolsList" class="subtab-btn active" role="tab" aria-selected="true" aria-controls="modalProtocolsListSection" onclick="switchModalProtocolView('list')">
         <i aria-hidden="true" data-lucide="list" style="width:14px;height:14px"></i>
-        Protocols Catalog (<span id="modalProtocolsCount">0</span>)
+        Catalog <span class="tab-count" id="modalProtocolsCount">0</span>
       </button>
       <button type="button" id="modalTabProtocolsCreate" class="subtab-btn" role="tab" aria-selected="false" aria-controls="modalProtocolsCreateSection" tabindex="-1" onclick="switchModalProtocolView('create')">
         <i aria-hidden="true" data-lucide="plus" style="width:14px;height:14px"></i>
-        Create New Protocol
+        Create new protocol
       </button>
     </div>
 
     <!-- VIEW 1: Protocols Catalog List -->
-    <div id="modalProtocolsListSection" role="tabpanel" aria-labelledby="modalTabProtocolsList">
-      <div id="modalProtocolsContainer" style="display:flex;flex-direction:column;gap:14px">
+    <div id="modalProtocolsListSection" role="tabpanel" aria-labelledby="modalTabProtocolsList" class="dlg-body">
+      <div id="modalProtocolsContainer" class="protocol-list">
         <!-- Rendered dynamically -->
       </div>
     </div>
 
     <!-- VIEW 2: Create Protocol Form -->
     <div id="modalProtocolsCreateSection" role="tabpanel" aria-labelledby="modalTabProtocolsCreate" style="display:none">
-      <form id="createProtocolForm" onsubmit="handleCreateProtocolSubmit(event)" style="display:flex;flex-direction:column;gap:14px">
-        <div class="form-grid-2" style="margin-bottom:0">
-          <div>
-            <label for="newProtName" class="form-label">Protocol Name *</label>
-            <input type="text" id="newProtName" required placeholder="e.g. ACL Reconstruction (Patellar Tendon)" class="form-input">
+      <form id="createProtocolForm" onsubmit="handleCreateProtocolSubmit(event)">
+        <div class="dlg-body">
+          <!-- Start from an existing protocol: fills the fields below, everything stays editable -->
+          <div class="start-from">
+            <label for="newProtTemplate" class="form-label">Start from</label>
+            <div class="combo" style="max-width:420px">
+              <input type="text" id="newProtTemplate" class="form-input" value="Blank protocol" autocomplete="off" aria-describedby="newProtTemplateHint">
+            </div>
+            <div class="dlg-hint" id="newProtTemplateHint">Pick an existing protocol to copy its condition, source and first phase. You can change everything before saving.</div>
           </div>
-          <div>
-            <label for="newProtCondition" class="form-label">Target Condition / Diagnosis *</label>
-            <input type="text" id="newProtCondition" required placeholder="e.g. Post-Op ACL Reconstruction" class="form-input">
+
+          <div class="dlg-section">
+            <div class="dlg-section-title">Protocol</div>
+            <div class="form-grid-2" style="margin-bottom:0">
+              <div>
+                <label for="newProtName" class="form-label">Protocol name *</label>
+                <div class="combo"><input type="text" id="newProtName" required placeholder="Type a new name or pick one to adapt" class="form-input" autocomplete="off" aria-describedby="newProtNameHint"></div>
+                <div class="dlg-hint" id="newProtNameHint">Use a new name, so it is not mixed up with an existing protocol.</div>
+              </div>
+              <div>
+                <label for="newProtCondition" class="form-label">Target condition / diagnosis *</label>
+                <div class="combo"><input type="text" id="newProtCondition" required placeholder="Type or pick an existing condition" class="form-input" autocomplete="off"></div>
+              </div>
+            </div>
+            <div>
+              <label for="newProtSource" class="form-label">Evidence source / guideline</label>
+              <div class="combo"><input type="text" id="newProtSource" placeholder="Type or pick an existing source" class="form-input" autocomplete="off"></div>
+            </div>
           </div>
+
+          <div class="dlg-section">
+            <div class="dlg-section-title">Phase 1</div>
+            <div class="form-grid-2" style="grid-template-columns:2fr 1fr;margin-bottom:0">
+              <div>
+                <label for="newProtPhaseName" class="form-label">Phase name *</label>
+                <div class="combo"><input type="text" id="newProtPhaseName" required value="Phase I - Immediate Post-Op" class="form-input" autocomplete="off"></div>
+              </div>
+              <div>
+                <label for="newProtPhaseWeeks" class="form-label">Timeline / duration</label>
+                <div class="combo"><input type="text" id="newProtPhaseWeeks" value="Weeks 1-4" class="form-input" autocomplete="off"></div>
+              </div>
+            </div>
+            <div class="form-grid-2" style="margin-bottom:0">
+              <div>
+                <label for="newProtPhaseGoals" class="form-label">Clinical goals</label>
+                <textarea id="newProtPhaseGoals" rows="3" placeholder="e.g. Active quad contraction, early full extension, edema control" class="form-textarea"></textarea>
+              </div>
+              <div>
+                <label for="newProtPhasePrecautions" class="form-label">Precautions &amp; safety limits</label>
+                <textarea id="newProtPhasePrecautions" rows="3" placeholder="e.g. Brace locked in extension for ambulation; no open-chain resisted extension" class="form-textarea"></textarea>
+              </div>
+            </div>
+            <div>
+              <label for="newProtPhaseRomGoal" class="form-label">Milestone ROM goal</label>
+              <div class="combo"><input type="text" id="newProtPhaseRomGoal" placeholder="Type or pick an existing ROM goal" class="form-input" autocomplete="off"></div>
+            </div>
+            <div>
+              <div class="form-label" id="newProtExercisesLabel">Prescribed exercises</div>
+              <div id="newProtExercisesContainer" class="ex-pick-grid" role="group" aria-labelledby="newProtExercisesLabel">
+                <!-- Rendered dynamically from library -->
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        <div>
-          <label for="newProtSource" class="form-label">Clinical Evidence Source / Guideline Citation</label>
-          <input type="text" id="newProtSource" placeholder="e.g. APTA Clinical Practice Guideline / MOON Knee Group (2023)" class="form-input">
-        </div>
-
-        <!-- Initial Phase Configuration -->
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px">
-          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:6px">
-            <i aria-hidden="true" data-lucide="layers" style="width:16px;height:16px;color:var(--teal)"></i>
-            Initial Phase Specification
-          </div>
-
-          <div class="form-grid-2" style="grid-template-columns:2fr 1fr;gap:10px;margin-bottom:10px">
-            <div>
-              <label for="newProtPhaseName" class="form-label" style="font-size:11.5px">Phase Name *</label>
-              <input type="text" id="newProtPhaseName" required value="Phase I - Immediate Post-Op" class="form-input" style="padding:7px 10px;font-size:12.5px">
-            </div>
-            <div>
-              <label for="newProtPhaseWeeks" class="form-label" style="font-size:11.5px">Timeline / Duration</label>
-              <input type="text" id="newProtPhaseWeeks" value="Weeks 1-4" class="form-input" style="padding:7px 10px;font-size:12.5px">
-            </div>
-          </div>
-
-          <div class="form-grid-2" style="gap:10px;margin-bottom:10px">
-            <div>
-              <label for="newProtPhaseGoals" class="form-label" style="font-size:11.5px">Clinical Goals</label>
-              <textarea id="newProtPhaseGoals" rows="2" placeholder="e.g. Active quad contraction, early full extension, edema control" class="form-textarea" style="padding:7px 10px;font-size:12px"></textarea>
-            </div>
-            <div>
-              <label for="newProtPhasePrecautions" class="form-label" style="font-size:11.5px">Precautions & Safety Limits</label>
-              <textarea id="newProtPhasePrecautions" rows="2" placeholder="e.g. Brace locked in extension for ambulation; no open-chain resisted extension" class="form-textarea" style="padding:7px 10px;font-size:12px"></textarea>
-            </div>
-          </div>
-
-          <div style="margin-bottom:10px">
-            <label for="newProtPhaseRomGoal" class="form-label" style="font-size:11.5px">Milestone ROM Goal</label>
-            <input type="text" id="newProtPhaseRomGoal" placeholder="e.g. Knee extension 0°, flexion 90°" class="form-input" style="padding:7px 10px;font-size:12.5px">
-          </div>
-
-          <!-- Phase Exercise Selection -->
-          <div>
-            <div class="form-label" style="font-size:11.5px;margin-bottom:6px">Select Prescribed Exercises from Catalog</div>
-            <div id="newProtExercisesContainer" class="form-grid-2" role="group" aria-label="Prescribed exercises" style="gap:8px;margin-bottom:0;max-height:160px;overflow-y:auto;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:6px">
-              <!-- Rendered dynamically from library -->
-            </div>
-          </div>
-        </div>
-
-        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
+        <div class="dlg-foot">
           <button type="button" class="btn btn-secondary btn-sm" onclick="switchModalProtocolView('list')">Cancel</button>
           <button type="submit" id="btnSaveNewProtocol" class="btn btn-primary btn-sm">
             <i aria-hidden="true" data-lucide="check" style="width:14px;height:14px"></i>
-            Save &amp; Register Protocol
+            Save protocol
           </button>
         </div>
       </form>
@@ -1377,41 +1745,40 @@ header {
 
 <!-- Dedicated Protocol Phase Viewer Widget -->
 <div id="protocolPhasesWidget" class="modal-overlay" style="z-index: 60;" onclick="if(event.target === this) closeProtocolPhasesWidget()" role="dialog" aria-modal="true" aria-labelledby="widgetProtocolTitle">
-  <div class="modal-content" style="max-width: 720px">
-    <!-- Widget Header -->
-    <div class="modal-header-clean">
-      <div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
-          <span id="widgetProtocolTitle" style="font-weight:700;font-size:16px;color:var(--text)">Protocol Name</span>
-          <span id="widgetProtocolCondition" style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;background:var(--blue-soft);color:var(--blue);border:1px solid var(--blue-border)">Condition</span>
+  <div class="modal-content dialog-v2" style="max-width: 720px">
+    <div class="dlg-head">
+      <span class="dlg-icon" aria-hidden="true"><i data-lucide="book-open" style="width:16px;height:16px"></i></span>
+      <div class="dlg-titles">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="dlg-title" id="widgetProtocolTitle">Protocol Name</span>
+          <span id="widgetProtocolCondition" class="chip chip-quiet">Condition</span>
         </div>
-        <div id="widgetProtocolSource" style="font-size:11.5px;color:var(--text-muted)">Clinical Guideline Source</div>
+        <div class="dlg-desc" id="widgetProtocolSource">Clinical Guideline Source</div>
       </div>
-      <button onclick="closeProtocolPhasesWidget()" class="modal-close-btn" title="Close widget" aria-label="Close widget">
-        <i aria-hidden="true" data-lucide="x" style="width:20px;height:20px"></i>
+      <button type="button" onclick="closeProtocolPhasesWidget()" class="modal-close-btn" title="Close" aria-label="Close">
+        <i aria-hidden="true" data-lucide="x" style="width:16px;height:16px"></i>
       </button>
     </div>
 
-    <!-- Actions & Subtitle Bar -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
-      <div style="font-size:12.5px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px">
-        <i aria-hidden="true" data-lucide="layers" style="width:15px;height:15px;color:var(--teal)"></i>
-        Recovery Phases &amp; Milestones (<span id="widgetPhasesCount">0</span>)
+    <div class="dlg-body" role="tabpanel" aria-label="Recovery phases">
+      <!-- Actions & Subtitle Bar -->
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div class="dlg-section-title">
+          Recovery phases &amp; milestones <span class="tab-count" id="widgetPhasesCount">0</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="widgetActionButtons">
+          <!-- Rendered dynamically -->
+        </div>
       </div>
-      <div style="display:flex;gap:8px" id="widgetActionButtons">
+
+      <!-- Phases List -->
+      <div id="widgetPhasesContainer" style="display:flex;flex-direction:column;gap:10px">
         <!-- Rendered dynamically -->
       </div>
     </div>
 
-    <!-- Phases List -->
-    <div id="widgetPhasesContainer" style="display:flex;flex-direction:column;gap:12px">
-      <!-- Rendered dynamically -->
-    </div>
-
-    <div style="margin-top:20px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
-      <button class="btn btn-secondary btn-sm" onclick="closeProtocolPhasesWidget()">
-        Close
-      </button>
+    <div class="dlg-foot">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="closeProtocolPhasesWidget()">Close</button>
     </div>
   </div>
 </div>
@@ -1554,6 +1921,7 @@ const dialogStack = [];
 const DIALOG_CLOSERS = {
   confirmModal: () => closeConfirmModal(false),
   passwordModal: () => closePasswordModal(),
+  backupModal: () => closeDialog("backupModal"),
   noteModal: () => closeNoteModal(),
   newPatModal: () => closeNewPatientModal(),
   addExerciseModal: () => closeAddExerciseModal(),
@@ -1695,7 +2063,7 @@ async function api(path, opts = {}) {
   opts.headers = headers;
   
   const r = await fetch(path, opts);
-  if (r.status === 401 && !path.includes("/api/auth/login")) {
+  if (r.status === 401 && !path.includes("/api/auth/login") && !path.includes("/api/auth/signup")) {
     handleUnauthorized();
     throw new Error("Session expired. Please sign in again.");
   }
@@ -1712,6 +2080,7 @@ function handleUnauthorized() {
   localStorage.removeItem("tq_auth_token");
   $("authApp").style.display = "none";
   $("topNavAuth").style.display = "none";
+  document.body.classList.remove("authed");
   $("viewLogin").style.display = "block";
   passwordChangeForced = false;
   dialogStack.slice().forEach(d => closeDialog(d.id));
@@ -1731,7 +2100,46 @@ async function showSetupIfNeeded() {
   } catch(e) {}
   $("loginForm").style.display = needsSetup ? "none" : "flex";
   $("setupForm").style.display = needsSetup ? "flex" : "none";
+  $("signupForm").style.display = "none";
   $("loginTitle").textContent = needsSetup ? "Create Clinician Login" : "Clinician Sign In";
+}
+
+function showSignupForm(show) {
+  $("loginErr").style.display = "none";
+  $("loginForm").style.display = show ? "none" : "flex";
+  $("signupForm").style.display = show ? "flex" : "none";
+  $("loginTitle").textContent = show ? "Create Clinician Account" : "Clinician Sign In";
+  $(show ? "signupName" : "loginUsername").focus();
+}
+
+async function handleSignupSubmit(ev) {
+  ev.preventDefault();
+  $("loginErr").style.display = "none";
+  if ($("signupPassword").value !== $("signupPassword2").value) {
+    $("loginErr").style.display = "block";
+    $("loginErr").textContent = "The two passwords don't match.";
+    return;
+  }
+  $("signupBtn").disabled = true;
+  try {
+    const res = await api("/api/auth/signup", {
+      method: "POST",
+      body: { name: $("signupName").value.trim(), username: $("signupUsername").value.trim(),
+              password: $("signupPassword").value,
+              approver_username: $("signupApprover").value.trim(), approver_password: $("signupApproverPw").value }
+    });
+    authToken = res.token;
+    currentTherapist = res.therapist;
+    localStorage.setItem("tq_auth_token", authToken);
+    $("signupForm").reset();
+    showAuthenticatedState();
+    showToast("Account created");
+  } catch(e) {
+    $("loginErr").style.display = "block";
+    $("loginErr").textContent = e.message;
+  } finally {
+    $("signupBtn").disabled = false;
+  }
 }
 
 async function handleSetupSubmit(ev) {
@@ -1894,10 +2302,12 @@ function showAuthenticatedState() {
   $("viewLogin").style.display = "none";
   $("authApp").style.display = "block";
   $("topNavAuth").style.display = "flex";
+  document.body.classList.add("authed");
 
   if (currentTherapist) {
     $("clinicianName").textContent = currentTherapist.name || "Clinician";
     $("clinicianRole").textContent = `${currentTherapist.license_no || "PT"} · ${currentTherapist.role || "Physical Therapist"}`;
+    $("clinicianAvatar").textContent = initials(currentTherapist.name || "Clinician");
   }
 
   showCaseload();
@@ -1923,8 +2333,31 @@ async function logout() {
   showToast("Logged out successfully");
 }
 
+// Short display name: "Dr. Sarah Chen, PT, DPT" -> "Dr. Sarah Chen"; initials skip titles like "Dr."
+function displayName(name) { return String(name || "").split(",")[0].trim(); }
+function initials(name) {
+  const words = displayName(name).split(/\s+/).filter(w => w && !/^(dr|mr|mrs|ms|prof)\.?$/i.test(w));
+  return ((words[0] || "?")[0] + (words.length > 1 ? words[words.length - 1][0] : "")).toUpperCase();
+}
+function greetingText() {
+  const h = new Date().getHours();
+  const part = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  const who = currentTherapist && displayName(currentTherapist.name);
+  return who ? `${part}, ${who}` : part;
+}
+
+// Top bar: where you are, and the Register action only on the caseload
+function setCrumb(chartLabel) {
+  $("crumb").innerHTML = chartLabel
+    ? `<button type="button" class="crumb-link" onclick="showCaseload()">Caseload</button><span aria-hidden="true">/</span><b>${esc(chartLabel)}</b>`
+    : `<b>Caseload</b>`;
+  $("btnRegisterPatient").style.display = chartLabel ? "none" : "inline-flex";
+}
+
 // Navigation between Caseload view and Patient Chart
 function showCaseload() {
+  setCrumb("");
+  $("greeting").textContent = greetingText();
   $("viewCaseload").style.display = "block";
   $("viewChart").style.display = "none";
   $("navCaseload").classList.add("active");
@@ -1942,8 +2375,9 @@ function showChart() {
   $("viewChart").style.display = "block";
   $("navCaseload").classList.remove("active");
   $("navChart").classList.add("active");
-  $("navChart").style.display = "inline-flex";
+  $("navChart").style.display = "flex";
   $("navChart").setAttribute("aria-current", "page");
+  if (activeData) setCrumb(activeData.patient.code + (activeData.patient.name ? " · " + activeData.patient.name : ""));
   $("navCaseload").removeAttribute("aria-current");
   refreshIcons();
 }
@@ -1994,7 +2428,35 @@ async function loadCaseload() {
   }
 }
 
+// Caseload at a glance: counts from the patients already loaded (archived patients left out)
+function renderCaseloadOverview() {
+  const active = patients.filter(p => !p.archived_at);
+  const has = (p, codes) => (p.attention || []).some(f => codes.includes(f.code));
+  const flagged = active.filter(p => (p.attention || []).length);
+  const missed = active.filter(p => has(p, ["missed"])).length;
+  const safety = active.filter(p => has(p, ["pain", "unsafe"])).length;
+  const sessions = active.reduce((n, p) => n + (p.total_sessions || 0), 0);
+  const cell = (label, value, note, tone) => `<div class="kpi-cell"><div class="kpi-label">${label}</div>
+    <div class="kpi-row"><span class="kpi-value">${value}</span><span class="kpi-note ${tone || ""}">${note}</span></div></div>`;
+  $("kpiStrip").innerHTML =
+    cell("Active patients", active.length, "") +
+    cell("Need attention", flagged.length, flagged.length ? "review first" : "all clear", flagged.length ? "bad" : "good") +
+    cell("Missed sessions", missed, "last 7 days", missed ? "bad" : "") +
+    cell("Pain or safety flags", safety, "last 14 days", safety ? "bad" : "") +
+    cell("Sessions logged", sessions, "all time");
+  $("caseloadSummary").textContent = active.length
+    ? `${active.length} active patient${active.length === 1 ? "" : "s"} · ${flagged.length ? `${flagged.length} need${flagged.length === 1 ? "s" : ""} attention` : "no flags"}`
+    : "No active patients yet";
+  const first = flagged.slice().sort((a, b) => (b.attention.length - a.attention.length) || a.code.localeCompare(b.code))[0];
+  const box = $("attentionCallout");
+  box.style.display = first ? "flex" : "none";
+  box.innerHTML = first ? `<i aria-hidden="true" data-lucide="sparkle" style="width:15px;height:15px"></i>
+    <span class="callout-text"><b>${esc(first.code)}</b> ${first.name ? esc(first.name) + " " : ""}needs attention: ${esc(first.attention.map(f => f.label).join(", "))}.</span>
+    <button type="button" class="btn btn-secondary btn-sm" onclick="openPatientChart(${+first.id})">Open chart</button>` : "";
+}
+
 function renderCaseloadList() {
+  renderCaseloadOverview();
   const query = ($("patientFilter").value || "").toLowerCase();
   const filtered = patients.filter(p => 
     (p.code || "").toLowerCase().includes(query) ||
@@ -2008,32 +2470,31 @@ function renderCaseloadList() {
     filtered.sort((a, b) => (b.attention || []).length - (a.attention || []).length || top(a) - top(b) || a.code.localeCompare(b.code));
   }
 
-  $("caseloadList").innerHTML = filtered.length ? filtered.map(p => `
-    <div class="patient-row">
-      <div class="patient-info">
-        <div class="patient-code">${esc(p.code)}</div>
-        <div>
-          <div class="patient-name">${esc(p.name || "Patient")}${p.archived_at ? ' <span class="tag-status archived">Archived</span>' : ''}</div>
-          <div class="patient-condition">${esc(p.condition || "Rehabilitation")} · ${esc(p.protocol_name || "Custom")}</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;gap:16px">
-        ${attentionChips(p.attention)}
-        <span style="font-size:13px;color:var(--text-muted);white-space:nowrap">${p.total_sessions || 0} sessions</span>
-        <button class="btn btn-secondary btn-sm" onclick="openPatientChart(${+p.id})" aria-label="Open chart for ${esc(p.code)}">
+  $("caseloadList").innerHTML = filtered.length ? `<div class="caseload-wrap"><table class="clean-table caseload-table">
+    <thead><tr>
+      <th scope="col">Code</th><th scope="col">Patient</th><th scope="col" class="col-protocol">Protocol</th>
+      <th scope="col">Status</th><th scope="col" class="col-num">Sessions</th><th scope="col"><span class="sr-only">Action</span></th>
+    </tr></thead><tbody>` + filtered.map(p => `
+    <tr>
+      <td><span class="patient-code">${esc(p.code)}</span></td>
+      <td><div class="patient-name">${esc(p.name || "Patient")}${p.archived_at ? ' <span class="tag-status archived">Archived</span>' : ''}</div>
+          <div class="patient-condition">${esc(p.condition || "Rehabilitation")}</div></td>
+      <td class="col-protocol">${esc(p.protocol_name || "Custom")}</td>
+      <td>${(p.attention && p.attention.length) ? `<span class="flag-chips">${attentionChips(p.attention)}</span>` : '<span class="flag-ok">No flags</span>'}</td>
+      <td class="col-num">${p.total_sessions || 0}</td>
+      <td style="text-align:right"><button class="btn btn-secondary btn-sm" onclick="openPatientChart(${+p.id})" aria-label="Open chart for ${esc(p.code)}">
           Open Chart
           <i aria-hidden="true" data-lucide="chevron-right" style="width:14px;height:14px"></i>
-        </button>
-      </div>
-    </div>
-  `).join("") : `<div class="state-msg">${patients.length ? "No patients match your search." : "No patients registered yet. Use <b>Register Patient</b> to add the first one."}</div>`;
+        </button></td>
+    </tr>`).join("") + `</tbody></table></div>`
+    : `<div class="state-msg">${patients.length ? "No patients match your search." : "No patients registered yet. Use <b>Register Patient</b> to add the first one."}</div>`;
   refreshIcons();
 }
 
 $("patientFilter").addEventListener("input", renderCaseloadList);
 
 async function openPatientChart(pid) {
-  if (pid !== activePid) sessionLimit = 50;
+  if (pid !== activePid) { sessionLimit = 50; renderHiddenDataLoading(); }
   activePid = pid;
   if (await loadPatientData()) showChart();
 }
@@ -2054,12 +2515,14 @@ async function loadPatientData() {
     renderChartHeader();
     renderSummaryBoxes();
     renderProgressChart();
+    renderHiddenData();
     renderSessionHistory();
     renderPrescription();
     renderProtocol();
     refreshIcons();
     return true;
   } catch(e) {
+    if (!activeData || !activeData.patient || String(activeData.patient.id) !== String(activePid)) renderHiddenDataError(e.message);
     if ($("viewChart").style.display !== "none") {
       showBanner("chartErr", "Could not refresh the patient chart: " + e.message + ". The figures below may be out of date.", loadPatientData);
     } else {
@@ -2072,7 +2535,16 @@ async function loadPatientData() {
 function renderChartHeader() {
   const p = activeData.patient;
   $("chartName").textContent = p.name ? `${p.name} (${p.code})` : `Patient ${p.code}`;
+  if ($("viewChart").style.display !== "none") setCrumb(p.code + (p.name ? " · " + p.name : ""));
   $("chartCondition").textContent = `${p.condition || "Orthopedic Physical Therapy"} · ${activeData.program.name}`;
+  const ph = activeData.phase || {}, k = activeData.kpis || {}, flags = activeData.attention || [];
+  const last = (activeData.sessions || [])[0];
+  $("chartMeta").innerHTML =
+    `<span class="meta-item"><i aria-hidden="true" data-lucide="shield-check" style="width:14px;height:14px"></i>` +
+      `${ph.id ? `<b>${esc(ph.protocol)}</b> · ${esc(ph.name)}` : "Custom prescription"}</span>` +
+    `<span class="meta-item"><i aria-hidden="true" data-lucide="calendar-check" style="width:14px;height:14px"></i>Adherence <b>${esc(k.adherence ? k.adherence.rate : 0)}%</b></span>` +
+    `<span class="meta-item"><i aria-hidden="true" data-lucide="history" style="width:14px;height:14px"></i>Last session <b>${last ? esc(formatDateTime(last.started_at)) : "none yet"}</b></span>` +
+    `<span class="meta-item">${flags.length ? attentionChips(flags) : '<span class="tag-status complete"><i aria-hidden="true" data-lucide="check" style="width:12px;height:12px"></i>No flags</span>'}</span>`;
   const archived = activeData.archivedAt;
   $("chartArchived").style.display = archived ? "flex" : "none";
   $("chartArchived").innerHTML = archived ? `<i aria-hidden="true" data-lucide="archive" style="width:15px;height:15px;flex-shrink:0"></i>
@@ -2249,19 +2721,25 @@ function renderProgressChart() {
           position: 'top',
           labels: {
             boxWidth: 12,
+            color: muted,
             font: { family: font, size: 12 }
           }
         },
         tooltip: {
           backgroundColor: cssVar("--text"),
+          titleColor: cssVar("--surface"),
+          bodyColor: cssVar("--surface"),
+          cornerRadius: 6,
           padding: 10,
-          titleFont: { size: 13, weight: 'bold' }
+          titleFont: { family: font, size: 13, weight: 'bold' },
+          bodyFont: { family: font, size: 12 }
         }
       },
       scales: {
         x: {
           grid: { display: false },
-          ticks: { font: { size: 11, family: font } }
+          border: { color: cssVar("--border") },
+          ticks: { color: muted, font: { size: 11, family: font } }
         },
         y: {
           type: 'linear',
@@ -2269,9 +2747,11 @@ function renderProgressChart() {
           position: 'left',
           min: 0,
           max: 100,
+          border: { display: false },
           ticks: {
             callback: v => v + '%',
-            font: { size: 11 }
+            color: muted,
+            font: { size: 11, family: font }
           },
           grid: { color: cssVar("--border-subtle") }
         },
@@ -2280,12 +2760,133 @@ function renderProgressChart() {
           display: true,
           position: 'right',
           min: 0,
+          border: { display: false },
           grid: { drawOnChartArea: false },
-          ticks: { font: { size: 11 } }
+          ticks: { color: muted, precision: 0, font: { size: 11, family: font } }
         }
       }
     }
   });
+}
+
+// ------------------------------------------
+// M8.7: adherence calendar, exercise results and phase history (data the server already sends)
+// ------------------------------------------
+const CAL_STATUS = {
+  complete:   { label: "Done",   icon: "check",         say: "session done" },
+  incomplete: { label: "Partly", icon: "circle-dashed", say: "session not finished" },
+  missed:     { label: "Missed", icon: "x",             say: "missed" },
+  pending:    { label: "To do",  icon: "clock",         say: "scheduled today, not done yet" },
+  rest:       { label: "Rest",   icon: "minus",         say: "not scheduled" },
+  before:     { label: "Before", icon: "minus",         say: "before the patient was enrolled" },
+};
+const DOW_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function renderHiddenDataLoading() {
+  $("adherenceCalendar").innerHTML = `<div class="state-msg">Loading adherence…</div>`;
+  $("exerciseStats").innerHTML = `<div class="state-msg">Loading exercise results…</div>`;
+  $("phaseHistory").innerHTML = `<div class="state-msg">Loading phase history…</div>`;
+}
+
+function renderHiddenDataError(message) {
+  const html = what => `<div class="state-msg" role="alert">Could not load ${what}: ${esc(message)}<br>
+    <button type="button" class="btn btn-secondary btn-sm" onclick="loadPatientData()">Retry</button></div>`;
+  $("adherenceCalendar").innerHTML = html("adherence");
+  $("exerciseStats").innerHTML = html("exercise results");
+  $("phaseHistory").innerHTML = html("phase history");
+}
+
+function renderHiddenData() {
+  renderAdherenceCalendar();
+  renderExerciseStats();
+  renderPhaseHistory();
+}
+
+function renderAdherenceCalendar() {
+  const days = activeData.calendar || [];
+  if (!days.length) {
+    $("adherenceCalendar").innerHTML = `<div class="state-msg">No schedule to show for this patient.</div>`;
+    return;
+  }
+  const today = days[days.length - 1].date;
+  const cells = days.map(d => {
+    const st = d.enrolled === false ? CAL_STATUS.before : (CAL_STATUS[d.status] || CAL_STATUS.rest);
+    const dt = new Date(d.date + "T00:00:00");
+    const dow = DOW_SHORT[dt.getDay()];
+    const isToday = d.date === today;
+    return `<li class="cal-day ${esc(d.status)}${d.enrolled === false ? " before" : ""}${isToday ? " today" : ""}" title="${esc(d.date)}: ${esc(st.say)}">
+      <span class="cal-dow" aria-hidden="true">${isToday ? "Today" : dow}</span>
+      <span class="cal-num" aria-hidden="true">${dt.getDate()}</span>
+      <i aria-hidden="true" data-lucide="${st.icon}" style="width:14px;height:14px"></i>
+      <span class="cal-label" aria-hidden="true">${st.label}</span>
+      <span class="sr-only">${dow} ${esc(d.date)}${isToday ? " (today)" : ""}: ${st.say}</span>
+    </li>`;
+  }).join("");
+  const sched = days.filter(d => d.scheduled);
+  const count = s => sched.filter(d => d.status === s).length;
+  const extra = days.filter(d => !d.scheduled && (d.status === "complete" || d.status === "incomplete")).length;
+  const summary = sched.length ? `
+    <span>Of <b>${sched.length}</b> scheduled day${sched.length === 1 ? "" : "s"}:</span>
+    <span><b>${count("complete")}</b> done</span>
+    <span><b>${count("incomplete")}</b> partly done</span>
+    <span><b>${count("missed")}</b> missed</span>
+    ${count("pending") ? `<span><b>1</b> still to do today</span>` : ""}
+    ${extra ? `<span><b>${extra}</b> extra session day${extra === 1 ? "" : "s"} on rest days</span>` : ""}`
+    : `<span>No scheduled days in this period yet.</span>`;
+  const before = days.filter(d => d.enrolled === false).length;
+  const beforeNote = before ? `<span>“Before” marks days before the patient was enrolled.</span>` : "";
+  $("adherenceCalendar").innerHTML = `<ol class="cal-grid" aria-label="Last 14 days, oldest first">${cells}</ol>
+    <div class="cal-summary">${summary}${beforeNote}</div>`;
+}
+
+function renderExerciseStats() {
+  const rows = activeData.byExercise || [];
+  if (!rows.length) {
+    $("exerciseStats").innerHTML = `<div class="state-msg">No exercises prescribed yet.</div>`;
+    return;
+  }
+  if (!rows.some(r => r.sessions > 0)) {
+    $("exerciseStats").innerHTML = `<div class="state-msg">No counted sessions yet. Results appear after the first webcam session.</div>`;
+    return;
+  }
+  $("exerciseStats").innerHTML = `<div style="overflow-x:auto"><table class="clean-table">
+    <thead><tr>
+      <th scope="col">Exercise</th>
+      <th scope="col" class="num">Sessions</th>
+      <th scope="col" class="num">Avg. accuracy</th>
+      <th scope="col" class="num">Best</th>
+      <th scope="col" class="num">Unsafe reps</th>
+    </tr></thead>
+    <tbody>${rows.map(r => r.sessions ? `<tr>
+      <td style="font-weight:600">${esc(r.name)}</td>
+      <td class="num">${+r.sessions}</td>
+      <td class="num">${+r.accuracy}%</td>
+      <td class="num">${+r.best}%</td>
+      <td class="num">${+r.unsafe ? `<span class="tag-status attention"><i aria-hidden="true" data-lucide="alert-triangle" style="width:12px;height:12px"></i>${+r.unsafe}</span>` : "0"}</td>
+    </tr>` : `<tr>
+      <td style="font-weight:600">${esc(r.name)}</td>
+      <td class="num">0</td>
+      <td colspan="3" style="color:var(--text-muted)">Not done in a counted session yet</td>
+    </tr>`).join("")}</tbody>
+  </table></div>
+  <div class="card-note">Counted sessions only (webcam); keyboard and simulated sessions are left out.</div>`;
+}
+
+function renderPhaseHistory() {
+  const rows = activeData.phaseHistory || [];
+  if (!rows.length) {
+    $("phaseHistory").innerHTML = `<div class="state-msg">No phase changes yet. Assign a protocol phase on the <b>Protocol &amp; Advancement</b> tab.</div>`;
+    return;
+  }
+  $("phaseHistory").innerHTML = `<ol class="timeline">${rows.map((h, i) => `
+    <li class="${i === 0 ? "current" : ""}">
+      <span class="tl-dot" aria-hidden="true"></span>
+      <div class="tl-title">${h.phase ? esc(h.phase) : "Custom program (no protocol phase)"}
+        ${i === 0 ? `<span class="tag-status current">Current</span>` : ""}</div>
+      <div class="tl-meta">${h.protocol ? esc(h.protocol) + " · " : ""}Started ${esc(formatDateTime(h.changed_at))}
+        · ${h.approvedBy ? "Approved by " + esc(h.approvedBy) : "Approver not recorded"}</div>
+      ${h.note ? `<div class="tl-note">${esc(h.note)}</div>` : ""}
+    </li>`).join("")}</ol>`;
 }
 
 // M7.1: only webcam sessions count for adherence, readiness, flags and XP; the rest are labelled
@@ -2303,7 +2904,8 @@ function renderSessionHistory() {
         <i aria-hidden="true" data-lucide="${s.status === 'complete' ? 'check' : 'clock'}" style="width:12px;height:12px"></i>
         ${esc(s.status)}
       </span>
-      <div class="attention-sources">${esc(sourceLabel(s.input_source))}</div></td>
+      <div class="attention-sources">${esc(sourceLabel(s.input_source))}</div>
+      ${s.other_person_pauses ? `<div class="attention-sources" style="color:var(--red)">Paused ${+s.other_person_pauses}× for another person (${+s.other_person_seconds}s)</div>` : ""}</td>
       <td>${s.valid} / ${s.attempts} reps</td>
       <td style="font-weight:600;color:var(--teal)">${s.accuracy}%</td>
       <td>${formatPainNotes(s)}</td>
@@ -2644,14 +3246,17 @@ async function openProtocolManagerModal() {
   switchModalProtocolView('list');
   renderProtocolManagerList();
   renderNewProtExerciseOptions();
+  renderProtocolSuggestions();
   openDialog("protocolModal");
 }
 
 function closeProtocolModal() {
+  if (comboOpen) closeCombo(comboOpen, true);
   closeDialog("protocolModal");
 }
 
 function switchModalProtocolView(view) {
+  if (comboOpen) closeCombo(comboOpen, true);
   $("modalTabProtocolsList").setAttribute("aria-selected", view !== 'create');
   $("modalTabProtocolsCreate").setAttribute("aria-selected", view === 'create');
   $("modalTabProtocolsList").tabIndex = view !== 'create' ? 0 : -1;
@@ -2687,11 +3292,11 @@ function renderProtocolManagerList() {
 
   container.innerHTML = protocols.map(p => `
     <button type="button" class="protocol-row" onclick="openProtocolPhasesWidget(${+p.id})">
-      <div style="display:flex;align-items:center;gap:12px">
-        <i aria-hidden="true" data-lucide="book-open" style="width:16px;height:16px;color:var(--teal)"></i>
-        <span style="font-weight:600;font-size:14px;color:var(--text)">${esc(p.name)}</span>
-      </div>
-      <i aria-hidden="true" data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text-light)"></i>
+      <span class="protocol-row-main">
+        <span class="protocol-row-name">${esc(p.name)}${p.builtin ? ' <span class="chip chip-quiet">Built-in</span>' : ''}</span>
+        <span class="protocol-row-meta">${esc(p.condition || "General orthopedic")} · ${(p.phases || []).length} phase${(p.phases || []).length === 1 ? "" : "s"}</span>
+      </span>
+      <i aria-hidden="true" data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text-light);flex-shrink:0"></i>
     </button>
   `).join("");
   refreshIcons();
@@ -2741,11 +3346,11 @@ function openProtocolPhasesWidget(protId) {
       ).join(" ") || (ph.exercises || []).map(en => `<span class="chip">${esc(en)}</span>`).join(" ");
 
       return `
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px">
-            <div style="font-weight:700;font-size:13.5px;color:var(--text)">Phase ${+ph.phaseNo}: ${esc(ph.name)}</div>
+            <div style="font-weight:600;font-size:var(--fs-md);color:var(--text)">Phase ${+ph.phaseNo}: ${esc(ph.name)}</div>
             <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:11.5px;color:var(--teal);background:var(--teal-soft);padding:3px 8px;border-radius:4px;font-weight:600">${esc(ph.weeks || "General")}</span>
+              <span class="chip chip-quiet">${esc(ph.weeks || "General")}</span>
               ${p.builtin ? '' : `<button type="button" class="btn btn-secondary btn-sm" onclick="openPhaseEditor(${+p.id}, ${+ph.id})" aria-label="Edit phase ${+ph.phaseNo}">
                 <i aria-hidden="true" data-lucide="pencil" style="width:13px;height:13px"></i> Edit</button>`}
             </div>
@@ -2847,11 +3452,228 @@ function renderNewProtExerciseOptions() {
     return;
   }
   container.innerHTML = library.map(ex => `
-    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg)">
-      <input type="checkbox" name="protExercises" value="${esc(ex.code)}" style="cursor:pointer">
-      <span><b>${esc(ex.name)}</b> <span style="font-size:10.5px;color:var(--text-muted)">(${esc(ex.joint)})</span></span>
+    <label class="ex-pick">
+      <input type="checkbox" name="protExercises" value="${esc(ex.code)}">
+      <span><b>${esc(ex.name)}</b> <span class="ex-pick-joint">${esc(ex.joint)}</span></span>
     </label>
   `).join("");
+}
+
+// ------------------------------------------
+// Picker panel: a text field with a themed list panel under it (replaces the browser's plain dropdowns).
+// Typing filters the list; Up/Down move, Enter picks, Esc closes. The panel lives on <body> so the
+// scrolling dialog cannot clip it, and the field keeps focus (WAI-ARIA combobox with aria-activedescendant).
+// ------------------------------------------
+const combos = {};
+let comboOpen = null;
+
+function setupCombo(inputId, cfg) {
+  const input = $(inputId);
+  if (!input || combos[inputId]) return;
+  const panel = document.createElement("div");
+  panel.className = "combo-panel";
+  panel.id = inputId + "Panel";
+  panel.setAttribute("role", "listbox");
+  panel.hidden = true;
+  document.body.appendChild(panel);
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "combo-toggle";
+  toggle.tabIndex = -1;
+  toggle.setAttribute("aria-label", "Show options");
+  toggle.innerHTML = `<i aria-hidden="true" data-lucide="chevrons-up-down" style="width:14px;height:14px"></i>`;
+  input.after(toggle);
+  input.setAttribute("role", "combobox");
+  input.setAttribute("aria-autocomplete", "list");
+  input.setAttribute("aria-expanded", "false");
+  input.setAttribute("aria-controls", panel.id);
+  const c = combos[inputId] = { input, panel, cfg, items: [], active: -1, typed: false };
+
+  input.addEventListener("focus", () => { if (cfg.strict) input.select(); });
+  input.addEventListener("click", () => openCombo(c, false));
+  input.addEventListener("input", () => { c.typed = true; openCombo(c, true); });
+  input.addEventListener("blur", () => setTimeout(() => { if (document.activeElement !== input) closeCombo(c, true); }, 120));
+  toggle.addEventListener("mousedown", ev => ev.preventDefault());
+  toggle.addEventListener("click", () => { if (comboOpen === c) closeCombo(c); else { input.focus(); openCombo(c, false); } });
+  panel.addEventListener("mousedown", ev => ev.preventDefault());   // keep focus in the field
+  panel.addEventListener("click", ev => {
+    const el = ev.target.closest("[data-idx]");
+    if (el) pickCombo(c, +el.dataset.idx);
+  });
+  input.addEventListener("keydown", ev => {
+    const open = comboOpen === c;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      ev.preventDefault();
+      if (!open) { openCombo(c, false); return; }
+      moveCombo(c, ev.key === "ArrowDown" ? 1 : -1);
+    } else if (ev.key === "Enter" && open && c.active >= 0) {
+      ev.preventDefault();
+      pickCombo(c, c.active);
+    } else if (ev.key === "Escape" && open) {
+      ev.preventDefault();
+      ev.stopPropagation();           // close the panel only, not the dialog
+      closeCombo(c, true);
+    } else if (ev.key === "Tab" && open) {
+      closeCombo(c, true);
+    }
+  });
+}
+
+function comboItems(c, filter) {
+  const q = filter ? c.input.value.trim().toLowerCase() : "";
+  return c.cfg.options().filter(o => !q || o.label.toLowerCase().includes(q) || (o.meta || "").toLowerCase().includes(q));
+}
+
+function openCombo(c, filter) {
+  if (comboOpen && comboOpen !== c) closeCombo(comboOpen, true);
+  c.items = comboItems(c, filter && c.typed);
+  const cur = c.input.value.trim();
+  c.active = c.items.findIndex(o => o.label === cur);
+  if (filter && c.active < 0 && c.items.length) c.active = 0;
+  renderCombo(c);
+  c.panel.hidden = false;
+  c.input.setAttribute("aria-expanded", "true");
+  comboOpen = c;
+  positionCombo(c);
+}
+
+function renderCombo(c) {
+  const cur = c.input.value.trim();
+  let html = "", group = null;
+  c.items.forEach((o, i) => {
+    if (o.group && o.group !== group) { group = o.group; html += `<div class="combo-group" role="presentation">${esc(group)}</div>`; }
+    html += `<div class="combo-opt${i === c.active ? " active" : ""}" role="option" id="${c.panel.id}-${i}" data-idx="${i}" aria-selected="${o.label === cur}">
+      <span class="combo-opt-text"><span class="combo-opt-label">${esc(o.label)}</span>${o.meta ? `<span class="combo-opt-meta">${esc(o.meta)}</span>` : ""}</span>
+      ${o.label === cur ? `<i aria-hidden="true" data-lucide="check" style="width:14px;height:14px;flex-shrink:0"></i>` : ""}
+    </div>`;
+  });
+  if (!c.items.length) html = `<div class="combo-empty">${esc(c.cfg.empty || "No matches. Keep typing to use your own text.")}</div>`;
+  c.panel.innerHTML = (c.cfg.title ? `<div class="combo-head">${esc(c.cfg.title)}</div>` : "") +
+    `<div class="combo-list">${html}</div>` +
+    `<div class="combo-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> pick</span><span><kbd>Esc</kbd> close</span></div>`;
+  c.input.setAttribute("aria-activedescendant", c.active >= 0 ? `${c.panel.id}-${c.active}` : "");
+  refreshIcons();
+}
+
+function moveCombo(c, step) {
+  if (!c.items.length) return;
+  c.active = (c.active + step + c.items.length) % c.items.length;
+  renderCombo(c);
+  const el = $(`${c.panel.id}-${c.active}`);
+  if (el) el.scrollIntoView({ block: "nearest" });
+}
+
+function pickCombo(c, idx) {
+  const o = c.items[idx];
+  if (!o) return;
+  c.input.value = o.label;
+  c.typed = false;
+  closeCombo(c);
+  if (c.cfg.onPick) c.cfg.onPick(o);
+  c.input.dispatchEvent(new Event("change"));
+}
+
+function closeCombo(c, revert) {
+  if (revert && c.cfg.strict && c.cfg.current) c.input.value = c.cfg.current();   // strict pickers only accept listed choices
+  c.panel.hidden = true;
+  c.typed = false;
+  c.input.setAttribute("aria-expanded", "false");
+  c.input.removeAttribute("aria-activedescendant");
+  if (comboOpen === c) comboOpen = null;
+}
+
+function positionCombo(c) {
+  const r = c.input.getBoundingClientRect();
+  const below = innerHeight - r.bottom - 12, above = r.top - 12;
+  const up = below < 220 && above > below;
+  c.panel.style.left = `${Math.max(8, Math.min(r.left, innerWidth - Math.max(r.width, 260) - 8))}px`;
+  c.panel.style.width = `${Math.max(r.width, 260)}px`;
+  c.panel.style.maxHeight = `${Math.min(320, up ? above : below)}px`;
+  c.panel.style.top = up ? "" : `${r.bottom + 6}px`;
+  c.panel.style.bottom = up ? `${innerHeight - r.top + 6}px` : "";
+}
+window.addEventListener("resize", () => comboOpen && positionCombo(comboOpen));
+document.addEventListener("scroll", ev => {
+  if (!comboOpen || comboOpen.panel.contains(ev.target)) return;
+  positionCombo(comboOpen);
+}, true);
+
+// Create form: the "Start from" choices and the suggestions come from the protocols already in the library
+let protocolTemplateId = "";
+const protSuggest = {};
+function renderProtocolSuggestions() {
+  const uniq = vals => [...new Set(vals.map(v => (v || "").trim()).filter(Boolean))].sort((x, y) => x.localeCompare(y));
+  const phases = protocols.flatMap(p => p.phases || []);
+  const asOpts = vals => uniq(vals).map(v => ({ label: v }));
+  protSuggest.condition = asOpts(protocols.map(p => p.condition));
+  protSuggest.source = asOpts(protocols.map(p => p.source));
+  protSuggest.phaseName = asOpts(phases.map(ph => ph.name));
+  protSuggest.weeks = asOpts(phases.map(ph => ph.weeks));
+  protSuggest.rom = asOpts(phases.map(ph => ph.romGoal));
+  const meta = p => `${p.condition || "General orthopedic"} · ${(p.phases || []).length} phase${(p.phases || []).length === 1 ? "" : "s"}`;
+  protSuggest.protocols = protocols.map(p => ({ value: String(p.id), label: p.name, meta: meta(p), group: p.builtin ? "Built-in protocols" : "Clinic protocols" }))
+    .sort((x, y) => (x.group === y.group ? 0 : x.group === "Built-in protocols" ? -1 : 1));
+  if (!protocols.some(p => String(p.id) === protocolTemplateId)) protocolTemplateId = "";
+
+  setupCombo("newProtTemplate", {
+    strict: true,
+    title: "Start from",
+    options: () => [{ value: "", label: "Blank protocol", meta: "Empty form with default phase values" }, ...protSuggest.protocols],
+    current: () => templateLabel(),
+    onPick: o => applyProtocolTemplate(o.value),
+    empty: "No protocol matches. Clear the field to see all of them.",
+  });
+  setupCombo("newProtName", {
+    title: "Existing protocols: pick one to adapt its name",
+    options: () => protSuggest.protocols,
+    onPick: () => checkProtocolName(),
+    empty: "No existing protocol matches. This name is new.",
+  });
+  setupCombo("newProtCondition", { title: "Conditions in the library", options: () => protSuggest.condition });
+  setupCombo("newProtSource", { title: "Sources in the library", options: () => protSuggest.source });
+  setupCombo("newProtPhaseName", { title: "Phase names in the library", options: () => protSuggest.phaseName });
+  setupCombo("newProtPhaseWeeks", { title: "Timelines in the library", options: () => protSuggest.weeks });
+  setupCombo("newProtPhaseRomGoal", { title: "ROM goals in the library", options: () => protSuggest.rom });
+  if (!$("newProtName").dataset.watch) {
+    $("newProtName").dataset.watch = "1";
+    $("newProtName").addEventListener("input", checkProtocolName);
+  }
+  $("newProtTemplate").value = templateLabel();
+  checkProtocolName();
+}
+
+function templateLabel() {
+  const p = protocols.find(x => String(x.id) === protocolTemplateId);
+  return p ? p.name : "Blank protocol";
+}
+
+// A picked or typed name that already exists gets a warning: saving would make two protocols with one name
+function checkProtocolName() {
+  const v = $("newProtName").value.trim().toLowerCase();
+  const taken = v && protocols.some(p => (p.name || "").trim().toLowerCase() === v);
+  const hint = $("newProtNameHint");
+  hint.classList.toggle("warn", !!taken);
+  hint.textContent = taken ? "A protocol with this name already exists. Change it (for example add the clinic or version) before saving."
+                           : "Use a new name, so it is not mixed up with an existing protocol.";
+}
+
+function applyProtocolTemplate(id) {
+  const p = protocols.find(x => String(x.id) === String(id));
+  protocolTemplateId = p ? String(p.id) : "";
+  $("newProtTemplate").value = templateLabel();
+  const ph = p && (p.phases || [])[0];
+  $("newProtCondition").value = p ? (p.condition || "") : "";
+  $("newProtSource").value = p ? (p.source || "") : "";
+  $("newProtPhaseName").value = ph ? ph.name : "Phase I - Immediate Post-Op";
+  $("newProtPhaseWeeks").value = ph ? (ph.weeks || "") : "Weeks 1-4";
+  $("newProtPhaseGoals").value = ph ? (ph.goals || "") : "";
+  $("newProtPhasePrecautions").value = ph ? (ph.precautions || "") : "";
+  $("newProtPhaseRomGoal").value = ph ? (ph.romGoal || "") : "";
+  const codes = new Set(ph ? (ph.exerciseDetails || []).map(e => e.code) : []);
+  document.querySelectorAll('input[name="protExercises"]').forEach(cb => { cb.checked = codes.has(cb.value); });
+  // The name stays the clinician's own: suggest a copy name only when the field is empty
+  if (p && !$("newProtName").value.trim()) $("newProtName").value = `${p.name} (copy)`;
+  checkProtocolName();
 }
 
 async function handleCreateProtocolSubmit(e) {
@@ -2897,6 +3719,7 @@ async function handleCreateProtocolSubmit(e) {
     showToast(`Protocol "${created.name}" created successfully`);
     protocols = await api("/api/protocols");
     renderProtocolManagerList();
+    renderProtocolSuggestions();
     if(activePid && activeData) {
       renderProtocol();
     }
@@ -2906,8 +3729,7 @@ async function handleCreateProtocolSubmit(e) {
     $("newProtSource").value = "";
     $("newProtPhaseGoals").value = "";
     $("newProtPhasePrecautions").value = "";
-    $("newProtPhaseRomGoal").value = "";
-    document.querySelectorAll('input[name="protExercises"]:checked').forEach(cb => cb.checked = false);
+    applyProtocolTemplate("");
   } catch(err) {
     showToast("Error creating protocol: " + err.message, "error");
   }
@@ -2930,6 +3752,7 @@ async function confirmDeleteProtocol(id) {
     showToast(`Protocol "${name}" removed from library`);
     protocols = await api("/api/protocols");
     renderProtocolManagerList();
+    renderProtocolSuggestions();
     if(activePid && activeData) {
       await loadPatientData();
     }

@@ -1,6 +1,10 @@
 # Custom 3D Coach Avatars
 
-Drop your 3D humanoid character models (FBX, OBJ, or GLB) into this folder.
+Extra coaches now go in `Assets/TheraQuest/Resources/Coaches/` (one sub-folder per model, e.g. `Resources/Coaches/Man002_FBX/Male_002.fbx`).
+Every Humanoid model found there is added to the coach menu automatically (its file name is the menu name), after the Female and Male coaches.
+The notes below still apply to the model's Import Settings; no scene setup is needed.
+
+(Older note:) Drop your 3D humanoid character models (FBX, OBJ, or GLB) into this folder.
 
 ### Supported Avatar Sources
 - **Adobe Mixamo** (https://www.mixamo.com/): Download characters like *Remy*, *Michelle*, *Y Bot*, or *Malcolm* (T-Pose or standard rest pose).

@@ -105,7 +105,7 @@ namespace TheraQuest
             // Copy the default material of a primitive, so this works in URP and Built-in projects.
             var tmp = GameObject.CreatePrimitive(PrimitiveType.Cube);
             var m = new Material(tmp.GetComponent<Renderer>().sharedMaterial) { color = c };
-            Destroy(tmp);
+            if (Application.isPlaying) Destroy(tmp); else DestroyImmediate(tmp);   // edit-mode tests call this too
             if (transparent)
             {
                 if (m.HasProperty("_Surface")) // URP

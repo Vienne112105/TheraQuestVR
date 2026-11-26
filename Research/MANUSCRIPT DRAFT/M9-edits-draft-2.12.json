@@ -1,0 +1,58 @@
+[
+ {
+  "op": "replace",
+  "match": "Hardware Dependency:",
+  "old": "connected to it by Quest Link,",
+  "new": "connected to it by Quest Link, either by cable or wirelessly through Air Link,",
+  "source": "M9.3 headset connection: cable or Air Link (human choice 2026-11-26; Air Link not yet tested, HW.2)"
+ },
+ {
+  "op": "replace",
+  "match": "(e.g., a VR headset connected to the computer by Quest Link",
+  "old": "connected to the computer by Quest Link,",
+  "new": "connected to the computer by cable or wirelessly through Air Link,",
+  "source": "M9.3 headset connection: cable or Air Link (human choice 2026-11-26; Air Link not yet tested, HW.2)"
+ },
+ {
+  "op": "replace",
+  "match": "the VR headset connected to it by Quest Link",
+  "old": "connected to it by Quest Link,",
+  "new": "connected to it by cable or wirelessly through Air Link,",
+  "source": "M9.3 headset connection: cable or Air Link (human choice 2026-11-26; Air Link not yet tested, HW.2)"
+ },
+ {
+  "op": "replace",
+  "match": "The system requires a VR headset",
+  "old": "connected to the computer by Quest Link,",
+  "new": "connected to the computer by Quest Link, either by cable or wirelessly through Air Link,",
+  "source": "M9.3 headset connection: cable or Air Link (human choice 2026-11-26; Air Link not yet tested, HW.2)"
+ },
+ {
+  "op": "replace",
+  "match": "An adequate physical space is required",
+  "old": "Because the headset hides the room and is connected to the computer by a cable, the cable is kept clear of the patient",
+  "new": "Because the headset hides the room, any connecting cable is kept clear of the patient",
+  "source": "M9.3 headset connection: cable or Air Link (human choice 2026-11-26; Air Link not yet tested, HW.2)"
+ },
+ {
+  "op": "replace",
+  "match": "Patient Safety:",
+  "old": "or when the headset is taken off.",
+  "new": "or when the headset is taken off. The system also treats the first person it detects as the patient and pauses the session if another person takes the patient's place, until the patient is tracked again; a person who only stands nearby, such as the supervisor, does not pause it.",
+  "source": "M9.3 M10.5 Patient Lock (built 2026-11-26, tracker/patient_lock.py; human: add it now, before the two-person check)"
+ },
+ {
+  "op": "replace",
+  "match": "The Motion Tracking Module is responsible for capturing",
+  "old": "five-stage pipeline",
+  "new": "six-stage pipeline",
+  "source": "M9.3 M10.5 Patient Lock (built 2026-11-26, tracker/patient_lock.py; human: add it now, before the two-person check)"
+ },
+ {
+  "op": "replace",
+  "match": "The Frame Preprocessor resizes",
+  "old": "body parts within each frame. The Landmark Smoother",
+  "new": "body parts within each frame. The Patient Lock treats the first body detected in the session as the patient and passes on only that body, so that another person is never measured; if another person takes the patient's place, the session pauses until the patient is tracked again. The Landmark Smoother",
+  "source": "M9.3 M10.5 Patient Lock (built 2026-11-26, tracker/patient_lock.py; human: add it now, before the two-person check)"
+ }
+]

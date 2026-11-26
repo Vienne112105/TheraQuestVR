@@ -1,0 +1,43 @@
+[
+ {
+  "op": "replace",
+  "match": "Scope of Clinical Application:",
+  "old": "Patient participants are outpatient or subacute orthopedic patients in the active-recovery stage who have been cleared by a physician for active, low-to-moderate-load exercise. Patients who are limited to passive movement or who may not bear weight are not included.",
+  "new": "Patient participants are orthopedic post-operative patients whose recovery precautions are set by their physician or physical therapist.",
+  "source": "M9.3 Ch1 PT consult 2026-11-26 patient stage (human yes)"
+ },
+ {
+  "op": "insert_after",
+  "match": "Scope of Clinical Application:",
+  "text": "**Exercise Coverage:** The prototype covers the shoulder, elbow, hip, knee and ankle. Wrist exercises are not yet included and are identified as future work. The system is designed for stationary exercises and is not intended for gait or other movements that involve travelling.",
+  "source": "M9.3 Ch1 PT consult: wrist and gait limitation (human yes)"
+ },
+ {
+  "op": "replace",
+  "match": "A total of 5 to 10 physical therapy patients",
+  "old": "5 to 10 physical therapy patients in the active-recovery stage, cleared by a physician for active exercise, will participate",
+  "new": "5 to 10 orthopedic post-operative patients, whose recovery precautions are set by their physician or physical therapist, will participate",
+  "source": "M9.3 Ch3 PT consult patient stage (human yes)"
+ },
+ {
+  "op": "replace",
+  "match": "The Adherence Record entity tracks whether",
+  "old": "fully completed or left incomplete.",
+  "new": "fully completed, partially completed, or missed.",
+  "source": "M9.3 PT consult adherence word: partial (human yes)"
+ },
+ {
+  "op": "replace",
+  "match": "The Completion Checker verifies whether",
+  "old": "complete, incomplete, or missed",
+  "new": "complete, partial, or missed",
+  "source": "M9.3 PT consult adherence word: partial (human yes)"
+ },
+ {
+  "op": "replace",
+  "match": "This instrument focuses on determining whether",
+  "old": "completed, incomplete, or missed",
+  "new": "completed, partial, or missed",
+  "source": "M9.3 PT consult adherence word: partial (human yes)"
+ }
+]

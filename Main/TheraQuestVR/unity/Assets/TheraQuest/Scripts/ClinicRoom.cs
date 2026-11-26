@@ -13,13 +13,16 @@ namespace TheraQuest
     /// </summary>
     public class ClinicRoom : MonoBehaviour
     {
-        const float Height = 3.5f;
+        const float Height = 3.0f;   // real clinic rooms are 2.7 to 3.0 m high (M8.2: was 3.5)
+        Material wallBase, wallTex;   // wallTex is a textured copy when the wall texture exists
 
         readonly Dictionary<Color, Material> mats = new Dictionary<Color, Material>();
         Transform root;
 
         static readonly Color Wall = new Color(0.82f, 0.88f, 0.86f);
         static readonly Color Trim = new Color(0.04f, 0.54f, 0.49f);
+        /// <summary>Diameter of the round rug on the exercise spot, in metres.</summary>
+        public const float RugSize = 1.5f;
         static readonly Color Dark = new Color(0.20f, 0.26f, 0.28f);
         static readonly Color Sky = new Color(0.62f, 0.82f, 0.95f);
 
@@ -29,10 +32,28 @@ namespace TheraQuest
             root = new GameObject("Clinic Room").transform;
 
             var wallMat = FindMaterial("Back wall") ?? Mat(Wall);
-            if (GameObject.Find("Back wall") == null) Block("Back wall", new Vector3(0, Height / 2, 5.5f), new Vector3(10, Height, 0.1f), wallMat);
-            Block("Left wall", new Vector3(-5f, Height / 2, 1.25f), new Vector3(0.1f, Height, 8.6f), wallMat);
-            Block("Right wall", new Vector3(5f, Height / 2, 1.25f), new Vector3(0.1f, Height, 8.6f), wallMat);
-            Block("Front wall", new Vector3(0, Height / 2, -3f), new Vector3(10, Height, 0.1f), wallMat);
+            wallBase = wallMat;
+            // Textured copy (never the scene's material asset); each wall piece gets its own tiling so the texture
+            // keeps one real-world size (about 2.5 m per repeat) whatever the piece's size.
+            var copy = new Material(wallMat);
+            if (RoomLook.ApplyTexture(copy, "Room/Textures/wall", null, 0.3f, 0.012f)) wallTex = copy;
+
+            // The scene builder makes the back wall 3.5 m high: bring it to the room height
+            var back = GameObject.Find("Back wall");
+            if (back != null)
+            {
+                back.transform.localScale = new Vector3(10, Height, 0.1f);
+                back.transform.position = new Vector3(0, Height / 2, 5.5f);
+                Surface(back, 10f, Height);
+            }
+            else Surface(Block("Back wall", new Vector3(0, Height / 2, 5.5f), new Vector3(10, Height, 0.1f), wallMat), 10f, Height);
+            Surface(Block("Right wall", new Vector3(5f, Height / 2, 1.25f), new Vector3(0.1f, Height, 8.6f), wallMat), 8.6f, Height);
+            Surface(Block("Front wall", new Vector3(0, Height / 2, -3f), new Vector3(10, Height, 0.1f), wallMat), 10f, Height);
+            LeftWallWithWindows();
+
+            // Ceiling: warm white, so the lamps and the sun bounce into the room (it casts no shadow, the sun comes in through the windows)
+            var ceil = Decor("Ceiling", new Vector3(0, Height + 0.05f, 1.25f), new Vector3(10.2f, 0.1f, 8.7f), new Color(0.97f, 0.96f, 0.94f));
+            ceil.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
             // Accent stripe and skirting around the room
             foreach (var (pos, size) in new[] {
@@ -40,22 +61,27 @@ namespace TheraQuest
                 (new Vector3(-4.94f, 0, 1.25f), new Vector3(0.02f, 1, 8.6f)), (new Vector3(4.94f, 0, 1.25f), new Vector3(0.02f, 1, 8.6f)) })
             {
                 Decor("Stripe", pos + Vector3.up * 1.0f, Vector3.Scale(size, new Vector3(1, 0.08f, 1)), Trim);
-                Decor("Skirting", pos + Vector3.up * 0.06f, Vector3.Scale(size, new Vector3(1, 0.12f, 1)), Dark);
+                Decor("Skirting", pos + Vector3.up * 0.08f, Vector3.Scale(size, new Vector3(1, 0.16f, 1)), Color.white);
             }
 
             // Windows on the left wall
             foreach (float z in new[] { -1.2f, 1.6f, 4.2f })
             {
-                Decor("Window", new Vector3(-4.93f, 1.75f, z), new Vector3(0.02f, 1.3f, 1.5f), Sky);
+                Decor("Window", new Vector3(-4.93f, 1.75f, z), new Vector3(0.02f, 1.3f, 1.5f), Sky)
+                    .GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;   // the sun comes through
                 Decor("Window frame", new Vector3(-4.92f, 1.75f, z), new Vector3(0.03f, 1.3f, 0.05f), Color.white);
                 Decor("Window frame", new Vector3(-4.92f, 1.75f, z), new Vector3(0.03f, 0.05f, 1.5f), Color.white);
                 Block("Window sill", new Vector3(-4.88f, 1.07f, z), new Vector3(0.14f, 0.05f, 1.6f), Mat(Color.white));
             }
 
             // Exercise spot: where the patient stands, faces the coach, and the session starts
-            Decor("Rug", new Vector3(0, 0.003f, 0.1f), new Vector3(2.4f, 0.004f, 2.4f), new Color(0.10f, 0.28f, 0.29f), PrimitiveType.Cylinder);
-            Decor("Exercise spot", new Vector3(0, 0.006f, 0f), new Vector3(0.9f, 0.004f, 0.9f), Trim, PrimitiveType.Cylinder);
-            Sign(new Vector3(0, 0.02f, 0.62f), Quaternion.Euler(90, 0, 0), new Vector2(700, 120), "EXERCISE SPOT", 64);
+            // A smaller woven rug (1.5 m, was a plain 2.4 m disc; human request 2026-11-19) whose centre medallion
+            // marks the spot; without the texture file the old plain spot disc is drawn on it instead
+            var rug = Decor("Rug", new Vector3(0, 0.003f, 0f), new Vector3(RugSize, 0.004f, RugSize), new Color(0.10f, 0.28f, 0.29f), PrimitiveType.Cylinder);
+            var rugR = rug.GetComponent<Renderer>();
+            if (!RoomLook.ApplyTexture(rugR.material, "Room/Textures/rug", null, 0.6f))   // .material: its own copy, not the shared colour
+                Decor("Exercise spot", new Vector3(0, 0.006f, 0f), new Vector3(0.9f, 0.004f, 0.9f), Trim, PrimitiveType.Cylinder);
+            Sign(new Vector3(0, 0.02f, RugSize / 2f + 0.12f), Quaternion.Euler(90, 0, 0), new Vector2(700, 120), "EXERCISE SPOT", 64);
 
             // Room decorations are 3D models (human request 2026-10-27, TASK-014): gym equipment from the Low Poly Gym
             // Pack (reodesuxz) and furniture from Kenney's Furniture Kit (CC0); see CREDITS.md. The coach's area in front
@@ -112,9 +138,49 @@ namespace TheraQuest
             Poster(new Vector3(0, 1.9f, -2.93f), 180f, new Vector2(1500, 420), "Welcome!", "Walk to the teal spot and press Start (Space / A)\nfor today's quest. Press Esc / B for the menu.", 60);
 
             // Warm room lights (the sun still comes in from the directional light)
-            Lamp(new Vector3(-2f, 3.1f, 1.2f));
-            Lamp(new Vector3(2.2f, 3.1f, 3.6f));
-            Lamp(new Vector3(0f, 3.1f, -1.6f));
+            Lamp(new Vector3(-2f, Height - 0.8f, 1.2f));
+            Lamp(new Vector3(2.2f, Height - 0.8f, 3.6f));
+            Lamp(new Vector3(0f, Height - 0.8f, -1.6f));
+
+            // M8.2 look: floor texture (a copy, never the scene's asset), walls are textured above, then sun, probe and volume
+            var floorR = GameObject.Find("Floor")?.GetComponent<Renderer>();
+            if (floorR != null) RoomLook.ApplyTexture(floorR.material, "Room/Textures/floor", new Vector2(6f, 6f));
+            LightShafts.Build(root, new[] { -1.2f, 1.6f, 4.2f }, RoomLook.SunDirection());
+            RoomLook.Setup(root);
+        }
+
+        /// <summary>Gives a wall piece the textured wall material, tiled to its size (about 2.5 m per repeat).</summary>
+        void Surface(GameObject go, float width, float height)
+        {
+            var r = go.GetComponent<Renderer>();
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            if (wallTex == null) { r.sharedMaterial = wallBase; return; }
+            var m = new Material(wallTex);
+            RoomLook.SetTiling(m, new Vector2(width / 2.5f, height / 2.5f));
+            r.sharedMaterial = m;
+        }
+
+        /// <summary>The window wall: piers between the three windows plus the wall below and above them, so the openings are real
+        /// and the sun passes through (sill at 1.1 m, top at 2.4 m, each 1.5 m wide).</summary>
+        void LeftWallWithWindows()
+        {
+            const float zMin = -3.05f, zMax = 5.55f, sill = 1.1f, top = 2.4f, half = 0.75f;
+            float[] centres = { -1.2f, 1.6f, 4.2f };
+            void Piece(float z0, float z1, float y0, float y1)
+            {
+                if (z1 - z0 < 0.01f || y1 - y0 < 0.01f) return;
+                var g = Block("Left wall", new Vector3(-5f, (y0 + y1) / 2, (z0 + z1) / 2), new Vector3(0.1f, y1 - y0, z1 - z0), wallBase);
+                Surface(g, z1 - z0, y1 - y0);
+            }
+            float z = zMin;
+            foreach (float c in centres)
+            {
+                Piece(z, c - half, 0f, Height);           // pier
+                Piece(c - half, c + half, 0f, sill);      // under the window
+                Piece(c - half, c + half, top, Height);   // over the window
+                z = c + half;
+            }
+            Piece(z, zMax, 0f, Height);
         }
 
         Material FindMaterial(string objectName)
@@ -185,7 +251,7 @@ namespace TheraQuest
             light.transform.position = pos;
             light.type = LightType.Point;
             light.range = 7f;
-            light.intensity = 1.6f;
+            light.intensity = 1.1f;
             light.color = new Color(1f, 0.92f, 0.80f);
             light.shadows = LightShadows.None;
         }
